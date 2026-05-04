@@ -26,7 +26,8 @@
 
 ## Testing implications
 - `src/app.controller.spec.ts` is isolated and does not touch Prisma.
-- `test/app.e2e-spec.ts` imports `AppModule`; because `AppModule` provides `PrismaService`, e2e runs can fail early if `DATABASE_URL` is missing or invalid.
+- `test/app.e2e-spec.ts` is a Prisma-free smoke test and explicitly mocks `src/prisma.service.ts`; keep it that way unless the test truly needs the database.
+- Auth or Prisma-backed e2e coverage should use its own harness/specs instead of depending on the smoke test, because the generated Prisma client currently brings ESM-only `import.meta` into Jest.
 - Jest globals are enabled through `compilerOptions.types: ["node", "jest"]` in `tsconfig.json`; keep that if test files show `describe`/`it`/`expect` type errors.
 
 ## Code map

@@ -26,11 +26,11 @@ Chain strategy: pending
 
 ## Phase 1: Foundation
 
-- [ ] 1.1 Install runtime/dev packages in `package.json`: `bcrypt`, `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `cookie-parser`, `class-validator`, `class-transformer`, and needed `@types/*`.
-- [ ] 1.2 RED: add failing config/cookie unit specs under `src/auth/config/**/*.spec.ts` for env validation, cookie names/paths, `Secure`/same-site behavior, and root `.env` assumptions.
-- [ ] 1.3 GREEN: create `src/auth/` via Nest CLI (`module`, `controller`, `service`) plus config/cookie helpers, then wire `src/app.module.ts` and `src/main.ts` with validation pipe, `cookie-parser`, CORS credentials, and configurable origins.
-- [ ] 1.4 RED: add failing Prisma-oriented tests for credential lookup, refresh-session rotation, reuse-family revocation, and logout revocation in `test/auth/**/*.spec.ts`.
-- [ ] 1.5 GREEN: simplify `prisma/schema.prisma`, create auth migration, run `npx prisma generate`, and add test seed/helper files for an active admin user using ONLY root `.env`.
+- [x] 1.1 Install runtime/dev packages in `package.json`: `bcrypt`, `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `cookie-parser`, `class-validator`, `class-transformer`, and needed `@types/*`.
+- [x] 1.2 RED: add failing config/cookie unit specs under `src/auth/config/**/*.spec.ts` for env validation, cookie names/paths, `Secure`/same-site behavior, and root `.env` assumptions.
+- [x] 1.3 GREEN: create `src/auth/` via Nest CLI (`module`, `controller`, `service`) plus config/cookie helpers, then wire `src/app.module.ts` and `src/main.ts` with validation pipe, `cookie-parser`, CORS credentials, and configurable origins.
+- [x] 1.4 RED: add failing Prisma-oriented tests for credential lookup, refresh-session rotation, reuse-family revocation, and logout revocation in `test/auth/**/*.spec.ts`.
+- [x] 1.5 GREEN: simplify `prisma/schema.prisma`, create auth migration, run `npx prisma generate`, and add test seed/helper files for an active admin user using ONLY root `.env`.
 
 ## Phase 2: Session Flows
 

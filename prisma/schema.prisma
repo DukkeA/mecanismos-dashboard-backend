@@ -357,59 +357,53 @@ model WorkshopWorkOrderDetails {
 }
 
 model account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime
-  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
+  id                String    @id
+  userId            String    @unique
+  passwordHash      String
+  passwordUpdatedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime
+  user              user      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model session {
-  id        String   @id
-  expiresAt DateTime
-  token     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String    @id
+  expiresAt           DateTime
+  tokenDigest         String    @unique
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime
+  revokedAt           DateTime?
+  replacedBySessionId String?   @unique
+  familyId            String
+  lastUsedAt          DateTime?
+  ipAddress           String?
+  userAgent           String?
+  userId              String
+  replacedBySession   session?  @relation("SessionReplacement", fields: [replacedBySessionId], references: [id])
+  previousSession     session?  @relation("SessionReplacement")
+  user                user      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([familyId])
   @@index([userId])
 }
 
 model user {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-  account       account[]
-  session       session[]
+  id          String    @id
+  name        String
+  email       String    @unique
+  role        UserRole  @default(ADMIN)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  account     account?
+  session     session[]
 }
 
-model verification {
-  id         String   @id
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
-
-  @@index([identifier])
+enum UserRole {
+  ADMIN
+  SALES
+  MECHANIC
 }
 
 enum CustomerDocumentType {
