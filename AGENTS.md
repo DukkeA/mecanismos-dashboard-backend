@@ -27,7 +27,7 @@
 ## Testing implications
 - `src/app.controller.spec.ts` is isolated and does not touch Prisma.
 - `test/app.e2e-spec.ts` imports `AppModule`; because `AppModule` provides `PrismaService`, e2e runs can fail early if `DATABASE_URL` is missing or invalid.
-- Current `npm run test` fails before tests run with `TS5103: Invalid value for '--ignoreDeprecations'` from TypeScript/Jest config; do not assume a code change caused that without checking config first.
+- Jest globals are enabled through `compilerOptions.types: ["node", "jest"]` in `tsconfig.json`; keep that if test files show `describe`/`it`/`expect` type errors.
 
 ## Code map
 - `src/app.module.ts` currently wires only `AppController`, `AppService`, and `PrismaService`.
