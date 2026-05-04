@@ -1,0 +1,500 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AppSettings {
+  id                       Int      @id @default(1)
+  companyName              String   @default("Mecanismos Tecnicos")
+  currencyCode             String   @default("COP")
+  monthlyWorkingHours      Int      @default(176)
+  saleContingencyPct       Int      @default(5)
+  workshopContingencyPct   Int      @default(10)
+  diagnosticContingencyPct Int      @default(20)
+  minimumMarkupPct         Int      @default(20)
+  recommendedMarkupPct     Int      @default(35)
+  highMarkupPct            Int      @default(50)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime
+}
+
+model Component {
+  id         String      @id
+  customerId String
+  vehicleId  String?
+  brand      String
+  reference  String
+  identifier String?
+  notes      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime
+  Customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  Vehicle    Vehicle?    @relation(fields: [vehicleId], references: [id])
+  WorkOrder  WorkOrder[]
+
+  @@index([customerId])
+  @@index([identifier])
+  @@index([vehicleId])
+}
+
+model CostCenter {
+  id        String     @id
+  code      String     @unique
+  name      String
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  Employee  Employee[]
+  Expense   Expense[]
+}
+
+model Customer {
+  id             String               @id
+  name           String
+  phone          String
+  documentType   CustomerDocumentType
+  documentNumber String
+  email          String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime
+  Component      Component[]
+  Vehicle        Vehicle[]
+  WorkOrder      WorkOrder[]
+
+  @@unique([documentType, documentNumber])
+}
+
+model Employee {
+  id                String          @id
+  name              String
+  type              EmployeeType
+  phone             String?
+  baseSalaryMonthly Int             @default(0)
+  costCenterId      String?
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime
+  CostCenter        CostCenter?     @relation(fields: [costCenterId], references: [id])
+  EmployeeBonus     EmployeeBonus[]
+  WorkOrder         WorkOrder[]
+
+  @@index([costCenterId])
+  @@index([type])
+}
+
+model EmployeeBonus {
+  id            String         @id
+  employeeId    String
+  amount        Int
+  description   String?
+  paidAt        DateTime
+  paymentMethod PaymentMethod?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime
+  Employee      Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([paidAt])
+}
+
+model Expense {
+  id            String          @id
+  name          String
+  category      ExpenseCategory
+  amount        Int
+  costCenterId  String?
+  expectedAt    DateTime
+  paidAt        DateTime?
+  paymentMethod PaymentMethod?
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  CostCenter    CostCenter?     @relation(fields: [costCenterId], references: [id])
+
+  @@index([costCenterId])
+  @@index([expectedAt])
+  @@index([paidAt])
+}
+
+model InventoryItem {
+  id                    String                  @id
+  name                  String
+  itemType              InventoryItemType
+  condition             InventoryCondition      @default(NEW)
+  brand                 String?
+  reference             String?
+  identifier            String?
+  notes                 String?
+  minimumStock          Int                     @default(0)
+  defaultSalePrice      Int?
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  InventoryMovement     InventoryMovement[]
+  SupplierQuoteHistory  SupplierQuoteHistory[]
+  WorkOrderActualCost   WorkOrderActualCost[]
+  WorkOrderEstimateLine WorkOrderEstimateLine[]
+
+  @@index([identifier])
+  @@index([reference])
+}
+
+model InventoryMovement {
+  id                     String                  @id
+  inventoryItemId        String
+  movementType           InventoryMovementType
+  reason                 InventoryMovementReason
+  quantity               Int
+  unitCost               Int?
+  supplierId             String?
+  workOrderId            String?
+  isReservedForWorkOrder Boolean                 @default(false)
+  occurredAt             DateTime
+  notes                  String?
+  createdAt              DateTime                @default(now())
+  InventoryItem          InventoryItem           @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  Supplier               Supplier?               @relation(fields: [supplierId], references: [id])
+  WorkOrder              WorkOrder?              @relation(fields: [workOrderId], references: [id])
+
+  @@index([inventoryItemId, occurredAt])
+  @@index([supplierId])
+  @@index([workOrderId, occurredAt])
+}
+
+model ServiceCatalog {
+  id                    String                  @id
+  name                  String                  @unique
+  description           String?
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  WorkOrderEstimateLine WorkOrderEstimateLine[]
+}
+
+model Supplier {
+  id                    String                  @id
+  name                  String                  @unique
+  phone                 String?
+  email                 String?
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  InventoryMovement     InventoryMovement[]
+  SupplierQuoteHistory  SupplierQuoteHistory[]
+  WorkOrderActualCost   WorkOrderActualCost[]
+  WorkOrderEstimateLine WorkOrderEstimateLine[]
+}
+
+model SupplierQuoteHistory {
+  id              String        @id
+  supplierId      String
+  inventoryItemId String
+  workOrderId     String?
+  quotedCost      Int
+  notes           String?
+  quotedAt        DateTime
+  createdAt       DateTime      @default(now())
+  InventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  Supplier        Supplier      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  WorkOrder       WorkOrder?    @relation(fields: [workOrderId], references: [id])
+
+  @@index([inventoryItemId, quotedAt])
+  @@index([supplierId, quotedAt])
+  @@index([workOrderId])
+}
+
+model Vehicle {
+  id             String      @id
+  customerId     String
+  brand          String
+  modelReference String
+  plate          String      @unique
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime
+  Component      Component[]
+  Customer       Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  WorkOrder      WorkOrder[]
+
+  @@index([customerId])
+}
+
+model WorkOrder {
+  id                       String                    @id
+  number                   Int                       @unique @default(autoincrement())
+  type                     WorkOrderType
+  status                   WorkOrderStatus           @default(IN_PROGRESS)
+  paymentStatus            PaymentStatus             @default(PENDING)
+  customerId               String
+  vehicleId                String?
+  componentId              String?
+  assignedEmployeeId       String?
+  summary                  String
+  externalLink             String?
+  notes                    Json?
+  estimatedCompletionAt    DateTime?
+  estimatedCollectionAt    DateTime?
+  completedAt              DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime
+  InventoryMovement        InventoryMovement[]
+  SupplierQuoteHistory     SupplierQuoteHistory[]
+  Employee                 Employee?                 @relation(fields: [assignedEmployeeId], references: [id])
+  Component                Component?                @relation(fields: [componentId], references: [id])
+  Customer                 Customer                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  Vehicle                  Vehicle?                  @relation(fields: [vehicleId], references: [id])
+  WorkOrderActualCost      WorkOrderActualCost[]
+  WorkOrderEstimate        WorkOrderEstimate[]
+  WorkOrderPayment         WorkOrderPayment[]
+  WorkshopWorkOrderDetails WorkshopWorkOrderDetails?
+
+  @@index([assignedEmployeeId])
+  @@index([completedAt])
+  @@index([customerId])
+  @@index([estimatedCollectionAt])
+  @@index([paymentStatus])
+  @@index([status])
+}
+
+model WorkOrderActualCost {
+  id              String                @id
+  workOrderId     String
+  category        WorkOrderCostCategory
+  description     String
+  amount          Int
+  supplierId      String?
+  inventoryItemId String?
+  paymentMethod   PaymentMethod?
+  incurredAt      DateTime
+  notes           String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime
+  InventoryItem   InventoryItem?        @relation(fields: [inventoryItemId], references: [id])
+  Supplier        Supplier?             @relation(fields: [supplierId], references: [id])
+  WorkOrder       WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([incurredAt])
+  @@index([inventoryItemId])
+  @@index([supplierId])
+  @@index([workOrderId])
+}
+
+model WorkOrderEstimate {
+  id                      String                  @id
+  workOrderId             String
+  phase                   EstimatePhase
+  estimatedLaborHours     Decimal?                @db.Decimal(6, 2)
+  laborHourlyCostSnapshot Int?
+  baseCostAmount          Int                     @default(0)
+  contingencyPct          Int?
+  contingencyAmount       Int                     @default(0)
+  totalCostAmount         Int                     @default(0)
+  totalPriceAmount        Int                     @default(0)
+  recommendedMinimumPrice Int?
+  recommendedPrice        Int?
+  recommendedHighPrice    Int?
+  notes                   String?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime
+  WorkOrder               WorkOrder               @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  WorkOrderEstimateLine   WorkOrderEstimateLine[]
+
+  @@unique([workOrderId, phase])
+  @@index([phase])
+}
+
+model WorkOrderEstimateLine {
+  id                String            @id
+  estimateId        String
+  lineType          EstimateLineType
+  description       String
+  inventoryItemId   String?
+  serviceCatalogId  String?
+  supplierId        String?
+  quantity          Int               @default(1)
+  unitCost          Int?
+  unitPrice         Int?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  WorkOrderEstimate WorkOrderEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  InventoryItem     InventoryItem?    @relation(fields: [inventoryItemId], references: [id])
+  ServiceCatalog    ServiceCatalog?   @relation(fields: [serviceCatalogId], references: [id])
+  Supplier          Supplier?         @relation(fields: [supplierId], references: [id])
+
+  @@index([estimateId])
+  @@index([inventoryItemId])
+  @@index([serviceCatalogId])
+  @@index([supplierId])
+}
+
+model WorkOrderPayment {
+  id            String         @id
+  workOrderId   String
+  amount        Int
+  paymentMethod PaymentMethod?
+  paidAt        DateTime
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime
+  WorkOrder     WorkOrder      @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([paidAt])
+  @@index([workOrderId])
+}
+
+model WorkshopWorkOrderDetails {
+  id                    String    @id
+  workOrderId           String    @unique
+  customerReportedIssue String?
+  diagnosisRequired     Boolean   @default(false)
+  diagnosisSummary      String?
+  WorkOrder             WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model user {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  account       account[]
+  session       session[]
+}
+
+model verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+
+  @@index([identifier])
+}
+
+enum CustomerDocumentType {
+  CEDULA
+  NIT
+}
+
+enum EmployeeType {
+  MECHANIC
+  SALES
+  ADMIN
+}
+
+enum EstimateLineType {
+  PART
+  SERVICE
+  OTHER
+}
+
+enum EstimatePhase {
+  INITIAL
+  FINAL
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITY
+  OTHER
+}
+
+enum InventoryCondition {
+  NEW
+  USED
+  REMANUFACTURED
+}
+
+enum InventoryItemType {
+  REPLACEMENT_PART
+  OWNED_COMPONENT
+  OTHER
+}
+
+enum InventoryMovementReason {
+  PURCHASE
+  WORK_ORDER_PURCHASE
+  WORK_ORDER_CONSUMPTION
+  MANUAL_ADJUSTMENT
+  RETURN
+  SALE
+}
+
+enum InventoryMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+enum WorkOrderCostCategory {
+  OUTSOURCED_SERVICE
+  DIRECT_PURCHASE
+  MISC
+  OTHER
+}
+
+enum WorkOrderStatus {
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkOrderType {
+  SALE
+  WORKSHOP
+}
