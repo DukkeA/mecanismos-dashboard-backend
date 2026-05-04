@@ -44,6 +44,12 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+### Environment variables
+
+- The Nest runtime now loads `.env` automatically via `@nestjs/config`.
+- You no longer need to export `DATABASE_URL` manually in the shell before starting the app.
+- Keep `.env` at the repository root.
+
 ## Run tests
 
 ```bash
