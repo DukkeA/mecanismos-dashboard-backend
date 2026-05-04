@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "nestjs-expert": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nestjs-expert/SKILL.md",
+      "computedHash": "24253ac233d644a504ba5f2847af7d87bf25c9beb03b16bbbaf952e431865c83"
+    },
+    "prisma-client-api": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-client-api/SKILL.md",
+      "computedHash": "7825288518e0722b497de03367a1aee477fc61b0b488d456b9b6257294c005ae"
+    }
+  }
+}
