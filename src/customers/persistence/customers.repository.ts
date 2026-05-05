@@ -1,20 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { CustomerDocumentType } from '../customer-document-type';
+import type {
+  Customer,
+  CustomerDocumentType,
+  Prisma,
+} from '../../../generated/prisma/client';
 
 export const CUSTOMERS_PRISMA_CLIENT = Symbol('CUSTOMERS_PRISMA_CLIENT');
 
-export type CustomerRecord = {
-  id: string;
-  name: string;
-  phone: string;
-  documentType: CustomerDocumentType;
-  documentNumber: string;
-  email: string | null;
-  notes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type CustomerRecord = Customer;
 
 export type CreateCustomerRecordInput = {
   name: string;
@@ -34,14 +28,7 @@ export type ListCustomersQuery = {
   documentType?: CustomerDocumentType;
 };
 
-type CustomerWhereInput = {
-  documentType?: CustomerDocumentType;
-  OR?: Array<{
-    name?: { contains: string; mode: 'insensitive' };
-    documentNumber?: { contains: string; mode: 'insensitive' };
-    phone?: { contains: string; mode: 'insensitive' };
-  }>;
-};
+type CustomerWhereInput = Prisma.CustomerWhereInput;
 
 type CustomersPrismaClient = {
   customer: {

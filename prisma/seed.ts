@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { hash } from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../generated/prisma/client';
+import { CustomerDocumentType, PrismaClient } from '../generated/prisma/client';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -26,6 +26,67 @@ const SEED_USERS = [
     role: 'MECHANIC' as const,
   },
 ];
+
+const SEED_CUSTOMERS = [
+  {
+    id: 'seed-customer-acme-industrial',
+    name: 'Acme Industrial SAS',
+    phone: '3001234567',
+    documentType: CustomerDocumentType.NIT,
+    documentNumber: '900123456',
+    email: 'compras@acme-industrial.test',
+    notes: '<p>Cliente de muestra para activos industriales.</p>',
+  },
+  {
+    id: 'seed-customer-ana-gomez',
+    name: 'Ana Gomez',
+    phone: '3109876543',
+    documentType: CustomerDocumentType.CEDULA,
+    documentNumber: '123456789',
+    email: 'ana.gomez@mecanismos.test',
+    notes: '<p>Cliente de muestra para flujo comercial.</p>',
+  },
+] as const;
+
+const SEED_VEHICLES = [
+  {
+    id: 'seed-vehicle-acme-foton-aumark',
+    customerId: 'seed-customer-acme-industrial',
+    brand: 'Foton',
+    modelReference: 'Aumark BJ1049',
+    plate: 'ABC123',
+    notes: 'Vehiculo de reparto para pruebas de customer-assets.',
+  },
+  {
+    id: 'seed-vehicle-ana-hilux',
+    customerId: 'seed-customer-ana-gomez',
+    brand: 'Toyota',
+    modelReference: 'Hilux 2.8',
+    plate: 'XYZ987',
+    notes: 'Vehiculo personal de muestra.',
+  },
+] as const;
+
+const SEED_COMPONENTS = [
+  {
+    id: 'seed-component-acme-turbo',
+    customerId: 'seed-customer-acme-industrial',
+    vehicleId: 'seed-vehicle-acme-foton-aumark',
+    brand: 'Garrett',
+    reference: 'GT2256V',
+    identifier: 'TURBO-ACME-001',
+    notes: 'Componente ligado al vehiculo Acme para validar ownership.',
+  },
+  {
+    id: 'seed-component-ana-alternator',
+    customerId: 'seed-customer-ana-gomez',
+    vehicleId: null,
+    brand: 'Denso',
+    reference: 'ALT-120A',
+    identifier: 'ALT-ANA-001',
+    notes: 'Componente sin vehiculo para probar vehicleId opcional.',
+  },
+] as const;
 
 async function main() {
   if (!process.env.DATABASE_URL) {
@@ -82,6 +143,90 @@ async function main() {
       });
 
       console.log(`Seeded ${seedUser.role} user: ${email}`);
+    }
+
+    for (const seedCustomer of SEED_CUSTOMERS) {
+      await prisma.customer.upsert({
+        where: {
+          documentType_documentNumber: {
+            documentType: seedCustomer.documentType,
+            documentNumber: seedCustomer.documentNumber,
+          },
+        },
+        create: {
+          id: seedCustomer.id,
+          name: seedCustomer.name,
+          phone: seedCustomer.phone,
+          documentType: seedCustomer.documentType,
+          documentNumber: seedCustomer.documentNumber,
+          email: seedCustomer.email,
+          notes: seedCustomer.notes,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          name: seedCustomer.name,
+          phone: seedCustomer.phone,
+          email: seedCustomer.email,
+          notes: seedCustomer.notes,
+          updatedAt: now,
+        },
+      });
+
+      console.log(`Seeded customer: ${seedCustomer.name}`);
+    }
+
+    for (const seedVehicle of SEED_VEHICLES) {
+      await prisma.vehicle.upsert({
+        where: { plate: seedVehicle.plate },
+        create: {
+          id: seedVehicle.id,
+          customerId: seedVehicle.customerId,
+          brand: seedVehicle.brand,
+          modelReference: seedVehicle.modelReference,
+          plate: seedVehicle.plate,
+          notes: seedVehicle.notes,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          customerId: seedVehicle.customerId,
+          brand: seedVehicle.brand,
+          modelReference: seedVehicle.modelReference,
+          notes: seedVehicle.notes,
+          updatedAt: now,
+        },
+      });
+
+      console.log(`Seeded vehicle: ${seedVehicle.plate}`);
+    }
+
+    for (const seedComponent of SEED_COMPONENTS) {
+      await prisma.component.upsert({
+        where: { id: seedComponent.id },
+        create: {
+          id: seedComponent.id,
+          customerId: seedComponent.customerId,
+          vehicleId: seedComponent.vehicleId,
+          brand: seedComponent.brand,
+          reference: seedComponent.reference,
+          identifier: seedComponent.identifier,
+          notes: seedComponent.notes,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          customerId: seedComponent.customerId,
+          vehicleId: seedComponent.vehicleId,
+          brand: seedComponent.brand,
+          reference: seedComponent.reference,
+          identifier: seedComponent.identifier,
+          notes: seedComponent.notes,
+          updatedAt: now,
+        },
+      });
+
+      console.log(`Seeded component: ${seedComponent.identifier}`);
     }
   } finally {
     await prisma.$disconnect();

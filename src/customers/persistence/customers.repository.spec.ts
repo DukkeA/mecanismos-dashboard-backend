@@ -1,9 +1,5 @@
+import { CustomerDocumentType } from '../../../generated/prisma/enums';
 import { CustomersRepository } from './customers.repository';
-
-const CustomerDocumentType = {
-  CEDULA: 'CEDULA',
-  NIT: 'NIT',
-} as const;
 
 describe('CustomersRepository', () => {
   it('normalizes trimmed strings and lowercase email on create', async () => {

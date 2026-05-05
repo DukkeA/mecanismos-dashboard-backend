@@ -6,15 +6,14 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import {
-  customerDocumentTypes,
-  type CustomerDocumentType,
-} from '../customer-document-type';
+import { CustomerDocumentType } from '../../../generated/prisma/enums';
 import {
   LowercaseEmail,
   OptionalTrimmedString,
   TrimmedString,
 } from './customer-string.transforms';
+
+const customerDocumentTypes = Object.values(CustomerDocumentType);
 
 export class CreateCustomerDto {
   @ApiProperty({ example: 'Ana Gomez' })

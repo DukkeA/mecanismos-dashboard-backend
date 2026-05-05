@@ -14,17 +14,29 @@ npx tsc --noEmit
 
 ## What each layer proves
 
-| Layer | Files | Why it matters |
-| --- | --- | --- |
-| Unit | `src/customers/**/*.spec.ts`, `src/vehicles/**/*.spec.ts`, `src/components/**/*.spec.ts` | Validates normalization, pagination query shapes, duplicate/error mapping, and ownership rules. |
-| E2E | `test/customer-assets/*.e2e-spec.ts` | Validates auth cookies, `ADMIN | SALES` access, `MECHANIC` rejection, DTO validation, and HTTP status contracts. |
-| Artifact | `src/customer-assets/*.artifacts.spec.ts` | Verifies docs and Postman artifacts ship with the feature. |
+| Layer    | Files                                                                                    | Why it matters                                                                                                    |
+| -------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Unit     | `src/customers/**/*.spec.ts`, `src/vehicles/**/*.spec.ts`, `src/components/**/*.spec.ts` | Validates normalization, pagination query shapes, duplicate/error mapping, and ownership rules.                   |
+| E2E      | `test/customer-assets/*.e2e-spec.ts`                                                     | Validates auth cookies, `ADMIN \| SALES` access, `MECHANIC` rejection, DTO validation, and HTTP status contracts. |
+| Artifact | `src/customer-assets/*.artifacts.spec.ts`                                                | Verifies docs and Postman artifacts ship with the feature.                                                        |
 
 ## Postman workflow
 
 Use `test/postman/mecanismos-dashboard-customer-assets.postman_collection.json` for manual reviewer checks.
 
+Before manual checks, apply migrations and seed representative data:
+
+```bash
+npx prisma migrate dev
+npx prisma db seed
+```
+
+Use `npx prisma migrate deploy` instead when applying already committed migrations in CI/staging/production-style environments where no new migration should be created.
+
+The seed creates sample `ADMIN`, `SALES`, and `MECHANIC` users plus customer-assets data for customers, vehicles, and components.
+
 Recommended order:
+
 1. Login with auth v1 collection to obtain cookies.
 2. Run customer create/list/get/update requests.
 3. Run vehicle create/list/get/update requests.

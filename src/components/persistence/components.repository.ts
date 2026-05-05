@@ -1,24 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import type {
+  Component,
+  Prisma,
+  Vehicle,
+} from '../../../generated/prisma/client';
 
 export const COMPONENTS_PRISMA_CLIENT = Symbol('COMPONENTS_PRISMA_CLIENT');
 
-export type ComponentRecord = {
-  id: string;
-  customerId: string;
-  vehicleId: string | null;
-  brand: string;
-  reference: string;
-  identifier: string | null;
-  notes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type ComponentRecord = Component;
 
-export type VehicleOwnershipRecord = {
-  id: string;
-  customerId: string;
-};
+export type VehicleOwnershipRecord = Pick<Vehicle, 'id' | 'customerId'>;
 
 export type CreateComponentRecordInput = {
   customerId: string;
@@ -43,15 +35,7 @@ export type ListComponentsQuery = {
   vehicleId?: string;
 };
 
-type ComponentWhereInput = {
-  customerId?: string;
-  vehicleId?: string;
-  OR?: Array<{
-    identifier?: { contains: string; mode: 'insensitive' };
-    reference?: { contains: string; mode: 'insensitive' };
-    brand?: { contains: string; mode: 'insensitive' };
-  }>;
-};
+type ComponentWhereInput = Prisma.ComponentWhereInput;
 
 type ComponentsPrismaClient = {
   customer: {

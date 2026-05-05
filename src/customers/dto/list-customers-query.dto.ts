@@ -1,11 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import {
-  customerDocumentTypes,
-  type CustomerDocumentType,
-} from '../customer-document-type';
+import { CustomerDocumentType } from '../../../generated/prisma/enums';
 import { OptionalTrimmedString } from './customer-string.transforms';
+
+const customerDocumentTypes = Object.values(CustomerDocumentType);
 
 export class ListCustomersQueryDto {
   @ApiPropertyOptional({ default: 1 })

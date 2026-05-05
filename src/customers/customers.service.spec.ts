@@ -1,14 +1,10 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { CustomerDocumentType } from '../../generated/prisma/enums';
 import {
   CustomerDuplicateDocumentError,
   CustomersRepository,
 } from './persistence/customers.repository';
 import { CustomersService } from './customers.service';
-
-const CustomerDocumentType = {
-  CEDULA: 'CEDULA',
-  NIT: 'NIT',
-} as const;
 
 describe('CustomersService', () => {
   const customerRecord = {
