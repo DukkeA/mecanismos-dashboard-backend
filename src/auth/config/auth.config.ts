@@ -2,12 +2,18 @@ import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.int
 import { CookieOptions } from 'express';
 
 export const AUTH_ENV_SOURCE_FILE = '.env';
+export const AUTH_RUNTIME_CONFIG = Symbol('AUTH_RUNTIME_CONFIG');
 
 type SameSitePolicy = 'lax' | 'strict' | 'none';
 
 type CookieDefinition = {
   name: string;
   path: string;
+};
+
+type AuthRequestSourceHeaders = {
+  origin?: string;
+  referer?: string;
 };
 
 export type AuthRuntimeConfig = {
@@ -128,6 +134,27 @@ export function buildAuthCorsOptions(config: AuthRuntimeConfig): CorsOptions {
   };
 }
 
+export function isAllowedAuthRequestSource(
+  method: string,
+  headers: AuthRequestSourceHeaders,
+  allowedOrigins: string[],
+): boolean {
+  if (!isUnsafeHttpMethod(method)) {
+    return true;
+  }
+
+  const origin = normalizeOrigin(headers.origin);
+  const refererOrigin = normalizeOrigin(headers.referer);
+
+  if (!origin && !refererOrigin) {
+    return true;
+  }
+
+  return [origin, refererOrigin]
+    .filter((value): value is string => Boolean(value))
+    .every((value) => allowedOrigins.includes(value));
+}
+
 function hasAnyAuthEnvironmentValue(
   env: Record<string, string | undefined>,
 ): boolean {
@@ -141,6 +168,22 @@ function splitCommaSeparatedValues(value: string | undefined): string[] {
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0) ?? []
   );
+}
+
+function isUnsafeHttpMethod(method: string): boolean {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase());
+}
+
+function normalizeOrigin(rawValue: string | undefined): string | null {
+  if (!rawValue?.trim()) {
+    return null;
+  }
+
+  try {
+    return new URL(rawValue).origin;
+  } catch {
+    return null;
+  }
 }
 
 function parsePositiveInt(

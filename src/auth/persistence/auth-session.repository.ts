@@ -1,3 +1,7 @@
+import { Inject, Injectable } from '@nestjs/common';
+
+export const AUTH_PRISMA_CLIENT = Symbol('AUTH_PRISMA_CLIENT');
+
 type CredentialAccountRecord = {
   id: string;
   passwordHash: string;
@@ -15,6 +19,30 @@ type RefreshSessionRecord = {
   familyId: string;
 };
 
+type RefreshSessionLookupRecord = {
+  id: string;
+  familyId: string;
+  userId: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  replacedBySessionId: string | null;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: 'ADMIN' | 'SALES' | 'MECHANIC';
+    isActive: boolean;
+  };
+};
+
+type ActiveUserRecord = {
+  id: string;
+  email: string;
+  name: string;
+  role: 'ADMIN' | 'SALES' | 'MECHANIC';
+  isActive: boolean;
+};
+
 type AuthPrismaClient = {
   account: {
     findFirst(args: {
@@ -23,6 +51,22 @@ type AuthPrismaClient = {
     }): Promise<CredentialAccountRecord | null>;
   };
   session: {
+    create(args: {
+      data: {
+        id: string;
+        userId: string;
+        familyId: string;
+        tokenDigest: string;
+        expiresAt: Date;
+        lastUsedAt: Date;
+        ipAddress?: string;
+        userAgent?: string;
+      };
+    }): Promise<RefreshSessionRecord>;
+    findUnique(args: {
+      where: { tokenDigest: string };
+      include: { user: true };
+    }): Promise<RefreshSessionLookupRecord | null>;
     update(args: {
       where: { id: string };
       data: {
@@ -35,6 +79,22 @@ type AuthPrismaClient = {
       where: { familyId: string; revokedAt: null };
       data: { revokedAt: Date };
     }): Promise<{ count: number }>;
+  };
+  user: {
+    findFirst(args: {
+      where: { id: string; isActive: true };
+      select: {
+        id: true;
+        email: true;
+        name: true;
+        role: true;
+        isActive: true;
+      };
+    }): Promise<ActiveUserRecord | null>;
+    update(args: {
+      where: { id: string };
+      data: { lastLoginAt: Date };
+    }): Promise<unknown>;
   };
   $transaction?<T>(
     callback: (tx: AuthPrismaTransaction) => Promise<T>,
@@ -74,8 +134,23 @@ type RotateRefreshSessionInput = {
   userAgent?: string;
 };
 
+type CreateRefreshSessionInput = {
+  sessionId: string;
+  userId: string;
+  familyId: string;
+  tokenDigest: string;
+  expiresAt: Date;
+  lastUsedAt: Date;
+  ipAddress?: string;
+  userAgent?: string;
+};
+
+@Injectable()
 export class AuthSessionRepository {
-  constructor(private readonly prisma: AuthPrismaClient) {}
+  constructor(
+    @Inject(AUTH_PRISMA_CLIENT)
+    private readonly prisma: AuthPrismaClient,
+  ) {}
 
   findActivePasswordCredentialByEmail(email: string) {
     return this.prisma.account.findFirst({
@@ -87,6 +162,22 @@ export class AuthSessionRepository {
       },
       include: {
         user: true,
+      },
+    });
+  }
+
+  findActiveUserById(userId: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
       },
     });
   }
@@ -128,6 +219,32 @@ export class AuthSessionRepository {
     });
   }
 
+  createRefreshSession(input: CreateRefreshSessionInput) {
+    return this.prisma.session.create({
+      data: {
+        id: input.sessionId,
+        userId: input.userId,
+        familyId: input.familyId,
+        tokenDigest: input.tokenDigest,
+        expiresAt: input.expiresAt,
+        lastUsedAt: input.lastUsedAt,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      },
+    });
+  }
+
+  findRefreshSessionByTokenDigest(tokenDigest: string) {
+    return this.prisma.session.findUnique({
+      where: {
+        tokenDigest,
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
+
   async revokeRefreshFamily(familyId: string, revokedAt: Date) {
     const result = await this.prisma.session.updateMany({
       where: {
@@ -147,6 +264,15 @@ export class AuthSessionRepository {
       where: { id: sessionId },
       data: {
         revokedAt,
+      },
+    });
+  }
+
+  touchUserLastLoginAt(userId: string, lastLoginAt: Date) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        lastLoginAt,
       },
     });
   }

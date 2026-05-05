@@ -146,4 +146,81 @@ describe('AuthSessionRepository', () => {
       },
     });
   });
+
+  it('creates a refresh session row for a new login', async () => {
+    const createdSession = { id: 'session-1', familyId: 'family-1' };
+    const prisma = {
+      session: {
+        create: jest.fn().mockResolvedValue(createdSession),
+      },
+    };
+
+    const repository = new AuthSessionRepository(prisma as never);
+    const expiresAt = new Date('2026-05-18T12:00:00.000Z');
+    const lastUsedAt = new Date('2026-05-04T12:00:00.000Z');
+
+    await expect(
+      repository.createRefreshSession({
+        sessionId: 'session-1',
+        userId: 'user-1',
+        familyId: 'family-1',
+        tokenDigest: 'digest-1',
+        expiresAt,
+        lastUsedAt,
+        ipAddress: '127.0.0.1',
+        userAgent: 'jest',
+      }),
+    ).resolves.toEqual(createdSession);
+
+    expect(prisma.session.create).toHaveBeenCalledWith({
+      data: {
+        id: 'session-1',
+        userId: 'user-1',
+        familyId: 'family-1',
+        tokenDigest: 'digest-1',
+        expiresAt,
+        lastUsedAt,
+        ipAddress: '127.0.0.1',
+        userAgent: 'jest',
+      },
+    });
+  });
+
+  it('looks up a refresh session by token digest with its user relation', async () => {
+    const session = {
+      id: 'session-1',
+      familyId: 'family-1',
+      userId: 'user-1',
+      expiresAt: new Date('2026-05-18T12:00:00.000Z'),
+      revokedAt: null,
+      replacedBySessionId: null,
+      user: {
+        id: 'user-1',
+        email: 'admin@mecanismos.test',
+        name: 'Admin',
+        role: 'ADMIN',
+        isActive: true,
+      },
+    };
+    const prisma = {
+      session: {
+        findUnique: jest.fn().mockResolvedValue(session),
+      },
+    };
+
+    const repository = new AuthSessionRepository(prisma as never);
+
+    await expect(
+      repository.findRefreshSessionByTokenDigest('digest-1'),
+    ).resolves.toEqual(session);
+
+    expect(prisma.session.findUnique).toHaveBeenCalledWith({
+      where: {
+        tokenDigest: 'digest-1',
+      },
+      include: {
+        user: true,
+      },
+    });
+  });
 });

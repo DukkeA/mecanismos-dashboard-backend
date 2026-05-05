@@ -15,6 +15,10 @@ describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
+    process.env.AUTH_ACCESS_TOKEN_SECRET = 'access-secret';
+    process.env.AUTH_REFRESH_TOKEN_SECRET = 'refresh-secret';
+    process.env.AUTH_ALLOWED_ORIGINS = 'http://localhost:5173';
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -31,6 +35,8 @@ describe('AppController (e2e)', () => {
   });
 
   afterEach(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 });

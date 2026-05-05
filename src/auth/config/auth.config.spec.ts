@@ -3,6 +3,7 @@ import {
   authConfigFromEnv,
   buildAuthCookieOptions,
   buildAuthCorsOptions,
+  isAllowedAuthRequestSource,
 } from './auth.config';
 
 describe('authConfigFromEnv', () => {
@@ -102,5 +103,36 @@ describe('buildAuthCorsOptions', () => {
       'http://localhost:3000',
       'https://app.mecanismos-tecnicos.com',
     ]);
+  });
+});
+
+describe('isAllowedAuthRequestSource', () => {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://app.mecanismos-tecnicos.com',
+  ];
+
+  it('allows unsafe auth requests without Origin or Referer for local and supertest flows', () => {
+    expect(isAllowedAuthRequestSource('POST', {}, allowedOrigins)).toBeTruthy();
+  });
+
+  it('accepts an unsafe auth request when Origin matches the configured allowlist', () => {
+    expect(
+      isAllowedAuthRequestSource(
+        'POST',
+        { origin: 'https://app.mecanismos-tecnicos.com' },
+        allowedOrigins,
+      ),
+    ).toBeTruthy();
+  });
+
+  it('rejects an unsafe auth request when Referer resolves to a different origin', () => {
+    expect(
+      isAllowedAuthRequestSource(
+        'POST',
+        { referer: 'https://evil.example.com/login?next=%2Fauth' },
+        allowedOrigins,
+      ),
+    ).toBeFalsy();
   });
 });

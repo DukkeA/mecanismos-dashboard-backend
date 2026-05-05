@@ -1,0 +1,226 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Auth",
+    "_postman_id": "f8f53b7d-2f25-47a3-bc4c-c7c7138f2f31",
+    "description": "Supplemental manual verification for auth v1 endpoints: login, refresh, logout, me, and admin smoke.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "email",
+      "value": "admin@mecanismos.test"
+    },
+    {
+      "key": "password",
+      "value": "change-me"
+    }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+              "pm.test('login issues access cookie', function () {",
+              "  pm.expect(setCookies.some((header) => header.value.includes('md_access='))).to.eql(true);",
+              "});",
+              "pm.test('login issues refresh cookie', function () {",
+              "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh='))).to.eql(true);",
+              "});",
+              "pm.test('login response hides secrets', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.accessToken).to.eql(undefined);",
+              "  pm.expect(body.refreshToken).to.eql(undefined);",
+              "  pm.expect(body.passwordHash).to.eql(undefined);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Refresh",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/refresh",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "refresh"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('refresh returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+              "pm.test('refresh rotates cookies', function () {",
+              "  pm.expect(setCookies.some((header) => header.value.includes('md_access='))).to.eql(true);",
+              "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh='))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('logout returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+              "pm.test('logout clears access cookie', function () {",
+              "  pm.expect(setCookies.some((header) => header.value.includes('md_access=;'))).to.eql(true);",
+              "});",
+              "pm.test('logout clears refresh cookie', function () {",
+              "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh=;'))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Me",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('me returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('me returns current user identity', function () {",
+              "  pm.expect(body.id).to.be.a('string');",
+              "  pm.expect(body.email).to.be.a('string');",
+              "  pm.expect(body.name).to.be.a('string');",
+              "  pm.expect(body.role).to.be.oneOf(['ADMIN', 'SALES', 'MECHANIC']);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Smoke",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/admin/smoke",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "admin",
+            "smoke"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('admin smoke returns 200 for admin cookies', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('admin smoke confirms admin role', function () {",
+              "  pm.expect(body.success).to.eql(true);",
+              "  pm.expect(body.role).to.eql('ADMIN');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

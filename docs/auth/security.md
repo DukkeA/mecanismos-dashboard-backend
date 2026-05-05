@@ -1,0 +1,61 @@
+# Auth security posture
+
+The current security posture is COOKIE-FIRST: access and refresh tokens stay in HttpOnly cookies, refresh tokens rotate, and admin-only routes enforce explicit role checks.
+
+## Quick path
+
+1. Keep both auth tokens in HttpOnly cookies.
+2. Treat `md_access` as short-lived and `md_refresh` as rotatable.
+3. Revoke the refresh-session family on reuse.
+4. Allow admin-only access only for `ADMIN`.
+5. Keep root `.env` as the current local source of truth until real deployment environments exist.
+
+## Cookie contract
+
+| Cookie | Default name | Path | Why |
+|---|---|---|---|
+| Access token | `md_access` | `/` | Sent to protected app routes such as `/auth/me` |
+| Refresh token | `md_refresh` | `/auth/refresh` | Narrower path for refresh-only traffic |
+
+## Cookie attributes
+
+| Attribute | Local default | Production expectation | Notes |
+|---|---|---|---|
+| `HttpOnly` | `true` | `true` | JS cannot read the tokens |
+| `Secure` | `false` | `true` | Local HTTP can run without TLS; production MUST use TLS |
+| `SameSite` | `lax` | Configurable | Fits same-site subdomain assumptions today |
+| `Domain` | optional | Configurable | Use only when deployment topology requires it |
+
+## CSRF posture
+
+Answer first: current v1 assumes SAME-SITE SUBDOMAIN DEPLOYMENT, so `SameSite=Lax` plus origin allowlisting plus explicit unsafe-request `Origin`/`Referer` checks is the active posture.
+
+### What this means now
+
+- CORS uses `credentials: true` with explicit allowed origins.
+- Unsafe auth requests (`POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`) allow local/supertest requests with no `Origin` or `Referer`, but when either header is present it MUST resolve to an allowed frontend origin.
+- `Origin` and `Referer` mismatches fail closed with `403 Forbidden` before the auth service runs.
+- If deployment becomes truly cross-site, the team MUST switch to `SameSite=None` and add stronger CSRF controls before release automation depends on it.
+
+## Protected-route model
+
+| Layer | Responsibility |
+|---|---|
+| JWT strategy | Extract `md_access` from cookies and validate the signature/expiry |
+| JWT auth guard | Block requests without a valid access token |
+| Roles guard | Reject authenticated non-admin users on admin-only routes |
+| `AuthService.getCurrentUser()` | Re-load active user identity for `/auth/me` |
+
+## Operational gotchas
+
+- Swagger metadata documents cookie auth, but Swagger UI is NOT the primary verification path for HttpOnly-cookie flows.
+- Root `.env` is shared by Nest runtime, Prisma CLI, and local auth tests for now.
+- Non-admin roles are valid authenticated users, but they are intentionally forbidden from admin-only routes in v1.
+
+## Reviewer checklist
+
+- [ ] Access tokens are extracted from cookies, not request bodies.
+- [ ] Refresh-token reuse revokes the family.
+- [ ] Unsafe auth writes reject disallowed `Origin`/`Referer` values with `403`.
+- [ ] Admin-only access fails with `403` for `SALES` and `MECHANIC`.
+- [ ] Local root `.env` usage is documented as a temporary stage decision, not a forever architecture.
