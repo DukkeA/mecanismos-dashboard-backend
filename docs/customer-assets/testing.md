@@ -22,7 +22,7 @@ npx tsc --noEmit
 
 ## Postman workflow
 
-Use `test/postman/mecanismos-dashboard-customer-assets.postman_collection.json` for manual reviewer checks.
+Use `test/postman/mecanismos-dashboard-customer-assets.postman_collection.json` for runner-friendly reviewer checks.
 
 Before manual checks, apply migrations and seed representative data:
 
@@ -35,12 +35,21 @@ Use `npx prisma migrate deploy` instead when applying already committed migratio
 
 The seed creates sample `ADMIN`, `SALES`, and `MECHANIC` users plus customer-assets data for customers, vehicles, and components.
 
-Recommended order:
+### Collection Runner order
 
-1. Login with auth v1 collection to obtain cookies.
-2. Run customer create/list/get/update requests.
-3. Run vehicle create/list/get/update requests.
-4. Run component create/list/get/update requests, especially the same-customer vehicle rule.
+1. Import the collection.
+2. Confirm `baseUrl` matches the local Nest app.
+3. Run the **Runner Happy Path** folder.
+4. Run the **Protection Checks** folder.
+
+### What the collection automates
+
+- Logs in as the seeded `ADMIN` user before customer-assets requests.
+- Generates unique customer/vehicle/component payload values per run so reruns do not collide on document number, plate, or identifier.
+- Captures `customerId`, `vehicleId`, and `componentId` from create responses and reuses them in later GET/PATCH requests.
+- Verifies `401` after logout and `403` for a seeded `MECHANIC` user on a protected customer-assets endpoint.
+
+You no longer need placeholder IDs like `customer-1`, `vehicle-1`, or `component-1` for the default runner flow.
 
 ## Manual focus points
 

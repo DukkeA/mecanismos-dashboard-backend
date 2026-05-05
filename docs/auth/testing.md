@@ -34,14 +34,22 @@ The PRIMARY verification gate is AUTOMATED TESTS. The Postman collection is only
 
 Path: `test/postman/mecanismos-dashboard-auth.postman_collection.json`
 
-### Happy path
+### Collection Runner order
 
 1. Import the collection.
-2. Set `baseUrl`, `email`, and `password`.
-3. Run `Login` first so Postman stores cookies.
-4. Run `Me`.
-5. Run `Admin Smoke` with an `ADMIN` account.
-6. Run `Refresh` and `Logout` as needed.
+2. Confirm `baseUrl` matches the local Nest app.
+3. Run the **Admin Runner Happy Path** folder from Collection Runner.
+4. Run the **Role & Error Coverage** folder to verify `SALES`/`MECHANIC` restrictions plus invalid login.
+
+### What is automated inside the collection
+
+- `Login as Admin` → `Me as Admin` → `Admin Smoke as Admin` → `Refresh Admin Session` → `Logout Admin Session`
+- `Me after Logout returns 401`
+- `Login as Sales` + `Admin Smoke forbidden for Sales`
+- `Login as Mechanic` + `Admin Smoke forbidden for Mechanic`
+- `Invalid Login rejects bad password`
+
+You DO NOT need to swap credentials by hand for the standard seeded flows; the collection already references the seeded admin, sales, and mechanic accounts.
 
 ## Review checklist
 

@@ -2,7 +2,7 @@
   "info": {
     "name": "Mecanismos Dashboard Customer Assets",
     "_postman_id": "c564d58b-31a8-44f9-82ce-b6744a727540",
-    "description": "Supplemental manual verification for customer-assets CRUD-lite endpoints covering customers, vehicles, and components with ADMIN | SALES access and relation-safe component linking.",
+    "description": "Runner-ready supplemental verification for customer-assets CRUD-lite endpoints. The collection logs in as ADMIN, generates unique payload data, captures customerId/vehicleId/componentId from create responses, and then exercises list/get/update plus protection checks.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,228 +11,904 @@
       "value": "http://localhost:3000"
     },
     {
+      "key": "adminEmail",
+      "value": "admin@mecanismos.test"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin123!"
+    },
+    {
+      "key": "mechanicEmail",
+      "value": "mecanico@mecanismos.test"
+    },
+    {
+      "key": "mechanicPassword",
+      "value": "Mecanico123!"
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
       "key": "customerId",
-      "value": "customer-1"
+      "value": ""
     },
     {
       "key": "vehicleId",
-      "value": "vehicle-1"
+      "value": ""
     },
     {
       "key": "componentId",
-      "value": "component-1"
+      "value": ""
+    },
+    {
+      "key": "customerName",
+      "value": ""
+    },
+    {
+      "key": "customerPhone",
+      "value": "3001234567"
+    },
+    {
+      "key": "customerDocumentNumber",
+      "value": ""
+    },
+    {
+      "key": "customerEmail",
+      "value": ""
+    },
+    {
+      "key": "customerSearch",
+      "value": ""
+    },
+    {
+      "key": "vehiclePlate",
+      "value": ""
+    },
+    {
+      "key": "vehicleSearch",
+      "value": ""
+    },
+    {
+      "key": "componentIdentifier",
+      "value": ""
+    },
+    {
+      "key": "componentSearch",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "Create Customer",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Ana Gomez\",\n  \"phone\": \"3001234567\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"123456789\",\n  \"email\": \"ana@mecanismos.test\",\n  \"notes\": \"<p>Cliente frecuente</p>\"\n}"
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+                  "const runId = `${now.slice(-6)}${random}`;",
+                  "const plate = `PM${runId.slice(-5)}`;",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('customerId', '');",
+                  "pm.collectionVariables.set('vehicleId', '');",
+                  "pm.collectionVariables.set('componentId', '');",
+                  "pm.collectionVariables.set('customerName', `Postman Runner ${runId}`);",
+                  "pm.collectionVariables.set('customerDocumentNumber', `9${runId.slice(0, 8)}`);",
+                  "pm.collectionVariables.set('customerEmail', `runner.${runId}@mecanismos.test`);",
+                  "pm.collectionVariables.set('customerSearch', runId);",
+                  "pm.collectionVariables.set('vehiclePlate', plate);",
+                  "pm.collectionVariables.set('vehicleSearch', plate);",
+                  "pm.collectionVariables.set('componentIdentifier', `PM-COMP-${runId}`);",
+                  "pm.collectionVariables.set('componentSearch', `PM-COMP-${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin login returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+                  "pm.test('admin login returns sanitized admin payload', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "  pm.expect(body.accessToken).to.eql(undefined);",
+                  "  pm.expect(body.refreshToken).to.eql(undefined);",
+                  "});",
+                  "pm.test('admin login issues access and refresh cookies', function () {",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_access='))).to.eql(true);",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh='))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
-        "url": {
-          "raw": "{{baseUrl}}/customers",
-          "host": ["{{baseUrl}}"],
-          "path": ["customers"]
-        }
-      }
-    },
-    {
-      "name": "List Customers",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/customers?page=1&limit=10&search=ana",
-          "host": ["{{baseUrl}}"],
-          "path": ["customers"],
-          "query": [
-            { "key": "page", "value": "1" },
-            { "key": "limit", "value": "10" },
-            { "key": "search", "value": "ana" }
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{customerName}}\",\n  \"phone\": \"{{customerPhone}}\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"{{customerDocumentNumber}}\",\n  \"email\": \"{{customerEmail}}\",\n  \"notes\": \"<p>Creado desde Collection Runner {{runId}}</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create customer returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('customerId', body.id);",
+                  "pm.test('create customer captures customerId from response', function () {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(pm.collectionVariables.get('customerId')).to.eql(body.id);",
+                  "});",
+                  "pm.test('create customer echoes generated payload values', function () {",
+                  "  pm.expect(body.name).to.eql(pm.collectionVariables.get('customerName'));",
+                  "  pm.expect(body.documentNumber).to.eql(pm.collectionVariables.get('customerDocumentNumber'));",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('customerEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customers?page=1&limit=10&search={{customerSearch}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "{{customerSearch}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('list customers returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('list customers returns pagination metadata', function () {",
+                  "  pm.expect(body.meta.page).to.eql(1);",
+                  "  pm.expect(body.meta.limit).to.eql(10);",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});",
+                  "pm.test('list customers includes the created customer', function () {",
+                  "  const customerId = pm.collectionVariables.get('customerId');",
+                  "  pm.expect(body.data.some((item) => item.id === customerId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Customer",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{customerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{customerId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('get customer returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('get customer uses captured customerId', function () {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('customerId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"<p>Actualizado desde Collection Runner {{runId}}</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{customerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{customerId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('update customer returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('update customer keeps the same customerId', function () {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('customerId'));",
+                  "});",
+                  "pm.test('update customer writes the runner note', function () {",
+                  "  pm.expect(body.notes).to.eql(`<p>Actualizado desde Collection Runner ${pm.collectionVariables.get('runId')}</p>`);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Vehicle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"Runner {{runId}}\",\n  \"plate\": \"{{vehiclePlate}}\",\n  \"notes\": \"<p>Vehiculo creado desde Collection Runner</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vehicles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create vehicle returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('vehicleId', body.id);",
+                  "pm.test('create vehicle captures vehicleId from response', function () {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(pm.collectionVariables.get('vehicleId')).to.eql(body.id);",
+                  "});",
+                  "pm.test('create vehicle links to captured customerId', function () {",
+                  "  pm.expect(body.customerId).to.eql(pm.collectionVariables.get('customerId'));",
+                  "  pm.expect(body.plate).to.eql(pm.collectionVariables.get('vehiclePlate'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Vehicles",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles?page=1&limit=10&customerId={{customerId}}&search={{vehicleSearch}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                },
+                {
+                  "key": "search",
+                  "value": "{{vehicleSearch}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('list vehicles returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('list vehicles returns pagination metadata', function () {",
+                  "  pm.expect(body.meta.page).to.eql(1);",
+                  "  pm.expect(body.meta.limit).to.eql(10);",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});",
+                  "pm.test('list vehicles includes the created vehicle', function () {",
+                  "  const vehicleId = pm.collectionVariables.get('vehicleId');",
+                  "  pm.expect(body.data.some((item) => item.id === vehicleId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Vehicle",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/{{vehicleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "{{vehicleId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('get vehicle returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('get vehicle uses captured vehicleId', function () {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('vehicleId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Vehicle",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"<p>Actualizado desde Collection Runner</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/{{vehicleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "{{vehicleId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('update vehicle returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('update vehicle keeps the same vehicleId', function () {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('vehicleId'));",
+                  "});",
+                  "pm.test('update vehicle preserves customer ownership', function () {",
+                  "  pm.expect(body.customerId).to.eql(pm.collectionVariables.get('customerId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Component",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"{{componentIdentifier}}\",\n  \"notes\": \"<p>Componente creado desde Collection Runner</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/components",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "components"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create component returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('componentId', body.id);",
+                  "pm.test('create component captures componentId from response', function () {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(pm.collectionVariables.get('componentId')).to.eql(body.id);",
+                  "});",
+                  "pm.test('create component links to captured customerId and vehicleId', function () {",
+                  "  pm.expect(body.customerId).to.eql(pm.collectionVariables.get('customerId'));",
+                  "  pm.expect(body.vehicleId).to.eql(pm.collectionVariables.get('vehicleId'));",
+                  "  pm.expect(body.identifier).to.eql(pm.collectionVariables.get('componentIdentifier'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Components",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/components?page=1&limit=10&customerId={{customerId}}&vehicleId={{vehicleId}}&search={{componentSearch}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "components"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                },
+                {
+                  "key": "vehicleId",
+                  "value": "{{vehicleId}}"
+                },
+                {
+                  "key": "search",
+                  "value": "{{componentSearch}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('list components returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('list components returns pagination metadata', function () {",
+                  "  pm.expect(body.meta.page).to.eql(1);",
+                  "  pm.expect(body.meta.limit).to.eql(10);",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});",
+                  "pm.test('list components includes the created component', function () {",
+                  "  const componentId = pm.collectionVariables.get('componentId');",
+                  "  pm.expect(body.data.some((item) => item.id === componentId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Component",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/components/{{componentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "components",
+                "{{componentId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('get component returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('get component uses captured componentId', function () {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('componentId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Component",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": null,\n  \"notes\": \"<p>Actualizado desde Collection Runner</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/components/{{componentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "components",
+                "{{componentId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('update component returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('update component keeps the same componentId', function () {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('componentId'));",
+                  "});",
+                  "pm.test('update component clears vehicleId without changing customer ownership', function () {",
+                  "  pm.expect(body.vehicleId).to.eql(null);",
+                  "  pm.expect(body.customerId).to.eql(pm.collectionVariables.get('customerId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout Admin Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin logout returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
           ]
         }
-      }
+      ]
     },
     {
-      "name": "Get Customer",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/customers/{{customerId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["customers", "{{customerId}}"]
-        }
-      }
-    },
-    {
-      "name": "Update Customer",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"notes\": \"<p>VIP</p>\"\n}"
+      "name": "Protection Checks",
+      "item": [
+        {
+          "name": "Customer List without auth returns 401",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customers?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('customer list rejects missing session with 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
-        "url": {
-          "raw": "{{baseUrl}}/customers/{{customerId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["customers", "{{customerId}}"]
-        }
-      }
-    },
-    {
-      "name": "Create Vehicle",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"CX5\",\n  \"plate\": \"ABC123\",\n  \"notes\": \"<p>Blindaje nivel 1</p>\"\n}"
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('mechanic login returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('mechanic login returns mechanic role', function () {",
+                  "  pm.expect(body.role).to.eql('MECHANIC');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
-        "url": {
-          "raw": "{{baseUrl}}/vehicles",
-          "host": ["{{baseUrl}}"],
-          "path": ["vehicles"]
-        }
-      }
-    },
-    {
-      "name": "List Vehicles",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/vehicles?page=1&limit=10&customerId={{customerId}}&search=mazda",
-          "host": ["{{baseUrl}}"],
-          "path": ["vehicles"],
-          "query": [
-            { "key": "page", "value": "1" },
-            { "key": "limit", "value": "10" },
-            { "key": "customerId", "value": "{{customerId}}" },
-            { "key": "search", "value": "mazda" }
+        {
+          "name": "Customer List forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customers?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('mechanic is forbidden from customer-assets endpoints', function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout Mechanic Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('mechanic logout returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
           ]
         }
-      }
-    },
-    {
-      "name": "Get Vehicle",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/vehicles/{{vehicleId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["vehicles", "{{vehicleId}}"]
-        }
-      }
-    },
-    {
-      "name": "Update Vehicle",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"notes\": \"<p>Actualizado</p>\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/vehicles/:id",
-          "host": ["{{baseUrl}}"],
-          "path": ["vehicles", ":id"]
-        }
-      }
-    },
-    {
-      "name": "Create Component",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"SER-100\",\n  \"notes\": \"<p>Alternador reemplazado</p>\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/components",
-          "host": ["{{baseUrl}}"],
-          "path": ["components"]
-        }
-      }
-    },
-    {
-      "name": "List Components",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components?page=1&limit=10&customerId={{customerId}}&vehicleId={{vehicleId}}&search=bosch",
-          "host": ["{{baseUrl}}"],
-          "path": ["components"],
-          "query": [
-            { "key": "page", "value": "1" },
-            { "key": "limit", "value": "10" },
-            { "key": "customerId", "value": "{{customerId}}" },
-            { "key": "vehicleId", "value": "{{vehicleId}}" },
-            { "key": "search", "value": "bosch" }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Get Component",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/components/{{componentId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["components", "{{componentId}}"]
-        }
-      }
-    },
-    {
-      "name": "Update Component",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"vehicleId\": null,\n  \"notes\": \"<p>Actualizado</p>\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/components/:id",
-          "host": ["{{baseUrl}}"],
-          "path": ["components", ":id"]
-        }
-      }
+      ]
     }
   ]
 }

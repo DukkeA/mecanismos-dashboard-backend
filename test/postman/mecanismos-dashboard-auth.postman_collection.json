@@ -2,21 +2,13 @@
   "info": {
     "name": "Mecanismos Dashboard Auth",
     "_postman_id": "f8f53b7d-2f25-47a3-bc4c-c7c7138f2f31",
-    "description": "Supplemental manual verification for auth v1 endpoints: login, refresh, logout, me, and admin smoke. Local seed users: admin@mecanismos.test / Admin123!, ventas@mecanismos.test / Ventas123!, mecanico@mecanismos.test / Mecanico123!.",
+    "description": "Runner-ready Supplemental manual verification for login, refresh, logout, me, and admin smoke. Local seed users: admin@mecanismos.test / Admin123!, ventas@mecanismos.test / Ventas123!, mecanico@mecanismos.test / Mecanico123!.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000"
-    },
-    {
-      "key": "email",
-      "value": "admin@mecanismos.test"
-    },
-    {
-      "key": "password",
-      "value": "Admin123!"
     },
     {
       "key": "adminEmail",
@@ -41,208 +33,581 @@
     {
       "key": "mechanicPassword",
       "value": "Mecanico123!"
+    },
+    {
+      "key": "invalidPassword",
+      "value": "Admin123!wrong"
     }
   ],
   "item": [
     {
-      "name": "Login",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+      "name": "Admin Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+                  "pm.test('login returns sanitized admin user', function () {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "  pm.expect(body.accessToken).to.eql(undefined);",
+                  "  pm.expect(body.refreshToken).to.eql(undefined);",
+                  "  pm.expect(body.passwordHash).to.eql(undefined);",
+                  "});",
+                  "pm.test('login issues access and refresh cookies', function () {",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_access='))).to.eql(true);",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh='))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
-        "url": {
-          "raw": "{{baseUrl}}/auth/login",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "auth",
-            "login"
-          ]
-        }
-      },
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('login returns 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
-              "pm.test('login issues access cookie', function () {",
-              "  pm.expect(setCookies.some((header) => header.value.includes('md_access='))).to.eql(true);",
-              "});",
-              "pm.test('login issues refresh cookie', function () {",
-              "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh='))).to.eql(true);",
-              "});",
-              "pm.test('login response hides secrets', function () {",
-              "  const body = pm.response.json();",
-              "  pm.expect(body.accessToken).to.eql(undefined);",
-              "  pm.expect(body.refreshToken).to.eql(undefined);",
-              "  pm.expect(body.passwordHash).to.eql(undefined);",
-              "});"
-            ]
-          }
+          "name": "Me as Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('me returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('me returns current admin identity', function () {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.name).to.be.a('string');",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Smoke as Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin/smoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "admin",
+                "smoke"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin smoke returns 200 for admin', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('admin smoke confirms admin role', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Admin Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('refresh returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+                  "pm.test('refresh rotates cookies', function () {",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_access='))).to.eql(true);",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh='))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout Admin Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('logout returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+                  "pm.test('logout returns success payload', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "});",
+                  "pm.test('logout clears access and refresh cookies', function () {",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_access=;'))).to.eql(true);",
+                  "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh=;'))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me after Logout returns 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('me is unauthorized after logout', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Refresh",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/auth/refresh",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "auth",
-            "refresh"
-          ]
-        }
-      },
-      "event": [
+      "name": "Role & Error Coverage",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('refresh returns 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
-              "pm.test('refresh rotates cookies', function () {",
-              "  pm.expect(setCookies.some((header) => header.value.includes('md_access='))).to.eql(true);",
-              "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh='))).to.eql(true);",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Logout",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/auth/logout",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "auth",
-            "logout"
+          "name": "Login as Sales",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{salesEmail}}\",\n  \"password\": \"{{salesPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('sales login returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('sales login returns sales identity', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('salesEmail'));",
+                  "  pm.expect(body.role).to.eql('SALES');",
+                  "});"
+                ]
+              }
+            }
           ]
-        }
-      },
-      "event": [
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('logout returns 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
-              "pm.test('logout clears access cookie', function () {",
-              "  pm.expect(setCookies.some((header) => header.value.includes('md_access=;'))).to.eql(true);",
-              "});",
-              "pm.test('logout clears refresh cookie', function () {",
-              "  pm.expect(setCookies.some((header) => header.value.includes('md_refresh=;'))).to.eql(true);",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Me",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/auth/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "auth",
-            "me"
+          "name": "Me as Sales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('sales me returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('sales me keeps the SALES role', function () {",
+                  "  pm.expect(body.role).to.eql('SALES');",
+                  "});"
+                ]
+              }
+            }
           ]
-        }
-      },
-      "event": [
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('me returns 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const body = pm.response.json();",
-              "pm.test('me returns current user identity', function () {",
-              "  pm.expect(body.id).to.be.a('string');",
-              "  pm.expect(body.email).to.be.a('string');",
-              "  pm.expect(body.name).to.be.a('string');",
-              "  pm.expect(body.role).to.be.oneOf(['ADMIN', 'SALES', 'MECHANIC']);",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin Smoke",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/auth/admin/smoke",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "auth",
-            "admin",
-            "smoke"
+          "name": "Admin Smoke forbidden for Sales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin/smoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "admin",
+                "smoke"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('sales is forbidden from admin smoke', function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
           ]
-        }
-      },
-      "event": [
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('admin smoke returns 200 for admin cookies', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const body = pm.response.json();",
-              "pm.test('admin smoke confirms admin role', function () {",
-              "  pm.expect(body.success).to.eql(true);",
-              "  pm.expect(body.role).to.eql('ADMIN');",
-              "});"
-            ]
-          }
+          "name": "Logout Sales Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('sales logout returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('mechanic login returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('mechanic login returns mechanic identity', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('mechanicEmail'));",
+                  "  pm.expect(body.role).to.eql('MECHANIC');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me as Mechanic",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('mechanic me returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('mechanic me keeps the MECHANIC role', function () {",
+                  "  pm.expect(body.role).to.eql('MECHANIC');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Smoke forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin/smoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "admin",
+                "smoke"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('mechanic is forbidden from admin smoke', function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout Mechanic Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('mechanic logout returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Login rejects bad password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{invalidPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('invalid login returns 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
+                  "pm.test('invalid login does not issue auth cookies', function () {",
+                  "  pm.expect(setCookies.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

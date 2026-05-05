@@ -1,19 +1,22 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+type PostmanCollectionItem = {
+  name?: string;
+  item?: PostmanCollectionItem[];
+  request?: {
+    method?: string;
+    url?: {
+      raw?: string;
+    };
+  };
+};
+
 type PostmanCollection = {
   info?: {
     description?: string;
   };
-  item?: Array<{
-    name?: string;
-    request?: {
-      method?: string;
-      url?: {
-        raw?: string;
-      };
-    };
-  }>;
+  item?: PostmanCollectionItem[];
 };
 
 describe('customer assets reviewer artifacts', () => {
@@ -78,14 +81,16 @@ describe('customer assets reviewer artifacts', () => {
     const collection = readCollection(postmanCollectionPath);
 
     expect(collection.info?.description).toContain(
-      'Supplemental manual verification',
+      'Runner-ready supplemental verification',
     );
     expect(listRequestNames(collection)).toEqual(
       expect.arrayContaining([
+        'Login as Admin',
         'Create Customer',
         'List Vehicles',
         'Create Component',
         'Update Component',
+        'Customer List forbidden for Mechanic',
       ]),
     );
     expect(findRequest(collection, 'Create Component')).toMatchObject({
@@ -94,7 +99,7 @@ describe('customer assets reviewer artifacts', () => {
     });
     expect(findRequest(collection, 'Update Component')).toMatchObject({
       method: 'PATCH',
-      rawUrl: '{{baseUrl}}/components/:id',
+      rawUrl: '{{baseUrl}}/components/{{componentId}}',
     });
   });
 });
@@ -108,11 +113,13 @@ function readCollection(collectionPath: string): PostmanCollection {
 }
 
 function listRequestNames(collection: PostmanCollection): string[] {
-  return collection.item?.map((item) => item.name ?? '') ?? [];
+  return flattenItems(collection.item).map((item) => item.name ?? '');
 }
 
 function findRequest(collection: PostmanCollection, requestName: string) {
-  const request = collection.item?.find((item) => item.name === requestName);
+  const request = flattenItems(collection.item).find(
+    (item) => item.name === requestName,
+  );
 
   expect(request).toBeDefined();
 
@@ -120,4 +127,18 @@ function findRequest(collection: PostmanCollection, requestName: string) {
     method: request?.request?.method,
     rawUrl: request?.request?.url?.raw,
   };
+}
+
+function flattenItems(items: PostmanCollectionItem[] | undefined): PostmanCollectionItem[] {
+  if (!items) {
+    return [];
+  }
+
+  return items.flatMap((item) => {
+    if (item.request) {
+      return [item];
+    }
+
+    return flattenItems(item.item);
+  });
 }

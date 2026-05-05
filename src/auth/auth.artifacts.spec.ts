@@ -1,19 +1,22 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+type PostmanCollectionItem = {
+  name?: string;
+  item?: PostmanCollectionItem[];
+  request?: {
+    method?: string;
+    url?: {
+      raw?: string;
+    };
+  };
+};
+
 type PostmanCollection = {
   info?: {
     description?: string;
   };
-  item?: Array<{
-    name?: string;
-    request?: {
-      method?: string;
-      url?: {
-        raw?: string;
-      };
-    };
-  }>;
+  item?: PostmanCollectionItem[];
 };
 
 describe('auth reviewer artifacts', () => {
@@ -69,17 +72,21 @@ describe('auth reviewer artifacts', () => {
       'Supplemental manual verification',
     );
     expect(listRequestNames(collection)).toEqual(
-      expect.arrayContaining(['Login', 'Refresh', 'Logout']),
+      expect.arrayContaining([
+        'Login as Admin',
+        'Refresh Admin Session',
+        'Logout Admin Session',
+      ]),
     );
-    expect(findRequest(collection, 'Login')).toMatchObject({
+    expect(findRequest(collection, 'Login as Admin')).toMatchObject({
       method: 'POST',
       rawUrl: '{{baseUrl}}/auth/login',
     });
-    expect(findRequest(collection, 'Refresh')).toMatchObject({
+    expect(findRequest(collection, 'Refresh Admin Session')).toMatchObject({
       method: 'POST',
       rawUrl: '{{baseUrl}}/auth/refresh',
     });
-    expect(findRequest(collection, 'Logout')).toMatchObject({
+    expect(findRequest(collection, 'Logout Admin Session')).toMatchObject({
       method: 'POST',
       rawUrl: '{{baseUrl}}/auth/logout',
     });
@@ -89,13 +96,18 @@ describe('auth reviewer artifacts', () => {
     const collection = readCollection(postmanCollectionPath);
 
     expect(listRequestNames(collection)).toEqual(
-      expect.arrayContaining(['Me', 'Admin Smoke']),
+      expect.arrayContaining([
+        'Me as Admin',
+        'Admin Smoke as Admin',
+        'Admin Smoke forbidden for Sales',
+        'Admin Smoke forbidden for Mechanic',
+      ]),
     );
-    expect(findRequest(collection, 'Me')).toMatchObject({
+    expect(findRequest(collection, 'Me as Admin')).toMatchObject({
       method: 'GET',
       rawUrl: '{{baseUrl}}/auth/me',
     });
-    expect(findRequest(collection, 'Admin Smoke')).toMatchObject({
+    expect(findRequest(collection, 'Admin Smoke as Admin')).toMatchObject({
       method: 'GET',
       rawUrl: '{{baseUrl}}/auth/admin/smoke',
     });
@@ -111,11 +123,13 @@ function readCollection(collectionPath: string): PostmanCollection {
 }
 
 function listRequestNames(collection: PostmanCollection): string[] {
-  return collection.item?.map((item) => item.name ?? '') ?? [];
+  return flattenItems(collection.item).map((item) => item.name ?? '');
 }
 
 function findRequest(collection: PostmanCollection, requestName: string) {
-  const request = collection.item?.find((item) => item.name === requestName);
+  const request = flattenItems(collection.item).find(
+    (item) => item.name === requestName,
+  );
 
   expect(request).toBeDefined();
 
@@ -123,4 +137,18 @@ function findRequest(collection: PostmanCollection, requestName: string) {
     method: request?.request?.method,
     rawUrl: request?.request?.url?.raw,
   };
+}
+
+function flattenItems(items: PostmanCollectionItem[] | undefined): PostmanCollectionItem[] {
+  if (!items) {
+    return [];
+  }
+
+  return items.flatMap((item) => {
+    if (item.request) {
+      return [item];
+    }
+
+    return flattenItems(item.item);
+  });
 }
