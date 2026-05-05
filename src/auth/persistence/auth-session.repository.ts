@@ -59,6 +59,7 @@ type AuthPrismaClient = {
         tokenDigest: string;
         expiresAt: Date;
         lastUsedAt: Date;
+        updatedAt: Date;
         ipAddress?: string;
         userAgent?: string;
       };
@@ -73,11 +74,12 @@ type AuthPrismaClient = {
         revokedAt: Date;
         replacedBySessionId?: string;
         lastUsedAt?: Date;
+        updatedAt: Date;
       };
     }): Promise<unknown>;
     updateMany(args: {
       where: { familyId: string; revokedAt: null };
-      data: { revokedAt: Date };
+      data: { revokedAt: Date; updatedAt: Date };
     }): Promise<{ count: number }>;
   };
   user: {
@@ -111,13 +113,19 @@ type AuthPrismaTransaction = {
         tokenDigest: string;
         expiresAt: Date;
         lastUsedAt: Date;
+        updatedAt: Date;
         ipAddress?: string;
         userAgent?: string;
       };
     }): Promise<RefreshSessionRecord>;
     update(args: {
       where: { id: string };
-      data: { revokedAt: Date; replacedBySessionId: string; lastUsedAt: Date };
+      data: {
+        revokedAt: Date;
+        replacedBySessionId: string;
+        lastUsedAt: Date;
+        updatedAt: Date;
+      };
     }): Promise<unknown>;
   };
 };
@@ -198,6 +206,7 @@ export class AuthSessionRepository {
           tokenDigest: input.newTokenDigest,
           expiresAt: input.expiresAt,
           lastUsedAt: input.rotatedAt,
+          updatedAt: input.rotatedAt,
           ipAddress: input.ipAddress,
           userAgent: input.userAgent,
         },
@@ -209,6 +218,7 @@ export class AuthSessionRepository {
           revokedAt: input.rotatedAt,
           replacedBySessionId: input.newSessionId,
           lastUsedAt: input.rotatedAt,
+          updatedAt: input.rotatedAt,
         },
       });
 
@@ -228,6 +238,7 @@ export class AuthSessionRepository {
         tokenDigest: input.tokenDigest,
         expiresAt: input.expiresAt,
         lastUsedAt: input.lastUsedAt,
+        updatedAt: input.lastUsedAt,
         ipAddress: input.ipAddress,
         userAgent: input.userAgent,
       },
@@ -253,6 +264,7 @@ export class AuthSessionRepository {
       },
       data: {
         revokedAt,
+        updatedAt: revokedAt,
       },
     });
 
@@ -264,6 +276,7 @@ export class AuthSessionRepository {
       where: { id: sessionId },
       data: {
         revokedAt,
+        updatedAt: revokedAt,
       },
     });
   }

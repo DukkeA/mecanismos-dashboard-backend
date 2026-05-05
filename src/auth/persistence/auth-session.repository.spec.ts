@@ -86,6 +86,7 @@ describe('AuthSessionRepository', () => {
         tokenDigest: 'digest-2',
         expiresAt,
         lastUsedAt: rotatedAt,
+        updatedAt: rotatedAt,
         ipAddress: '127.0.0.1',
         userAgent: 'jest',
       },
@@ -96,6 +97,7 @@ describe('AuthSessionRepository', () => {
         revokedAt: rotatedAt,
         replacedBySessionId: 'session-2',
         lastUsedAt: rotatedAt,
+        updatedAt: rotatedAt,
       },
     });
   });
@@ -121,6 +123,7 @@ describe('AuthSessionRepository', () => {
       },
       data: {
         revokedAt,
+        updatedAt: revokedAt,
       },
     });
   });
@@ -143,6 +146,7 @@ describe('AuthSessionRepository', () => {
       where: { id: 'session-1' },
       data: {
         revokedAt,
+        updatedAt: revokedAt,
       },
     });
   });
@@ -180,6 +184,7 @@ describe('AuthSessionRepository', () => {
         tokenDigest: 'digest-1',
         expiresAt,
         lastUsedAt,
+        updatedAt: lastUsedAt,
         ipAddress: '127.0.0.1',
         userAgent: 'jest',
       },
