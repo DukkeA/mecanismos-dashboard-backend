@@ -30,6 +30,12 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    throw new ForbiddenException('Admin role required');
+    throw new ForbiddenException(formatAllowedRolesMessage(requiredRoles));
   }
+}
+
+function formatAllowedRolesMessage(
+  requiredRoles: Array<'ADMIN' | 'SALES' | 'MECHANIC'>,
+): string {
+  return `Allowed roles: ${requiredRoles.join(' | ')}`;
 }

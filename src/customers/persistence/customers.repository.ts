@@ -1,0 +1,198 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import type { CustomerDocumentType } from '../customer-document-type';
+
+export const CUSTOMERS_PRISMA_CLIENT = Symbol('CUSTOMERS_PRISMA_CLIENT');
+
+export type CustomerRecord = {
+  id: string;
+  name: string;
+  phone: string;
+  documentType: CustomerDocumentType;
+  documentNumber: string;
+  email: string | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type CreateCustomerRecordInput = {
+  name: string;
+  phone: string;
+  documentType: CustomerDocumentType;
+  documentNumber: string;
+  email?: string;
+  notes?: string;
+};
+
+export type UpdateCustomerRecordInput = Partial<CreateCustomerRecordInput>;
+
+export type ListCustomersQuery = {
+  page: number;
+  limit: number;
+  search?: string;
+  documentType?: CustomerDocumentType;
+};
+
+type CustomerWhereInput = {
+  documentType?: CustomerDocumentType;
+  OR?: Array<{
+    name?: { contains: string; mode: 'insensitive' };
+    documentNumber?: { contains: string; mode: 'insensitive' };
+    phone?: { contains: string; mode: 'insensitive' };
+  }>;
+};
+
+type CustomersPrismaClient = {
+  customer: {
+    create(args: { data: Record<string, unknown> }): Promise<CustomerRecord>;
+    findMany(args: {
+      where: CustomerWhereInput;
+      orderBy: { createdAt: 'desc' };
+      skip: number;
+      take: number;
+    }): Promise<CustomerRecord[]>;
+    count(args: { where: CustomerWhereInput }): Promise<number>;
+    findUnique(args: { where: { id: string } }): Promise<CustomerRecord | null>;
+    update(args: {
+      where: { id: string };
+      data: Record<string, unknown>;
+    }): Promise<CustomerRecord>;
+  };
+};
+
+@Injectable()
+export class CustomerDuplicateDocumentError extends Error {
+  constructor() {
+    super('Customer document already exists');
+  }
+}
+
+@Injectable()
+export class CustomersRepository {
+  constructor(
+    @Inject(CUSTOMERS_PRISMA_CLIENT)
+    private readonly prisma: CustomersPrismaClient,
+  ) {}
+
+  async create(input: CreateCustomerRecordInput) {
+    const now = new Date();
+
+    try {
+      return await this.prisma.customer.create({
+        data: {
+          id: randomUUID(),
+          name: input.name.trim(),
+          phone: input.phone.trim(),
+          documentType: input.documentType,
+          documentNumber: input.documentNumber.trim(),
+          email: normalizeOptionalEmail(input.email),
+          notes: normalizeOptionalString(input.notes),
+          updatedAt: now,
+        },
+      });
+    } catch (error) {
+      throw mapCustomerWriteError(error);
+    }
+  }
+
+  async findMany(query: ListCustomersQuery) {
+    const where = buildCustomerWhere(query);
+    const skip = (query.page - 1) * query.limit;
+    const [items, total] = await Promise.all([
+      this.prisma.customer.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: query.limit,
+      }),
+      this.prisma.customer.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page: query.page,
+      limit: query.limit,
+    };
+  }
+
+  findById(id: string) {
+    return this.prisma.customer.findUnique({
+      where: { id },
+    });
+  }
+
+  async update(id: string, input: UpdateCustomerRecordInput) {
+    const now = new Date();
+
+    try {
+      return await this.prisma.customer.update({
+        where: { id },
+        data: {
+          ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+          ...(input.phone !== undefined ? { phone: input.phone.trim() } : {}),
+          ...(input.documentType !== undefined
+            ? { documentType: input.documentType }
+            : {}),
+          ...(input.documentNumber !== undefined
+            ? { documentNumber: input.documentNumber.trim() }
+            : {}),
+          ...(input.email !== undefined
+            ? { email: normalizeOptionalEmail(input.email) }
+            : {}),
+          ...(input.notes !== undefined
+            ? { notes: normalizeOptionalString(input.notes) }
+            : {}),
+          updatedAt: now,
+        },
+      });
+    } catch (error) {
+      throw mapCustomerWriteError(error);
+    }
+  }
+}
+
+function buildCustomerWhere(query: ListCustomersQuery): CustomerWhereInput {
+  const search = query.search?.trim();
+
+  return {
+    ...(query.documentType ? { documentType: query.documentType } : {}),
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { documentNumber: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
+}
+
+function normalizeOptionalEmail(value?: string) {
+  return normalizeOptionalString(value)?.toLowerCase() ?? null;
+}
+
+function normalizeOptionalString(value?: string) {
+  const normalized = value?.trim();
+
+  return normalized ? normalized : null;
+}
+
+function mapCustomerWriteError(error: unknown) {
+  if (isPrismaUniqueError(error)) {
+    return new CustomerDuplicateDocumentError();
+  }
+
+  return error;
+}
+
+function isPrismaUniqueError(error: unknown): error is { code: 'P2002' } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'P2002'
+  );
+}

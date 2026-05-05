@@ -30,10 +30,13 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Mecanismos Dashboard Backend')
     .setDescription(
-      'Backend API for authentication and admin-protected dashboard access.',
+      'Backend API for authentication plus protected customer-assets CRUD-lite access for ADMIN and SALES users.',
     )
     .setVersion('1.0')
     .addTag('auth')
+    .addTag('customers')
+    .addTag('vehicles')
+    .addTag('components')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);

@@ -1,0 +1,238 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Customer Assets",
+    "_postman_id": "c564d58b-31a8-44f9-82ce-b6744a727540",
+    "description": "Supplemental manual verification for customer-assets CRUD-lite endpoints covering customers, vehicles, and components with ADMIN | SALES access and relation-safe component linking.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "customerId",
+      "value": "customer-1"
+    },
+    {
+      "key": "vehicleId",
+      "value": "vehicle-1"
+    },
+    {
+      "key": "componentId",
+      "value": "component-1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Create Customer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Ana Gomez\",\n  \"phone\": \"3001234567\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"123456789\",\n  \"email\": \"ana@mecanismos.test\",\n  \"notes\": \"<p>Cliente frecuente</p>\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/customers",
+          "host": ["{{baseUrl}}"],
+          "path": ["customers"]
+        }
+      }
+    },
+    {
+      "name": "List Customers",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/customers?page=1&limit=10&search=ana",
+          "host": ["{{baseUrl}}"],
+          "path": ["customers"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "search", "value": "ana" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Customer",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/customers/{{customerId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["customers", "{{customerId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Customer",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"notes\": \"<p>VIP</p>\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/customers/{{customerId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["customers", "{{customerId}}"]
+        }
+      }
+    },
+    {
+      "name": "Create Vehicle",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"CX5\",\n  \"plate\": \"ABC123\",\n  \"notes\": \"<p>Blindaje nivel 1</p>\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/vehicles",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles"]
+        }
+      }
+    },
+    {
+      "name": "List Vehicles",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/vehicles?page=1&limit=10&customerId={{customerId}}&search=mazda",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "customerId", "value": "{{customerId}}" },
+            { "key": "search", "value": "mazda" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Vehicle",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/vehicles/{{vehicleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles", "{{vehicleId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Vehicle",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"notes\": \"<p>Actualizado</p>\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/vehicles/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles", ":id"]
+        }
+      }
+    },
+    {
+      "name": "Create Component",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"SER-100\",\n  \"notes\": \"<p>Alternador reemplazado</p>\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/components",
+          "host": ["{{baseUrl}}"],
+          "path": ["components"]
+        }
+      }
+    },
+    {
+      "name": "List Components",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components?page=1&limit=10&customerId={{customerId}}&vehicleId={{vehicleId}}&search=bosch",
+          "host": ["{{baseUrl}}"],
+          "path": ["components"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "customerId", "value": "{{customerId}}" },
+            { "key": "vehicleId", "value": "{{vehicleId}}" },
+            { "key": "search", "value": "bosch" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Component",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/components/{{componentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["components", "{{componentId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Component",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vehicleId\": null,\n  \"notes\": \"<p>Actualizado</p>\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/components/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["components", ":id"]
+        }
+      }
+    }
+  ]
+}

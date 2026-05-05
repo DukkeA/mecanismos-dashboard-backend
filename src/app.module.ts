@@ -5,6 +5,9 @@ import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { validateEnvironment } from './auth/config/auth.config';
+import { CustomersModule } from './customers/customers.module';
+import { VehiclesModule } from './vehicles/vehicles.module';
+import { ComponentsModule } from './components/components.module';
 
 @Module({
   imports: [
@@ -13,6 +16,9 @@ import { validateEnvironment } from './auth/config/auth.config';
       validate: validateEnvironment,
     }),
     AuthModule,
+    CustomersModule,
+    VehiclesModule,
+    ComponentsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
