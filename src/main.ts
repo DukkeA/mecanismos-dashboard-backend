@@ -34,6 +34,7 @@ async function bootstrap() {
     )
     .setVersion('1.0')
     .addTag('auth')
+    .addTag('component-types')
     .addTag('customers')
     .addTag('vehicles')
     .addTag('components')

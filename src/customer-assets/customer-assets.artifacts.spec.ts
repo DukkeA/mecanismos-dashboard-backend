@@ -89,6 +89,8 @@ describe('customer assets reviewer artifacts', () => {
         'Create Customer',
         'List Vehicles',
         'Create Component',
+        'Create Component Type',
+        'List Component Types',
         'Update Component',
         'Customer List forbidden for Mechanic',
       ]),
@@ -129,7 +131,9 @@ function findRequest(collection: PostmanCollection, requestName: string) {
   };
 }
 
-function flattenItems(items: PostmanCollectionItem[] | undefined): PostmanCollectionItem[] {
+function flattenItems(
+  items: PostmanCollectionItem[] | undefined,
+): PostmanCollectionItem[] {
   if (!items) {
     return [];
   }

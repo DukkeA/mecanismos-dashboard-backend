@@ -98,10 +98,20 @@ describe('ComponentsController (e2e)', () => {
             id: 'component-1',
             customerId: 'customer-1',
             vehicleId: 'vehicle-1',
+            componentTypeId: 'component-type-1',
             brand: 'Bosch',
             reference: 'ALT-90A',
             identifier: 'SER-100',
             notes: null,
+            componentType: {
+              id: 'component-type-1',
+              name: 'Inyector',
+              slug: 'inyector',
+              description: null,
+              isActive: true,
+              createdAt: '2026-05-05T12:00:00.000Z',
+              updatedAt: '2026-05-05T12:00:00.000Z',
+            },
             createdAt: '2026-05-05T12:00:00.000Z',
             updatedAt: '2026-05-05T12:00:00.000Z',
           },
@@ -112,7 +122,7 @@ describe('ComponentsController (e2e)', () => {
       const accessToken = await createAccessToken(role);
       const response = await request(app.getHttpServer())
         .get(
-          '/components?page=1&limit=10&customerId=customer-1&vehicleId=vehicle-1&search=bosch',
+          '/components?page=1&limit=10&customerId=customer-1&vehicleId=vehicle-1&componentTypeId=component-type-1&search=bosch',
         )
         .set('Cookie', [`md_access=${accessToken}`])
         .expect(200);
@@ -136,6 +146,7 @@ describe('ComponentsController (e2e)', () => {
         limit: 10,
         customerId: 'customer-1',
         vehicleId: 'vehicle-1',
+        componentTypeId: 'component-type-1',
         search: 'bosch',
       });
     },
@@ -146,6 +157,7 @@ describe('ComponentsController (e2e)', () => {
       id: 'component-1',
       customerId: 'customer-1',
       vehicleId: 'vehicle-1',
+      componentTypeId: 'component-type-1',
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: 'SER-100',
@@ -161,6 +173,7 @@ describe('ComponentsController (e2e)', () => {
       .send({
         customerId: 'customer-1',
         vehicleId: 'vehicle-1',
+        componentTypeId: 'component-type-1',
         brand: ' Bosch ',
         reference: ' ALT-90A ',
         identifier: ' SER-100 ',
@@ -173,6 +186,7 @@ describe('ComponentsController (e2e)', () => {
     expect(componentsService.create).toHaveBeenCalledWith({
       customerId: 'customer-1',
       vehicleId: 'vehicle-1',
+      componentTypeId: 'component-type-1',
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: 'SER-100',
@@ -185,6 +199,7 @@ describe('ComponentsController (e2e)', () => {
       id: 'component-2',
       customerId: 'customer-1',
       vehicleId: null,
+      componentTypeId: 'component-type-1',
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: null,
@@ -199,6 +214,7 @@ describe('ComponentsController (e2e)', () => {
       .set('Cookie', [`md_access=${accessToken}`])
       .send({
         customerId: 'customer-1',
+        componentTypeId: 'component-type-1',
         brand: ' Bosch ',
         reference: ' ALT-90A ',
       })
@@ -206,11 +222,14 @@ describe('ComponentsController (e2e)', () => {
     const body = readBody<{ vehicleId: null }>(response);
 
     expect(body.vehicleId).toBeNull();
-    expect(componentsService.create).toHaveBeenCalledWith({
-      customerId: 'customer-1',
-      brand: 'Bosch',
-      reference: 'ALT-90A',
-    });
+    expect(componentsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerId: 'customer-1',
+        componentTypeId: 'component-type-1',
+        brand: 'Bosch',
+        reference: 'ALT-90A',
+      }),
+    );
   });
 
   it('maps missing parent customer errors to 404', async () => {
@@ -224,6 +243,7 @@ describe('ComponentsController (e2e)', () => {
       .set('Cookie', [`md_access=${accessToken}`])
       .send({
         customerId: 'missing-customer',
+        componentTypeId: 'component-type-1',
         brand: 'Bosch',
         reference: 'ALT-90A',
       })
@@ -244,6 +264,7 @@ describe('ComponentsController (e2e)', () => {
       .send({
         customerId: 'customer-1',
         vehicleId: 'vehicle-2',
+        componentTypeId: 'component-type-1',
         brand: 'Bosch',
         reference: 'ALT-90A',
       })
@@ -255,6 +276,7 @@ describe('ComponentsController (e2e)', () => {
       id: 'component-1',
       customerId: 'customer-1',
       vehicleId: 'vehicle-1',
+      componentTypeId: 'component-type-1',
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: 'SER-100',
@@ -279,6 +301,7 @@ describe('ComponentsController (e2e)', () => {
       id: 'component-1',
       customerId: 'customer-1',
       vehicleId: 'vehicle-3',
+      componentTypeId: 'component-type-2',
       brand: 'Bosch',
       reference: 'ALT-120A',
       identifier: 'SER-100',
@@ -293,6 +316,7 @@ describe('ComponentsController (e2e)', () => {
       .set('Cookie', [`md_access=${accessToken}`])
       .send({
         vehicleId: 'vehicle-3',
+        componentTypeId: 'component-type-2',
         reference: ' ALT-120A ',
         notes: ' <p>Actualizado</p> ',
       })
@@ -300,11 +324,15 @@ describe('ComponentsController (e2e)', () => {
     const body = readBody<{ vehicleId: string }>(response);
 
     expect(body.vehicleId).toBe('vehicle-3');
-    expect(componentsService.update).toHaveBeenCalledWith('component-1', {
-      vehicleId: 'vehicle-3',
-      reference: 'ALT-120A',
-      notes: '<p>Actualizado</p>',
-    });
+    expect(componentsService.update).toHaveBeenCalledWith(
+      'component-1',
+      expect.objectContaining({
+        vehicleId: 'vehicle-3',
+        componentTypeId: 'component-type-2',
+        reference: 'ALT-120A',
+        notes: '<p>Actualizado</p>',
+      }),
+    );
   });
 
   it('allows clearing the vehicle link on update', async () => {
@@ -312,6 +340,7 @@ describe('ComponentsController (e2e)', () => {
       id: 'component-1',
       customerId: 'customer-1',
       vehicleId: null,
+      componentTypeId: 'component-type-1',
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: 'SER-100',

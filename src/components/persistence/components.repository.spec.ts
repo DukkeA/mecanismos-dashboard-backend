@@ -18,6 +18,7 @@ describe('ComponentsRepository', () => {
         id: string;
         customerId: string;
         vehicleId: string;
+        componentTypeId: string;
         brand: string;
         reference: string;
         identifier: string;
@@ -44,6 +45,7 @@ describe('ComponentsRepository', () => {
       repository.create({
         customerId: 'customer-1',
         vehicleId: 'vehicle-1',
+        componentTypeId: 'component-type-1',
         brand: ' Bosch ',
         reference: ' ALT-90A ',
         identifier: ' SER-100 ',
@@ -55,6 +57,7 @@ describe('ComponentsRepository', () => {
     expect(receivedCreateArgs?.data.id).toEqual(expect.any(String));
     expect(receivedCreateArgs?.data.customerId).toBe('customer-1');
     expect(receivedCreateArgs?.data.vehicleId).toBe('vehicle-1');
+    expect(receivedCreateArgs?.data.componentTypeId).toBe('component-type-1');
     expect(receivedCreateArgs?.data.brand).toBe('Bosch');
     expect(receivedCreateArgs?.data.reference).toBe('ALT-90A');
     expect(receivedCreateArgs?.data.identifier).toBe('SER-100');
@@ -99,6 +102,7 @@ describe('ComponentsRepository', () => {
       page: 2,
       limit: 5,
       customerId: 'customer-1',
+      componentTypeId: 'component-type-1',
       vehicleId: 'vehicle-1',
       search: '  bosch  ',
     });
@@ -106,6 +110,7 @@ describe('ComponentsRepository', () => {
     expect(receivedFindManyArgs).toEqual({
       where: {
         customerId: 'customer-1',
+        componentTypeId: 'component-type-1',
         vehicleId: 'vehicle-1',
         OR: [
           { identifier: { contains: 'bosch', mode: 'insensitive' } },
@@ -116,10 +121,12 @@ describe('ComponentsRepository', () => {
       orderBy: { createdAt: 'desc' },
       skip: 5,
       take: 5,
+      include: { componentType: true },
     });
     expect(receivedCountArgs).toEqual({
       where: {
         customerId: 'customer-1',
+        componentTypeId: 'component-type-1',
         vehicleId: 'vehicle-1',
         OR: [
           { identifier: { contains: 'bosch', mode: 'insensitive' } },

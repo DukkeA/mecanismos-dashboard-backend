@@ -43,6 +43,10 @@
       "value": ""
     },
     {
+      "key": "componentTypeId",
+      "value": ""
+    },
+    {
       "key": "customerName",
       "value": ""
     },
@@ -76,6 +80,14 @@
     },
     {
       "key": "componentSearch",
+      "value": ""
+    },
+    {
+      "key": "componentTypeName",
+      "value": ""
+    },
+    {
+      "key": "componentTypeSearch",
       "value": ""
     }
   ],
@@ -119,20 +131,23 @@
                   "const runId = `${now.slice(-6)}${random}`;",
                   "const plate = `PM${runId.slice(-5)}`;",
                   "pm.collectionVariables.set('runId', runId);",
-                  "pm.collectionVariables.set('customerId', '');",
-                  "pm.collectionVariables.set('vehicleId', '');",
-                  "pm.collectionVariables.set('componentId', '');",
-                  "pm.collectionVariables.set('customerName', `Postman Runner ${runId}`);",
+                   "pm.collectionVariables.set('customerId', '');",
+                   "pm.collectionVariables.set('vehicleId', '');",
+                   "pm.collectionVariables.set('componentId', '');",
+                   "pm.collectionVariables.set('componentTypeId', '');",
+                   "pm.collectionVariables.set('customerName', `Postman Runner ${runId}`);",
                   "pm.collectionVariables.set('customerDocumentNumber', `9${runId.slice(0, 8)}`);",
                   "pm.collectionVariables.set('customerEmail', `runner.${runId}@mecanismos.test`);",
                   "pm.collectionVariables.set('customerSearch', runId);",
                   "pm.collectionVariables.set('vehiclePlate', plate);",
-                  "pm.collectionVariables.set('vehicleSearch', plate);",
-                  "pm.collectionVariables.set('componentIdentifier', `PM-COMP-${runId}`);",
-                  "pm.collectionVariables.set('componentSearch', `PM-COMP-${runId}`);"
-                ]
-              }
-            },
+                   "pm.collectionVariables.set('vehicleSearch', plate);",
+                   "pm.collectionVariables.set('componentIdentifier', `PM-COMP-${runId}`);",
+                   "pm.collectionVariables.set('componentSearch', `PM-COMP-${runId}`);",
+                   "pm.collectionVariables.set('componentTypeName', `Postman Tipo ${runId}`);",
+                   "pm.collectionVariables.set('componentTypeSearch', runId);"
+                 ]
+               }
+             },
             {
               "listen": "test",
               "script": {
@@ -531,6 +546,109 @@
           ]
         },
         {
+          "name": "Create Component Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{componentTypeName}}\",\n  \"description\": \"Tipo creado desde Collection Runner para componentes del flujo customer-assets\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/component-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "component-types"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create component type returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('componentTypeId', body.id);",
+                  "pm.test('create component type captures componentTypeId from response', function () {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(body.name).to.eql(pm.collectionVariables.get('componentTypeName'));",
+                  "  pm.expect(pm.collectionVariables.get('componentTypeId')).to.eql(body.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Component Types",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/component-types?page=1&limit=10&search={{componentTypeSearch}}&isActive=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "component-types"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "{{componentTypeSearch}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('list component types returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('list component types returns pagination metadata', function () {",
+                  "  pm.expect(body.meta.page).to.eql(1);",
+                  "  pm.expect(body.meta.limit).to.eql(10);",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});",
+                  "pm.test('list component types includes the created type', function () {",
+                  "  const componentTypeId = pm.collectionVariables.get('componentTypeId');",
+                  "  pm.expect(body.data.some((item) => item.id === componentTypeId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Create Component",
           "request": {
             "method": "POST",
@@ -542,7 +660,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"{{componentIdentifier}}\",\n  \"notes\": \"<p>Componente creado desde Collection Runner</p>\"\n}"
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"componentTypeId\": \"{{componentTypeId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"{{componentIdentifier}}\",\n  \"notes\": \"<p>Componente creado desde Collection Runner</p>\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/components",
@@ -570,11 +688,12 @@
                   "  pm.expect(body.id).to.be.a('string');",
                   "  pm.expect(pm.collectionVariables.get('componentId')).to.eql(body.id);",
                   "});",
-                  "pm.test('create component links to captured customerId and vehicleId', function () {",
-                  "  pm.expect(body.customerId).to.eql(pm.collectionVariables.get('customerId'));",
-                  "  pm.expect(body.vehicleId).to.eql(pm.collectionVariables.get('vehicleId'));",
-                  "  pm.expect(body.identifier).to.eql(pm.collectionVariables.get('componentIdentifier'));",
-                  "});"
+                   "pm.test('create component links to captured customerId and vehicleId', function () {",
+                   "  pm.expect(body.customerId).to.eql(pm.collectionVariables.get('customerId'));",
+                   "  pm.expect(body.vehicleId).to.eql(pm.collectionVariables.get('vehicleId'));",
+                   "  pm.expect(body.componentTypeId).to.eql(pm.collectionVariables.get('componentTypeId'));",
+                   "  pm.expect(body.identifier).to.eql(pm.collectionVariables.get('componentIdentifier'));",
+                   "});"
                 ]
               }
             }
@@ -585,7 +704,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/components?page=1&limit=10&customerId={{customerId}}&vehicleId={{vehicleId}}&search={{componentSearch}}",
+              "raw": "{{baseUrl}}/components?page=1&limit=10&customerId={{customerId}}&vehicleId={{vehicleId}}&componentTypeId={{componentTypeId}}&search={{componentSearch}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -610,6 +729,10 @@
                   "value": "{{vehicleId}}"
                 },
                 {
+                  "key": "componentTypeId",
+                  "value": "{{componentTypeId}}"
+                },
+                {
                   "key": "search",
                   "value": "{{componentSearch}}"
                 }
@@ -632,10 +755,11 @@
                   "  pm.expect(body.meta.limit).to.eql(10);",
                   "  pm.expect(body.data).to.be.an('array');",
                   "});",
-                  "pm.test('list components includes the created component', function () {",
-                  "  const componentId = pm.collectionVariables.get('componentId');",
-                  "  pm.expect(body.data.some((item) => item.id === componentId)).to.eql(true);",
-                  "});"
+                   "pm.test('list components includes the created component', function () {",
+                   "  const componentId = pm.collectionVariables.get('componentId');",
+                   "  pm.expect(body.data.some((item) => item.id === componentId)).to.eql(true);",
+                   "  pm.expect(body.data.some((item) => item.componentTypeId === pm.collectionVariables.get('componentTypeId'))).to.eql(true);",
+                   "});"
                 ]
               }
             }

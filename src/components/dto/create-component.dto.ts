@@ -29,6 +29,12 @@ export class CreateComponentDto {
   @IsNotEmpty()
   customerId!: string;
 
+  @ApiProperty({ example: 'component-type-1' })
+  @TrimmedString()
+  @IsString()
+  @IsNotEmpty()
+  componentTypeId!: string;
+
   @ApiPropertyOptional({ example: 'vehicle-1' })
   @IsOptional()
   @OptionalVehicleId()

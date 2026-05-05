@@ -36,4 +36,10 @@ export class ListComponentsQueryDto {
   @OptionalTrimmedString()
   @IsString()
   vehicleId?: string;
+
+  @ApiPropertyOptional({ example: 'component-type-1' })
+  @IsOptional()
+  @OptionalTrimmedString()
+  @IsString()
+  componentTypeId?: string;
 }

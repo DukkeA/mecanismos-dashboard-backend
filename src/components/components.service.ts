@@ -15,6 +15,7 @@ export class ComponentsService {
 
   async create(createComponentDto: CreateComponentDto) {
     await this.assertCustomerExists(createComponentDto.customerId);
+    await this.assertComponentTypeExists(createComponentDto.componentTypeId);
     await this.assertVehicleOwnership(
       createComponentDto.vehicleId,
       createComponentDto.customerId,
@@ -49,6 +50,8 @@ export class ComponentsService {
 
   async update(id: string, updateComponentDto: UpdateComponentDto) {
     const currentComponent = await this.findOne(id);
+
+    await this.assertComponentTypeExists(updateComponentDto.componentTypeId);
 
     await this.assertVehicleOwnership(
       updateComponentDto.vehicleId,
@@ -85,6 +88,21 @@ export class ComponentsService {
     if (vehicle.customerId !== customerId) {
       throw new BadRequestException(
         `Vehicle ${vehicleId} does not belong to customer ${customerId}`,
+      );
+    }
+  }
+
+  private async assertComponentTypeExists(componentTypeId?: string) {
+    if (componentTypeId === undefined) {
+      return;
+    }
+
+    const componentTypeExists =
+      await this.componentsRepository.componentTypeExists(componentTypeId);
+
+    if (!componentTypeExists) {
+      throw new NotFoundException(
+        `Component type ${componentTypeId} not found`,
       );
     }
   }

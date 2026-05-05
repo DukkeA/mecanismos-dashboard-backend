@@ -1,19 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type {
-  Component,
-  Prisma,
-  Vehicle,
-} from '../../../generated/prisma/client';
+import type { Prisma, Vehicle } from '../../../generated/prisma/client';
 
 export const COMPONENTS_PRISMA_CLIENT = Symbol('COMPONENTS_PRISMA_CLIENT');
 
-export type ComponentRecord = Component;
+export type ComponentRecord = Prisma.ComponentGetPayload<{
+  include: { componentType: true };
+}>;
 
 export type VehicleOwnershipRecord = Pick<Vehicle, 'id' | 'customerId'>;
 
 export type CreateComponentRecordInput = {
   customerId: string;
+  componentTypeId: string;
   vehicleId?: string | null;
   brand: string;
   reference: string;
@@ -33,6 +32,7 @@ export type ListComponentsQuery = {
   search?: string;
   customerId?: string;
   vehicleId?: string;
+  componentTypeId?: string;
 };
 
 type ComponentWhereInput = Prisma.ComponentWhereInput;
@@ -42,6 +42,12 @@ type ComponentsPrismaClient = {
     findUnique(args: { where: { id: string }; select: { id: true } }): Promise<{
       id: string;
     } | null>;
+  };
+  componentType: {
+    findUnique(args: {
+      where: { id: string };
+      select: { id: true };
+    }): Promise<{ id: string } | null>;
   };
   vehicle: {
     findUnique(args: {
@@ -56,10 +62,12 @@ type ComponentsPrismaClient = {
       orderBy: { createdAt: 'desc' };
       skip: number;
       take: number;
+      include: { componentType: true };
     }): Promise<ComponentRecord[]>;
     count(args: { where: ComponentWhereInput }): Promise<number>;
     findUnique(args: {
       where: { id: string };
+      include: { componentType: true };
     }): Promise<ComponentRecord | null>;
     update(args: {
       where: { id: string };
@@ -82,6 +90,7 @@ export class ComponentsRepository {
       data: {
         id: randomUUID(),
         customerId: input.customerId.trim(),
+        componentTypeId: input.componentTypeId.trim(),
         vehicleId: normalizeOptionalForeignKey(input.vehicleId),
         brand: input.brand.trim(),
         reference: input.reference.trim(),
@@ -101,6 +110,15 @@ export class ComponentsRepository {
     return Boolean(customer);
   }
 
+  async componentTypeExists(componentTypeId: string) {
+    const componentType = await this.prisma.componentType.findUnique({
+      where: { id: componentTypeId },
+      select: { id: true },
+    });
+
+    return Boolean(componentType);
+  }
+
   findVehicleOwnership(vehicleId: string) {
     return this.prisma.vehicle.findUnique({
       where: { id: vehicleId },
@@ -117,6 +135,7 @@ export class ComponentsRepository {
         orderBy: { createdAt: 'desc' },
         skip,
         take: query.limit,
+        include: { componentType: true },
       }),
       this.prisma.component.count({ where }),
     ]);
@@ -132,6 +151,7 @@ export class ComponentsRepository {
   findById(id: string) {
     return this.prisma.component.findUnique({
       where: { id },
+      include: { componentType: true },
     });
   }
 
@@ -143,6 +163,9 @@ export class ComponentsRepository {
       data: {
         ...(input.vehicleId !== undefined
           ? { vehicleId: normalizeOptionalForeignKey(input.vehicleId) }
+          : {}),
+        ...(input.componentTypeId !== undefined
+          ? { componentTypeId: input.componentTypeId.trim() }
           : {}),
         ...(input.brand !== undefined ? { brand: input.brand.trim() } : {}),
         ...(input.reference !== undefined
@@ -165,6 +188,9 @@ function buildComponentWhere(query: ListComponentsQuery): ComponentWhereInput {
 
   return {
     ...(query.customerId ? { customerId: query.customerId } : {}),
+    ...(query.componentTypeId
+      ? { componentTypeId: query.componentTypeId }
+      : {}),
     ...(query.vehicleId ? { vehicleId: query.vehicleId } : {}),
     ...(search
       ? {

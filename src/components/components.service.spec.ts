@@ -7,17 +7,28 @@ describe('ComponentsService', () => {
     id: 'component-1',
     customerId: 'customer-1',
     vehicleId: 'vehicle-1',
+    componentTypeId: 'component-type-1',
     brand: 'Bosch',
     reference: 'ALT-90A',
     identifier: 'SER-100',
     notes: '<p>Alternador reemplazado</p>',
     createdAt: new Date('2026-05-05T12:00:00.000Z'),
     updatedAt: new Date('2026-05-05T12:00:00.000Z'),
+    componentType: {
+      id: 'component-type-1',
+      name: 'Inyector',
+      slug: 'inyector',
+      description: null,
+      isActive: true,
+      createdAt: new Date('2026-05-05T12:00:00.000Z'),
+      updatedAt: new Date('2026-05-05T12:00:00.000Z'),
+    },
   };
 
   const repository = {
     create: jest.fn(),
     customerExists: jest.fn(),
+    componentTypeExists: jest.fn(),
     findVehicleOwnership: jest.fn(),
     findMany: jest.fn(),
     findById: jest.fn(),
@@ -33,6 +44,7 @@ describe('ComponentsService', () => {
 
   it('creates a component with an optional same-customer vehicle link', async () => {
     repository.customerExists.mockResolvedValue(true);
+    repository.componentTypeExists.mockResolvedValue(true);
     repository.findVehicleOwnership.mockResolvedValue({
       id: 'vehicle-1',
       customerId: 'customer-1',
@@ -43,6 +55,7 @@ describe('ComponentsService', () => {
       service.create({
         customerId: 'customer-1',
         vehicleId: 'vehicle-1',
+        componentTypeId: 'component-type-1',
         brand: ' Bosch ',
         reference: ' ALT-90A ',
         identifier: ' SER-100 ',
@@ -53,6 +66,7 @@ describe('ComponentsService', () => {
 
   it('creates a component without a vehicle link when vehicleId is omitted', async () => {
     repository.customerExists.mockResolvedValue(true);
+    repository.componentTypeExists.mockResolvedValue(true);
     repository.create.mockResolvedValue({
       ...componentRecord,
       vehicleId: null,
@@ -62,6 +76,7 @@ describe('ComponentsService', () => {
     await expect(
       service.create({
         customerId: 'customer-1',
+        componentTypeId: 'component-type-1',
         brand: 'Bosch',
         reference: 'ALT-90A',
       }),
@@ -79,6 +94,7 @@ describe('ComponentsService', () => {
     await expect(
       service.create({
         customerId: 'missing-customer',
+        componentTypeId: 'component-type-1',
         brand: 'Bosch',
         reference: 'ALT-90A',
       }),
@@ -89,6 +105,7 @@ describe('ComponentsService', () => {
 
   it('rejects component creation when vehicle belongs to another customer', async () => {
     repository.customerExists.mockResolvedValue(true);
+    repository.componentTypeExists.mockResolvedValue(true);
     repository.findVehicleOwnership.mockResolvedValue({
       id: 'vehicle-2',
       customerId: 'customer-2',
@@ -98,6 +115,7 @@ describe('ComponentsService', () => {
       service.create({
         customerId: 'customer-1',
         vehicleId: 'vehicle-2',
+        componentTypeId: 'component-type-1',
         brand: 'Bosch',
         reference: 'ALT-90A',
       }),
@@ -105,6 +123,22 @@ describe('ComponentsService', () => {
       new BadRequestException(
         'Vehicle vehicle-2 does not belong to customer customer-1',
       ),
+    );
+  });
+
+  it('rejects component creation when the component type does not exist', async () => {
+    repository.customerExists.mockResolvedValue(true);
+    repository.componentTypeExists.mockResolvedValue(false);
+
+    await expect(
+      service.create({
+        customerId: 'customer-1',
+        componentTypeId: 'missing-component-type',
+        brand: 'Bosch',
+        reference: 'ALT-90A',
+      }),
+    ).rejects.toThrow(
+      new NotFoundException('Component type missing-component-type not found'),
     );
   });
 
@@ -122,6 +156,7 @@ describe('ComponentsService', () => {
         limit: 10,
         customerId: 'customer-1',
         vehicleId: 'vehicle-1',
+        componentTypeId: 'component-type-1',
         search: 'bosch',
       }),
     ).resolves.toEqual({
@@ -164,6 +199,22 @@ describe('ComponentsService', () => {
       ...componentRecord,
       vehicleId: 'vehicle-3',
       reference: 'ALT-120A',
+    });
+  });
+
+  it('updates an existing component after validating the new component type', async () => {
+    repository.findById.mockResolvedValue(componentRecord);
+    repository.componentTypeExists.mockResolvedValue(true);
+    repository.update.mockResolvedValue({
+      ...componentRecord,
+      componentTypeId: 'component-type-2',
+    });
+
+    await expect(
+      service.update('component-1', { componentTypeId: 'component-type-2' }),
+    ).resolves.toMatchObject({
+      id: 'component-1',
+      componentTypeId: 'component-type-2',
     });
   });
 

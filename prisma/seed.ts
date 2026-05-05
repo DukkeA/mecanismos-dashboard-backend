@@ -67,24 +67,50 @@ const SEED_VEHICLES = [
   },
 ] as const;
 
-const SEED_COMPONENTS = [
+const SEED_COMPONENT_TYPES = [
   {
-    id: 'seed-component-acme-turbo',
-    customerId: 'seed-customer-acme-industrial',
-    vehicleId: 'seed-vehicle-acme-foton-aumark',
-    brand: 'Garrett',
-    reference: 'GT2256V',
-    identifier: 'TURBO-ACME-001',
-    notes: 'Componente ligado al vehiculo Acme para validar ownership.',
+    id: 'seed-component-type-inyector',
+    name: 'Inyector',
+    slug: 'inyector',
+    description: 'Inyectores diesel para pruebas y recepcion comercial.',
+    isActive: true,
   },
   {
-    id: 'seed-component-ana-alternator',
+    id: 'seed-component-type-bomba-inyeccion',
+    name: 'Bomba de inyección',
+    slug: 'bomba-de-inyeccion',
+    description: 'Bombas de inyección para diagnóstico y trazabilidad.',
+    isActive: true,
+  },
+  {
+    id: 'seed-component-type-tobera',
+    name: 'Tobera',
+    slug: 'tobera',
+    description: 'Toberas de muestra para catálogo inicial.',
+    isActive: true,
+  },
+] as const;
+
+const SEED_COMPONENTS = [
+  {
+    id: 'seed-component-acme-inyector',
+    customerId: 'seed-customer-acme-industrial',
+    vehicleId: 'seed-vehicle-acme-foton-aumark',
+    componentTypeId: 'seed-component-type-inyector',
+    brand: 'Bosch',
+    reference: '0445120231',
+    identifier: 'INY-ACME-001',
+    notes: 'Inyector ligado al vehiculo Acme para validar ownership y filtros.',
+  },
+  {
+    id: 'seed-component-ana-tobera',
     customerId: 'seed-customer-ana-gomez',
     vehicleId: null,
+    componentTypeId: 'seed-component-type-tobera',
     brand: 'Denso',
-    reference: 'ALT-120A',
-    identifier: 'ALT-ANA-001',
-    notes: 'Componente sin vehiculo para probar vehicleId opcional.',
+    reference: 'DLLA158P854',
+    identifier: 'TOB-ANA-001',
+    notes: 'Tobera sin vehiculo para probar vehicleId opcional y tipo requerido.',
   },
 ] as const;
 
@@ -201,6 +227,29 @@ async function main() {
       console.log(`Seeded vehicle: ${seedVehicle.plate}`);
     }
 
+    for (const seedComponentType of SEED_COMPONENT_TYPES) {
+      await prisma.componentType.upsert({
+        where: { slug: seedComponentType.slug },
+        create: {
+          id: seedComponentType.id,
+          name: seedComponentType.name,
+          slug: seedComponentType.slug,
+          description: seedComponentType.description,
+          isActive: seedComponentType.isActive,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          name: seedComponentType.name,
+          description: seedComponentType.description,
+          isActive: seedComponentType.isActive,
+          updatedAt: now,
+        },
+      });
+
+      console.log(`Seeded component type: ${seedComponentType.slug}`);
+    }
+
     for (const seedComponent of SEED_COMPONENTS) {
       await prisma.component.upsert({
         where: { id: seedComponent.id },
@@ -208,6 +257,7 @@ async function main() {
           id: seedComponent.id,
           customerId: seedComponent.customerId,
           vehicleId: seedComponent.vehicleId,
+          componentTypeId: seedComponent.componentTypeId,
           brand: seedComponent.brand,
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,
@@ -218,6 +268,7 @@ async function main() {
         update: {
           customerId: seedComponent.customerId,
           vehicleId: seedComponent.vehicleId,
+          componentTypeId: seedComponent.componentTypeId,
           brand: seedComponent.brand,
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,

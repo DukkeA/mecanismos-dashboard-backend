@@ -24,22 +24,39 @@ model AppSettings {
 }
 
 model Component {
-  id         String      @id
-  customerId String
-  vehicleId  String?
-  brand      String
-  reference  String
-  identifier String?
-  notes      String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime
-  Customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  Vehicle    Vehicle?    @relation(fields: [vehicleId], references: [id])
-  WorkOrder  WorkOrder[]
+  id              String        @id
+  customerId      String
+  vehicleId       String?
+  componentTypeId String
+  brand           String
+  reference       String
+  identifier      String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime
+  Customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  componentType   ComponentType @relation(fields: [componentTypeId], references: [id])
+  Vehicle         Vehicle?      @relation(fields: [vehicleId], references: [id])
+  WorkOrder       WorkOrder[]
 
+  @@index([componentTypeId])
   @@index([customerId])
   @@index([identifier])
   @@index([vehicleId])
+}
+
+model ComponentType {
+  id          String      @id
+  name        String
+  slug        String      @unique
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime
+  components  Component[]
+
+  @@index([isActive])
+  @@index([name])
 }
 
 model CostCenter {

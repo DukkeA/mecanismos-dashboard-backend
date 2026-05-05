@@ -8,6 +8,7 @@ import { validateEnvironment } from './auth/config/auth.config';
 import { CustomersModule } from './customers/customers.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { ComponentsModule } from './components/components.module';
+import { ComponentTypesModule } from './component-types/component-types.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ComponentsModule } from './components/components.module';
     CustomersModule,
     VehiclesModule,
     ComponentsModule,
+    ComponentTypesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
