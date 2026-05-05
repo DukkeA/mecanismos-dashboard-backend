@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import type { AuthUserPayload } from './auth.service';
 import { clearAuthCookies, setAuthCookies } from './auth.cookies';
 import { AuthOriginGuard } from './auth-origin.guard';
 import { CurrentUser } from './current-user.decorator';
@@ -53,7 +54,7 @@ export class AuthController {
     @Body() loginDto: LoginDto,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<AuthUserPayload> {
     const result = await this.authService.login(loginDto, {
       ipAddress: request.ip,
       userAgent: request.get('user-agent') ?? undefined,
@@ -77,7 +78,7 @@ export class AuthController {
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<AuthUserPayload> {
     const refreshToken = request.cookies?.[
       this.authConfig.refreshTokenCookie.name
     ] as string | undefined;
@@ -102,7 +103,7 @@ export class AuthController {
   async logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<{ success: true }> {
     const refreshToken = request.cookies?.[
       this.authConfig.refreshTokenCookie.name
     ] as string | undefined;
@@ -119,7 +120,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Return the authenticated current user' })
   @ApiOkResponse({ description: 'Authenticated user returned.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
-  me(@CurrentUser() user: AuthJwtPayload) {
+  me(@CurrentUser() user: AuthJwtPayload): Promise<AuthUserPayload> {
     return this.authService.getCurrentUser(user.sub);
   }
 
@@ -133,7 +134,10 @@ export class AuthController {
   @ApiOkResponse({ description: 'Admin access confirmed.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Admin role required.' })
-  adminSmoke(@CurrentUser() user: AuthJwtPayload) {
+  adminSmoke(@CurrentUser() user: AuthJwtPayload): {
+    success: true;
+    role: 'ADMIN' | 'SALES' | 'MECHANIC';
+  } {
     return {
       success: true,
       role: user.role,

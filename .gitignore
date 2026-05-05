@@ -47,6 +47,7 @@ lerna-debug.log*
 .temp
 .tmp
 .atl/
+aprendizaje/
 
 # Runtime data
 pids

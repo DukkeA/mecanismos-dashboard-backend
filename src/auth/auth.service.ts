@@ -7,19 +7,19 @@ import { AUTH_RUNTIME_CONFIG } from './config/auth.config';
 import type { AuthRuntimeConfig } from './config/auth.config';
 import { AuthSessionRepository } from './persistence/auth-session.repository';
 
-type RequestContext = {
+export type AuthRequestContext = {
   ipAddress?: string;
   userAgent?: string;
 };
 
-type AuthUserPayload = {
+export type AuthUserPayload = {
   id: string;
   email: string;
   name: string;
   role: 'ADMIN' | 'SALES' | 'MECHANIC';
 };
 
-type AuthTokensResult = {
+export type AuthTokensResult = {
   user: AuthUserPayload;
   accessToken: string;
   refreshToken: string;
@@ -36,7 +36,7 @@ export class AuthService {
 
   async login(
     credentials: LoginDto,
-    context: RequestContext,
+    context: AuthRequestContext,
   ): Promise<AuthTokensResult> {
     const account =
       await this.authSessionRepository.findActivePasswordCredentialByEmail(
@@ -80,7 +80,7 @@ export class AuthService {
 
   async refresh(
     refreshToken: string | undefined,
-    context: RequestContext,
+    context: AuthRequestContext,
   ): Promise<AuthTokensResult> {
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token is required');
