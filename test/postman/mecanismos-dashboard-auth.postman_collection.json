@@ -2,7 +2,7 @@
   "info": {
     "name": "Mecanismos Dashboard Auth",
     "_postman_id": "f8f53b7d-2f25-47a3-bc4c-c7c7138f2f31",
-    "description": "Supplemental manual verification for auth v1 endpoints: login, refresh, logout, me, and admin smoke.",
+    "description": "Supplemental manual verification for auth v1 endpoints: login, refresh, logout, me, and admin smoke. Local seed users: admin@mecanismos.test / Admin123!, ventas@mecanismos.test / Ventas123!, mecanico@mecanismos.test / Mecanico123!.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -16,7 +16,31 @@
     },
     {
       "key": "password",
-      "value": "change-me"
+      "value": "Admin123!"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@mecanismos.test"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin123!"
+    },
+    {
+      "key": "salesEmail",
+      "value": "ventas@mecanismos.test"
+    },
+    {
+      "key": "salesPassword",
+      "value": "Ventas123!"
+    },
+    {
+      "key": "mechanicEmail",
+      "value": "mecanico@mecanismos.test"
+    },
+    {
+      "key": "mechanicPassword",
+      "value": "Mecanico123!"
     }
   ],
   "item": [
