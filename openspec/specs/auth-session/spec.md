@@ -79,9 +79,9 @@ Auth cookies SHALL be `HttpOnly`. Production deployments SHALL use `Secure=true`
 - THEN auth cookies are issued as `HttpOnly` and `Secure`
 - AND configured same-site behavior is applied consistently
 
-### Requirement: Config, env, docs, and TDD contract
+### Requirement: Config, env, docs, automated tests, and Postman verification
 
-The system SHALL validate required auth configuration for secrets, TTLs, cookie policy, and allowed frontend origins. For current local development and local testing, the root `.env` SHALL be the single source for Nest runtime, Prisma CLI, and local auth tests. The current scope SHALL NOT require `.env.development`, `.env.test`, or `NODE_ENV`-driven env-file switching. Delivery SHALL include `/docs/auth` feature documentation and SHALL follow strict TDD with unit plus e2e coverage for login, invalid login, refresh, refresh reuse/revocation, logout, `me`, admin guard, and cookie attributes. When CI, staging, or deployment environments are introduced, the system SHOULD add explicit environment separation before release automation depends on it.
+The system SHALL validate required auth configuration for secrets, TTLs, cookie policy, and allowed frontend origins. For current local development and local testing, the root `.env` SHALL be the single source for Nest runtime, Prisma CLI, and local auth tests. The current scope SHALL NOT require `.env.development`, `.env.test`, or `NODE_ENV`-driven env-file switching. Delivery SHALL include `/docs/auth` feature documentation and SHALL follow strict TDD with unit plus e2e coverage as the PRIMARY verification for login, invalid login, refresh, refresh reuse/revocation, logout, `me`, admin guard, and cookie attributes. Delivery SHALL also include an importable Postman collection for implemented auth endpoints as SUPPLEMENTAL manual verification, stored at `test/postman/mecanismos-dashboard-auth.postman_collection.json` unless a repo-specific constraint later requires a different shared test-artifact location. For Slice 2, the Postman collection SHALL cover `login`, `refresh`, and `logout` only; `me` and admin requests SHALL be added when those endpoints are implemented. When CI, staging, or deployment environments are introduced, the system SHOULD add explicit environment separation before release automation depends on it.
 
 #### Scenario: Local env source is shared
 - GIVEN local auth development or local auth tests run on a developer machine
@@ -93,3 +93,14 @@ The system SHALL validate required auth configuration for secrets, TTLs, cookie 
 - GIVEN the change is completed
 - WHEN reviewers inspect `/docs/auth`
 - THEN they find overview, schema, security, and testing guidance for this feature
+
+#### Scenario: Slice 2 Postman auth coverage delivered
+- GIVEN Slice 2 auth endpoints are implemented
+- WHEN reviewers import `test/postman/mecanismos-dashboard-auth.postman_collection.json` into Postman
+- THEN they can manually exercise `login`, `refresh`, and `logout`
+- AND automated unit/e2e tests remain the primary verification gate
+
+#### Scenario: Later protected endpoints extend the collection
+- GIVEN `me` or admin auth endpoints are implemented in later slices
+- WHEN the Postman collection is updated
+- THEN it includes those implemented protected requests alongside the auth session flows

@@ -35,6 +35,7 @@ Build a single `AuthModule` around first-party email/password login for admin us
 | `src/auth/**` | Create | Auth API, services, JWT strategy, guards/decorators, cookie/config helpers, persistence services |
 | `src/prisma.service.ts` | Modify | Keep runtime DB resolution compatible with the root `.env`; optional config injection remains allowed if it does not introduce multi-file env complexity |
 | `test/auth/**/*.spec.ts` | Create | Strict TDD unit/integration/e2e auth coverage |
+| `test/postman/mecanismos-dashboard-auth.postman_collection.json` | Create | Importable supplemental manual verification for implemented auth endpoints; Slice 2 covers login/refresh/logout first |
 | `docs/auth/{overview,schema,security,testing}.md` | Create | Feature documentation package |
 
 ## Interfaces / Contracts
@@ -53,8 +54,9 @@ Cookie names: `md_access`, `md_refresh`. Refresh cookie path SHOULD be `/auth/re
 | Unit | Password compare, token issuing, cookie options, role guard, config validation, reuse detection | Jest with mocked Prisma/JWT/clock |
 | Integration | Auth service + Prisma session rotation/revocation | Local test DB referenced from root `.env`, with seeded admin user and deterministic secrets |
 | E2E | Login, refresh rotation, refresh reuse rejection, logout, `me`, admin guard, cookie headers | Supertest against Nest app using the same root `.env` strategy as local runtime |
+| Manual supplemental | Importable Postman requests for implemented auth endpoints | Keep `test/postman/mecanismos-dashboard-auth.postman_collection.json` versioned; Slice 2 includes login/refresh/logout, then append `me` and admin requests in later slices |
 
-Strict TDD: write failing tests first for login, refresh, logout, and guards before runtime code. For the current local-only phase, keep the connection string and auth secrets in the root `.env` for runtime, Prisma, and local tests alike. When CI, staging, or deployment automation is introduced, split environment files or secret sources explicitly before those flows depend on them.
+Strict TDD: write failing tests first for login, refresh, logout, and guards before runtime code. Automated unit/integration/e2e coverage stays the release gate; the Postman collection is only a reviewer/operator convenience artifact for manual verification and sharing. For the current local-only phase, keep the connection string and auth secrets in the root `.env` for runtime, Prisma, and local tests alike. When CI, staging, or deployment automation is introduced, split environment files or secret sources explicitly before those flows depend on them.
 
 ## Migration / Rollout
 
