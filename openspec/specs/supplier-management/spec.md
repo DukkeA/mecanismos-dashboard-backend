@@ -63,6 +63,15 @@ The supplier reshape SHALL preserve existing supplier IDs and existing foreign-k
 - THEN the supplier keeps the same ID and relations
 - AND the legacy phone is represented as a child supplier-phone row
 
+### Requirement: Supplier quote lookup parent
+
+The system SHALL let `ADMIN` and `SALES` view quote history from supplier context without changing supplier create, list, get, update, phone, migration, or phone-backfill behavior. Supplier quote lookup SHALL return that supplier's quote events, support pragmatic item/status/date filtering, preserve voided-history visibility, and return `404 Not Found` when the supplier does not exist.
+
+#### Scenario: View supplier quote timeline
+- GIVEN an existing supplier with quote events
+- WHEN an allowed user requests supplier quote lookup
+- THEN the system returns that supplier's quote history and filters without altering supplier lifecycle rules
+
 ### Requirement: Reviewer docs, Postman, and automated verification
 
 Delivery SHALL include Swagger coverage, reviewer docs under `docs/suppliers/`, an importable Postman collection for implemented supplier routes, and automated verification. Tests SHALL cover create/list/get/update behavior, phone-primary rules, `ADMIN | SALES` access, `MECHANIC` rejection, and migration/backfill expectations.
