@@ -242,6 +242,26 @@
           }]
         },
         {
+          "name": "Get Missing Service",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/services/{{missingServiceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["services", "{{missingServiceId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('missing service returns 404', function () { pm.response.to.have.status(404); });"
+              ]
+            }
+          }]
+        },
+        {
           "name": "Logout Admin Session",
           "request": {
             "method": "POST",
@@ -284,26 +304,6 @@
               "type": "text/javascript",
               "exec": [
                 "pm.test('mechanic listing returns 403', function () { pm.response.to.have.status(403); });"
-              ]
-            }
-          }]
-        },
-        {
-          "name": "Get Missing Service",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/services/{{missingServiceId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["services", "{{missingServiceId}}"]
-            }
-          },
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('missing service returns 404', function () { pm.response.to.have.status(404); });"
               ]
             }
           }]
