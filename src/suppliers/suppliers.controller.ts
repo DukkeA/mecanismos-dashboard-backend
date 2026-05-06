@@ -12,12 +12,15 @@ import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ListSupplierQuotesQueryDto } from '../procurement/dto/list-supplier-quotes-query.dto';
+import { ProcurementService } from '../procurement/procurement.service';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
@@ -31,7 +34,10 @@ import { SuppliersService } from './suppliers.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN', 'SALES')
 export class SuppliersController {
-  constructor(private readonly suppliersService: SuppliersService) {}
+  constructor(
+    private readonly suppliersService: SuppliersService,
+    private readonly procurementService: ProcurementService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a supplier' })
@@ -51,11 +57,28 @@ export class SuppliersController {
     return this.suppliersService.findAll(query);
   }
 
+  @Get(':id/quotes')
+  @ApiOperation({
+    summary:
+      'Get a supplier quote timeline without changing supplier lifecycle rules',
+  })
+  @ApiOkResponse({ description: 'Supplier quote timeline returned.' })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  @ApiNotFoundResponse({ description: 'Supplier not found.' })
+  findQuotes(
+    @Param('id') id: string,
+    @Query() query: ListSupplierQuotesQueryDto,
+  ) {
+    return this.procurementService.findSupplierQuoteTimeline(id, query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a supplier by id' })
   @ApiOkResponse({ description: 'Supplier returned.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  @ApiNotFoundResponse({ description: 'Supplier not found.' })
   findOne(@Param('id') id: string) {
     return this.suppliersService.findOne(id);
   }

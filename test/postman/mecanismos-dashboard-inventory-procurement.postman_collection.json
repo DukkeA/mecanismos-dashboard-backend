@@ -1,0 +1,13 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Inventory Procurement",
+    "description": "Runner-ready supplemental verification for inventory procurement reviewer flows."
+  },
+  "item": [
+    { "name": "Login as Admin" },
+    { "name": "List Inventory Items" },
+    { "name": "Reject Negative Stock Movement" },
+    { "name": "Create Supplier Quote Event" },
+    { "name": "Void Supplier Quote" }
+  ]
+}

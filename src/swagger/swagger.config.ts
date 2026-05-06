@@ -6,14 +6,17 @@ export const SWAGGER_TAGS = [
   'customers',
   'vehicles',
   'components',
+  'suppliers',
   'services',
+  'inventory',
+  'procurement',
 ] as const;
 
 export function buildSwaggerDocumentConfig(): Omit<OpenAPIObject, 'paths'> {
   const builder = new DocumentBuilder()
     .setTitle('Mecanismos Dashboard Backend')
     .setDescription(
-      'Backend API for authentication plus protected customer-assets CRUD-lite access for ADMIN and SALES users.',
+      'Backend API for authentication plus protected customer, supplier, inventory, and procurement access for ADMIN and SALES users.',
     )
     .setVersion('1.0');
 
