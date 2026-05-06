@@ -2,7 +2,12 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { hash } from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { CustomerDocumentType, PrismaClient } from '../generated/prisma/client';
+import {
+  CustomerDocumentType,
+  PrismaClient,
+  SupplierDocumentType,
+  SupplierType,
+} from '../generated/prisma/client';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -111,6 +116,88 @@ const SEED_COMPONENTS = [
     reference: 'DLLA158P854',
     identifier: 'TOB-ANA-001',
     notes: 'Tobera sin vehiculo para probar vehicleId opcional y tipo requerido.',
+  },
+] as const;
+
+const SEED_SUPPLIERS = [
+  {
+    id: 'seed-supplier-repuestos-central-main',
+    name: 'Repuestos Central',
+    type: SupplierType.COMPANY,
+    contactName: 'Laura Perez',
+    documentType: SupplierDocumentType.NIT,
+    documentNumber: '900555111',
+    email: 'compras@repuestos-central.test',
+    notes: '<p>Proveedor principal de repuestos y soporte por WhatsApp.</p>',
+    isActive: true,
+    phones: [
+      {
+        id: 'seed-supplier-repuestos-central-main-phone-principal',
+        label: 'Principal',
+        phone: '3001112233',
+        isPrimary: true,
+        hasWhatsapp: true,
+        notes: 'Canal comercial principal.',
+      },
+      {
+        id: 'seed-supplier-repuestos-central-main-phone-bodega',
+        label: 'Bodega',
+        phone: '6015550101',
+        isPrimary: false,
+        hasWhatsapp: false,
+        notes: 'Linea fija para despachos.',
+      },
+    ],
+  },
+  {
+    id: 'seed-supplier-repuestos-central-duplicate',
+    name: 'Repuestos Central',
+    type: SupplierType.COMPANY,
+    contactName: 'Miguel Torres',
+    documentType: SupplierDocumentType.NIT,
+    documentNumber: '901777222',
+    email: 'aliados@repuestos-central.test',
+    notes: '<p>Segundo proveedor con nombre repetido para validar v1 sin unicidad global.</p>',
+    isActive: true,
+    phones: [
+      {
+        id: 'seed-supplier-repuestos-central-duplicate-phone-principal',
+        label: 'Aliado',
+        phone: '3204445566',
+        isPrimary: true,
+        hasWhatsapp: true,
+        notes: 'Contacto alterno para compras urgentes.',
+      },
+    ],
+  },
+  {
+    id: 'seed-supplier-carlos-ramirez',
+    name: 'Carlos Ramirez',
+    type: SupplierType.PERSON,
+    contactName: 'Carlos Ramirez',
+    documentType: SupplierDocumentType.CEDULA,
+    documentNumber: '79844556',
+    email: 'carlos.ramirez@mecanismos.test',
+    notes: '<p>Tornero externo para trabajos puntuales.</p>',
+    isActive: true,
+    phones: [
+      {
+        id: 'seed-supplier-carlos-ramirez-phone-movil',
+        label: 'Móvil',
+        phone: '3118889900',
+        isPrimary: true,
+        hasWhatsapp: true,
+        notes: 'Responde mejor en horario laboral.',
+      },
+      {
+        id: 'seed-supplier-carlos-ramirez-phone-taller',
+        label: 'Taller',
+        phone: '6015550202',
+        isPrimary: false,
+        hasWhatsapp: false,
+        notes: 'Recepción fija del taller.',
+      },
+    ],
   },
 ] as const;
 
@@ -278,6 +365,63 @@ async function main() {
       });
 
       console.log(`Seeded component: ${seedComponent.identifier}`);
+    }
+
+    for (const seedSupplier of SEED_SUPPLIERS) {
+      await prisma.supplier.upsert({
+        where: { id: seedSupplier.id },
+        create: {
+          id: seedSupplier.id,
+          name: seedSupplier.name,
+          type: seedSupplier.type,
+          contactName: seedSupplier.contactName,
+          documentType: seedSupplier.documentType,
+          documentNumber: seedSupplier.documentNumber,
+          email: seedSupplier.email,
+          notes: seedSupplier.notes,
+          isActive: seedSupplier.isActive,
+          createdAt: now,
+          updatedAt: now,
+          phones: {
+            create: seedSupplier.phones.map((phone) => ({
+              id: phone.id,
+              label: phone.label,
+              phone: phone.phone,
+              isPrimary: phone.isPrimary,
+              hasWhatsapp: phone.hasWhatsapp,
+              notes: phone.notes,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          },
+        },
+        update: {
+          name: seedSupplier.name,
+          type: seedSupplier.type,
+          contactName: seedSupplier.contactName,
+          documentType: seedSupplier.documentType,
+          documentNumber: seedSupplier.documentNumber,
+          email: seedSupplier.email,
+          notes: seedSupplier.notes,
+          isActive: seedSupplier.isActive,
+          updatedAt: now,
+          phones: {
+            deleteMany: {},
+            create: seedSupplier.phones.map((phone) => ({
+              id: phone.id,
+              label: phone.label,
+              phone: phone.phone,
+              isPrimary: phone.isPrimary,
+              hasWhatsapp: phone.hasWhatsapp,
+              notes: phone.notes,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          },
+        },
+      });
+
+      console.log(`Seeded supplier: ${seedSupplier.name} (${seedSupplier.id})`);
     }
   } finally {
     await prisma.$disconnect();

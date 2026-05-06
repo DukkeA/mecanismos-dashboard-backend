@@ -196,16 +196,43 @@ model ServiceCatalog {
 
 model Supplier {
   id                    String                  @id
-  name                  String                  @unique
-  phone                 String?
+  name                  String
+  type                  SupplierType            @default(COMPANY)
+  contactName           String?
+  documentType          SupplierDocumentType?
+  documentNumber        String?
   email                 String?
+  notes                 String?
   isActive              Boolean                 @default(true)
   createdAt             DateTime                @default(now())
   updatedAt             DateTime
   InventoryMovement     InventoryMovement[]
+  phones                SupplierPhone[]
   SupplierQuoteHistory  SupplierQuoteHistory[]
   WorkOrderActualCost   WorkOrderActualCost[]
   WorkOrderEstimateLine WorkOrderEstimateLine[]
+
+  @@index([documentNumber])
+  @@index([isActive])
+  @@index([name])
+  @@index([type])
+}
+
+model SupplierPhone {
+  id          String   @id
+  supplierId  String
+  label       String?
+  phone       String
+  isPrimary   Boolean  @default(false)
+  hasWhatsapp Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([isPrimary])
+  @@index([phone])
+  @@index([supplierId])
 }
 
 model SupplierQuoteHistory {
@@ -428,6 +455,17 @@ enum UserRole {
 enum CustomerDocumentType {
   CEDULA
   NIT
+}
+
+enum SupplierDocumentType {
+  CEDULA
+  NIT
+  OTHER
+}
+
+enum SupplierType {
+  PERSON
+  COMPANY
 }
 
 enum EmployeeType {
