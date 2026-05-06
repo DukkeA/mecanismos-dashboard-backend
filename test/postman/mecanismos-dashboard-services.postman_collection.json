@@ -1,0 +1,314 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Services",
+    "_postman_id": "03c9b04a-35db-4cc4-8736-736d5608d77c",
+    "description": "Runner-ready supplemental verification for service create/list/get/update, canonical duplicate rejection, and protected-route error cases.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "runId", "value": "" },
+    { "key": "serviceId", "value": "" },
+    { "key": "serviceName", "value": "" },
+    { "key": "serviceSearch", "value": "" },
+    { "key": "missingServiceId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+                  "const runId = `${now.slice(-6)}${random}`;",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('serviceId', '');",
+                  "pm.collectionVariables.set('serviceName', `Diagnóstico Runner ${runId}`);",
+                  "pm.collectionVariables.set('serviceSearch', runId);",
+                  "pm.collectionVariables.set('missingServiceId', `missing-${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('admin login returns admin payload', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Service",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{serviceName}}\",\n  \"description\": \"Lectura inicial runner\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": ["{{baseUrl}}"],
+              "path": ["services"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create service returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('serviceId', body.id);",
+                "pm.test('create service captures serviceId', function () {",
+                "  pm.expect(body.id).to.be.a('string');",
+                "  pm.expect(body.slug).to.be.a('string');",
+                "  pm.expect(pm.collectionVariables.get('serviceId')).to.eql(body.id);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Duplicate Canonical Service",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{serviceName}}!!!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": ["{{baseUrl}}"],
+              "path": ["services"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('duplicate canonical service returns 409', function () { pm.response.to.have.status(409); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Services",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/services?page=1&limit=10&search={{serviceSearch}}&isActive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["services"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "{{serviceSearch}}" },
+                { "key": "isActive", "value": "true" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('list services returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('list services includes created service', function () {",
+                "  const serviceId = pm.collectionVariables.get('serviceId');",
+                "  pm.expect(body.data.some((item) => item.id === serviceId)).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Service",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/services/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["services", "{{serviceId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('get service returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('get service uses captured serviceId', function () {",
+                "  pm.expect(body.id).to.eql(pm.collectionVariables.get('serviceId'));",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Update Service",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Calibración Runner {{runId}}\",\n  \"description\": \"Banco actualizado\",\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/services/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["services", "{{serviceId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('update service returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('update service returns inactive service', function () {",
+                "  pm.expect(body.isActive).to.eql(false);",
+                "  pm.expect(body.slug).to.contain('calibracion-runner');",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Protection & Error Checks",
+      "item": [
+        {
+          "name": "Create Service invalid payload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"   \"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": ["{{baseUrl}}"],
+              "path": ["services"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('invalid create returns 400', function () { pm.response.to.have.status(400); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Logout Admin Session",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Service List forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": ["{{baseUrl}}"],
+              "path": ["services"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic listing returns 403', function () { pm.response.to.have.status(403); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Missing Service",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/services/{{missingServiceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["services", "{{missingServiceId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('missing service returns 404', function () { pm.response.to.have.status(404); });"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}
