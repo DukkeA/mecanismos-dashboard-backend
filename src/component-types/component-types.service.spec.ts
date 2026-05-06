@@ -40,7 +40,7 @@ describe('ComponentTypesService', () => {
       }),
     ).resolves.toEqual(componentTypeRecord);
 
-    expect(repository.create).toHaveBeenCalledWith({
+    expect(repository.create.mock.calls[0]?.[0]).toEqual({
       name: 'Bomba de inyección',
       slug: 'bomba-de-inyeccion',
       description: 'Bombas de inyección diesel',
@@ -116,11 +116,14 @@ describe('ComponentTypesService', () => {
       isActive: false,
     });
 
-    expect(repository.update).toHaveBeenCalledWith('component-type-1', {
-      name: 'Tobera',
-      slug: 'tobera-diesel',
-      description: 'Toberas para banco de pruebas',
-      isActive: false,
-    });
+    expect(repository.update.mock.calls[0]).toEqual([
+      'component-type-1',
+      {
+        name: 'Tobera',
+        slug: 'tobera-diesel',
+        description: 'Toberas para banco de pruebas',
+        isActive: false,
+      },
+    ]);
   });
 });

@@ -139,7 +139,9 @@ function findRequest(collection: PostmanCollection, requestName: string) {
   };
 }
 
-function flattenItems(items: PostmanCollectionItem[] | undefined): PostmanCollectionItem[] {
+function flattenItems(
+  items: PostmanCollectionItem[] | undefined,
+): PostmanCollectionItem[] {
   if (!items) {
     return [];
   }
