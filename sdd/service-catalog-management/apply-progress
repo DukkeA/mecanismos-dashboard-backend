@@ -1,0 +1,51 @@
+# Apply Progress: service-catalog-management
+
+## Status
+Recovered apply-progress artifact recreated from persisted recovery evidence after the original strict-TDD apply crashed before writing this filesystem file.
+
+## Honesty Notes
+- The original apply run crashed, so the filesystem artifact was lost.
+- Recovery validated the already-present implementation and persisted that recovery state in Engram.
+- This file is a faithful reconstruction of that recovery state plus the follow-up VERIFY-fix evidence added in this session.
+- RED-first evidence from the original crashed apply CANNOT be reconstructed honestly, so it is marked as unavailable rather than invented.
+
+## Mode
+Strict TDD recovery mode
+
+## Delivery
+- Workload mode: size:exception
+- Boundary: Full `service-catalog-management` slice already existed in the working tree; recovery and VERIFY-fix passes only validated and tightened evidence without creating a commit.
+
+## Completed Tasks
+- [x] 1.1 Update `prisma/schema.prisma` for `ServiceCatalog.slug`, drop `name` uniqueness, and add lookup indexes for `name`/`isActive`.
+- [x] 1.2 Create `prisma/migrations/*/migration.sql` with nullable `slug`, backfill, collision fail-fast, unique enforcement, and legacy key removal.
+- [x] 1.3 Update `prisma/seed.ts` to idempotently upsert representative services by slug while preserving existing IDs/relations.
+- [x] 1.4 Create `src/common/strings/slugify.ts` and refactor `src/component-types/component-types.service.ts` to reuse it without behavior drift.
+- [x] 2.1 Generate `src/services/services.module.ts`, `services.controller.ts`, `services.service.ts`, `persistence/services.repository.ts`, and DTOs for create/update/list.
+- [x] 2.2 Implement DTO trimming/validation in `src/services/dto/*.ts` for required `name`, optional `description`, pagination, search, and `isActive` parsing.
+- [x] 2.3 Implement repository create/list/get/update with Prisma `slug` persistence, search over `name|slug|description`, and typed slug-conflict mapping.
+- [x] 2.4 Implement controller/service auth flow for `ADMIN|SALES`, 401/403/404/409 handling, and register `ServicesModule` in `src/app.module.ts` plus Swagger tag in `src/main.ts`.
+- [x] 3.1 Add `src/services/services.service.spec.ts` and `src/services/persistence/services.repository.spec.ts` for slug regeneration, optional-string normalization, 404/409 mapping, and list filters.
+- [x] 3.2 Add `src/services/services.controller.spec.ts` and `test/services/services.e2e-spec.ts` for allowed roles, unauthenticated 401, forbidden `MECHANIC`, happy paths, duplicate 409, missing-id 404, and update-time canonical collision coverage.
+- [x] 3.3 Add `src/services/services.artifacts.spec.ts`, `docs/services/{overview,api-map,validation-rules,testing}.md`, and `test/postman/mecanismos-dashboard-services.postman_collection.json` with executable reviewer flows using real created IDs, plus migration artifact assertions for ID/FK preservation during slug backfill.
+- [x] 4.1 Verify apply runs `npm run lint` and `npm run format`, plus targeted tests for service unit specs and `test/services/services.e2e-spec.ts`.
+- [x] 4.2 Document rollback order in `docs/services/testing.md`: remove runtime/docs/Postman artifacts first, then revert slug migration before downstream reuse depends on `/services`.
+
+## TDD Cycle Evidence
+| Task | Evidence | RED | GREEN | REFACTOR |
+|------|----------|-----|-------|----------|
+| 1.1-1.4 | Existing runtime/schema/seed implementation was recovered and revalidated | UNAVAILABLE — original crashed apply lost RED-first history | ✅ Recovery reruns previously validated these tasks | ➖ No recovery refactor needed |
+| 2.1-2.4 | Existing `/services` runtime slice was recovered and revalidated | UNAVAILABLE — original crashed apply lost RED-first history | ✅ Recovery reruns previously validated these tasks | ➖ No recovery refactor needed |
+| 3.1 | Existing unit coverage was recovered and revalidated | UNAVAILABLE — original crashed apply lost RED-first history | ✅ Recovery reruns previously validated these tasks | ➖ No recovery refactor needed |
+| 3.2 | `test/services/services.e2e-spec.ts` now includes `PATCH /services/:id -> 409` canonical rename collision proof | UNAVAILABLE for original apply; this recovery follow-up adds missing runtime evidence after VERIFY | ✅ Focused e2e rerun required in this session | ➖ No refactor beyond test hardening |
+| 3.3 | `src/services/services.schema.spec.ts` now proves migration backfill preserves `ServiceCatalog.id` and does not destructively rewrite `WorkOrderEstimateLine.serviceCatalogId` | UNAVAILABLE for original apply; this recovery follow-up adds missing migration evidence after VERIFY | ✅ Focused schema spec rerun required in this session | ➖ No refactor beyond artifact hardening |
+| 4.1-4.2 | Final verification commands rerun in this session | N/A — verification phase task | ✅ `test`, `test:e2e`, `tsc`, `lint`, and `format` rerun in this session | ➖ Verification only |
+
+## Recovery / VERIFY-Fix Files
+- `sdd/service-catalog-management/apply-progress`
+- `test/services/services.e2e-spec.ts`
+- `src/services/services.schema.spec.ts`
+
+## Notes
+- This artifact intentionally avoids claiming any original RED/GREEN sequence that cannot be proven after the crash.
+- The recovery story is: implementation already existed, recovery validated it, and this session added the two missing critical proof points requested by VERIFY.
