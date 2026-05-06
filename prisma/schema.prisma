@@ -159,6 +159,10 @@ model InventoryItem {
   WorkOrderEstimateLine WorkOrderEstimateLine[]
 
   @@index([identifier])
+  @@index([isActive])
+  @@index([itemType])
+  @@index([condition])
+  @@index([name])
   @@index([reference])
 }
 
@@ -240,20 +244,30 @@ model SupplierPhone {
 }
 
 model SupplierQuoteHistory {
-  id              String        @id
-  supplierId      String
-  inventoryItemId String
-  workOrderId     String?
-  quotedCost      Int
-  notes           String?
-  quotedAt        DateTime
-  createdAt       DateTime      @default(now())
-  InventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
-  Supplier        Supplier      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  WorkOrder       WorkOrder?    @relation(fields: [workOrderId], references: [id])
+  id                        String                  @id
+  supplierId                String
+  inventoryItemId           String
+  workOrderId               String?
+  quotedCost                Int
+  notes                     String?
+  quotedAt                  DateTime
+  status                    SupplierQuoteStatus     @default(ACTIVE)
+  correctionReason          String?
+  voidReason                String?
+  voidedAt                  DateTime?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime
+  InventoryItem             InventoryItem           @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  Supplier                  Supplier                @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  WorkOrder                 WorkOrder?              @relation(fields: [workOrderId], references: [id])
+  WorkOrderActualCostLink   WorkOrderActualCost[]   @relation("WorkOrderActualCostSupplierQuoteHistory")
+  WorkOrderEstimateLineLink WorkOrderEstimateLine[] @relation("WorkOrderEstimateLineSupplierQuoteHistory")
 
   @@index([inventoryItemId, quotedAt])
+  @@index([inventoryItemId, status, quotedAt])
   @@index([supplierId, quotedAt])
+  @@index([supplierId, status, quotedAt])
+  @@index([status])
   @@index([workOrderId])
 }
 
@@ -311,24 +325,27 @@ model WorkOrder {
 }
 
 model WorkOrderActualCost {
-  id              String                @id
-  workOrderId     String
-  category        WorkOrderCostCategory
-  description     String
-  amount          Int
-  supplierId      String?
-  inventoryItemId String?
-  paymentMethod   PaymentMethod?
-  incurredAt      DateTime
-  notes           String?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime
-  InventoryItem   InventoryItem?        @relation(fields: [inventoryItemId], references: [id])
-  Supplier        Supplier?             @relation(fields: [supplierId], references: [id])
-  WorkOrder       WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  id                     String                @id
+  workOrderId            String
+  category               WorkOrderCostCategory
+  description            String
+  amount                 Int
+  supplierId             String?
+  inventoryItemId        String?
+  supplierQuoteHistoryId String?
+  paymentMethod          PaymentMethod?
+  incurredAt             DateTime
+  notes                  String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime
+  InventoryItem          InventoryItem?        @relation(fields: [inventoryItemId], references: [id])
+  SupplierQuoteHistory   SupplierQuoteHistory? @relation("WorkOrderActualCostSupplierQuoteHistory", fields: [supplierQuoteHistoryId], references: [id])
+  Supplier               Supplier?             @relation(fields: [supplierId], references: [id])
+  WorkOrder              WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
   @@index([incurredAt])
   @@index([inventoryItemId])
+  @@index([supplierQuoteHistoryId])
   @@index([supplierId])
   @@index([workOrderId])
 }
@@ -358,27 +375,30 @@ model WorkOrderEstimate {
 }
 
 model WorkOrderEstimateLine {
-  id                String            @id
-  estimateId        String
-  lineType          EstimateLineType
-  description       String
-  inventoryItemId   String?
-  serviceCatalogId  String?
-  supplierId        String?
-  quantity          Int               @default(1)
-  unitCost          Int?
-  unitPrice         Int?
-  notes             String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime
-  WorkOrderEstimate WorkOrderEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
-  InventoryItem     InventoryItem?    @relation(fields: [inventoryItemId], references: [id])
-  ServiceCatalog    ServiceCatalog?   @relation(fields: [serviceCatalogId], references: [id])
-  Supplier          Supplier?         @relation(fields: [supplierId], references: [id])
+  id                     String                @id
+  estimateId             String
+  lineType               EstimateLineType
+  description            String
+  inventoryItemId        String?
+  serviceCatalogId       String?
+  supplierId             String?
+  supplierQuoteHistoryId String?
+  quantity               Int                   @default(1)
+  unitCost               Int?
+  unitPrice              Int?
+  notes                  String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime
+  WorkOrderEstimate      WorkOrderEstimate     @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  InventoryItem          InventoryItem?        @relation(fields: [inventoryItemId], references: [id])
+  ServiceCatalog         ServiceCatalog?       @relation(fields: [serviceCatalogId], references: [id])
+  SupplierQuoteHistory   SupplierQuoteHistory? @relation("WorkOrderEstimateLineSupplierQuoteHistory", fields: [supplierQuoteHistoryId], references: [id])
+  Supplier               Supplier?             @relation(fields: [supplierId], references: [id])
 
   @@index([estimateId])
   @@index([inventoryItemId])
   @@index([serviceCatalogId])
+  @@index([supplierQuoteHistoryId])
   @@index([supplierId])
 }
 
@@ -502,9 +522,16 @@ enum InventoryCondition {
 }
 
 enum InventoryItemType {
+  STOCK_OWNED
+  DEMAND_PURCHASED
   REPLACEMENT_PART
   OWNED_COMPONENT
   OTHER
+}
+
+enum SupplierQuoteStatus {
+  ACTIVE
+  VOIDED
 }
 
 enum InventoryMovementReason {

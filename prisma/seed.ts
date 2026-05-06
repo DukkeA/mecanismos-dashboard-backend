@@ -4,8 +4,13 @@ import { hash } from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   CustomerDocumentType,
+  InventoryCondition,
+  InventoryItemType,
+  InventoryMovementReason,
+  InventoryMovementType,
   PrismaClient,
   SupplierDocumentType,
+  SupplierQuoteStatus,
   SupplierType,
 } from '../generated/prisma/client';
 
@@ -229,6 +234,99 @@ const SEED_SUPPLIERS = [
         notes: 'Recepción fija del taller.',
       },
     ],
+  },
+] as const;
+
+const SEED_INVENTORY_ITEMS = [
+  {
+    id: 'seed-inventory-item-bosch-inyector',
+    name: 'Inyector Bosch 0445120231',
+    itemType: InventoryItemType.STOCK_OWNED,
+    condition: InventoryCondition.NEW,
+    brand: 'Bosch',
+    reference: '0445120231',
+    identifier: 'INV-BOSCH-001',
+    notes: 'Stock físico base para movimientos y cotizaciones.',
+    minimumStock: 1,
+    defaultSalePrice: 250000,
+    isActive: true,
+  },
+  {
+    id: 'seed-inventory-item-cotizable-tobera',
+    name: 'Tobera Denso cotizable',
+    itemType: InventoryItemType.DEMAND_PURCHASED,
+    condition: InventoryCondition.NEW,
+    brand: 'Denso',
+    reference: 'DLLA158P854',
+    identifier: 'INV-DENSO-QUOTE-001',
+    notes: 'Ítem bajo demanda para lookup de cotizaciones con stock cero.',
+    minimumStock: 0,
+    defaultSalePrice: 90000,
+    isActive: true,
+  },
+] as const;
+
+const SEED_INVENTORY_MOVEMENTS = [
+  {
+    id: 'seed-inventory-movement-bosch-in-1',
+    inventoryItemId: 'seed-inventory-item-bosch-inyector',
+    movementType: InventoryMovementType.IN,
+    reason: InventoryMovementReason.PURCHASE,
+    quantity: 5,
+    unitCost: 180000,
+    supplierId: 'seed-supplier-repuestos-central-main',
+    occurredAt: new Date('2026-05-05T10:00:00.000Z'),
+    notes: 'Compra inicial de muestra.',
+  },
+  {
+    id: 'seed-inventory-movement-bosch-out-1',
+    inventoryItemId: 'seed-inventory-item-bosch-inyector',
+    movementType: InventoryMovementType.OUT,
+    reason: InventoryMovementReason.SALE,
+    quantity: 2,
+    unitCost: 180000,
+    supplierId: null,
+    occurredAt: new Date('2026-05-06T09:30:00.000Z'),
+    notes: 'Salida comercial de ejemplo.',
+  },
+] as const;
+
+const SEED_SUPPLIER_QUOTES = [
+  {
+    id: 'seed-supplier-quote-bosch-central-v1',
+    supplierId: 'seed-supplier-repuestos-central-main',
+    inventoryItemId: 'seed-inventory-item-bosch-inyector',
+    quotedCost: 178000,
+    quotedAt: new Date('2026-05-02T08:00:00.000Z'),
+    status: SupplierQuoteStatus.ACTIVE,
+    notes: 'Primer valor válido para comparativo.',
+    correctionReason: null,
+    voidReason: null,
+    voidedAt: null,
+  },
+  {
+    id: 'seed-supplier-quote-bosch-central-v2',
+    supplierId: 'seed-supplier-repuestos-central-main',
+    inventoryItemId: 'seed-inventory-item-bosch-inyector',
+    quotedCost: 182000,
+    quotedAt: new Date('2026-05-04T08:00:00.000Z'),
+    status: SupplierQuoteStatus.ACTIVE,
+    notes: 'Nuevo precio vigente.',
+    correctionReason: null,
+    voidReason: null,
+    voidedAt: null,
+  },
+  {
+    id: 'seed-supplier-quote-tobera-aliado-voided',
+    supplierId: 'seed-supplier-repuestos-central-duplicate',
+    inventoryItemId: 'seed-inventory-item-cotizable-tobera',
+    quotedCost: 76000,
+    quotedAt: new Date('2026-05-03T15:00:00.000Z'),
+    status: SupplierQuoteStatus.VOIDED,
+    notes: 'Cotización anulada por referencia incorrecta.',
+    correctionReason: 'Se corrigió la referencia después del contacto inicial.',
+    voidReason: 'Referencia equivocada',
+    voidedAt: new Date('2026-05-03T18:00:00.000Z'),
   },
 ] as const;
 
@@ -476,6 +574,61 @@ async function main() {
       });
 
       console.log(`Seeded supplier: ${seedSupplier.name} (${seedSupplier.id})`);
+    }
+
+    for (const seedInventoryItem of SEED_INVENTORY_ITEMS) {
+      await prisma.inventoryItem.upsert({
+        where: { id: seedInventoryItem.id },
+        create: {
+          ...seedInventoryItem,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          ...seedInventoryItem,
+          updatedAt: now,
+        },
+      });
+
+      console.log(`Seeded inventory item: ${seedInventoryItem.id}`);
+    }
+
+    for (const seedInventoryMovement of SEED_INVENTORY_MOVEMENTS) {
+      await prisma.inventoryMovement.upsert({
+        where: { id: seedInventoryMovement.id },
+        create: {
+          ...seedInventoryMovement,
+          createdAt: now,
+        },
+        update: seedInventoryMovement,
+      });
+
+      console.log(`Seeded inventory movement: ${seedInventoryMovement.id}`);
+    }
+
+    for (const seedSupplierQuote of SEED_SUPPLIER_QUOTES) {
+      await prisma.supplierQuoteHistory.upsert({
+        where: { id: seedSupplierQuote.id },
+        create: {
+          ...seedSupplierQuote,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          supplierId: seedSupplierQuote.supplierId,
+          inventoryItemId: seedSupplierQuote.inventoryItemId,
+          quotedCost: seedSupplierQuote.quotedCost,
+          quotedAt: seedSupplierQuote.quotedAt,
+          status: seedSupplierQuote.status,
+          notes: seedSupplierQuote.notes,
+          correctionReason: seedSupplierQuote.correctionReason,
+          voidReason: seedSupplierQuote.voidReason,
+          voidedAt: seedSupplierQuote.voidedAt,
+          updatedAt: now,
+        },
+      });
+
+      console.log(`Seeded supplier quote: ${seedSupplierQuote.id}`);
     }
   } finally {
     await prisma.$disconnect();
