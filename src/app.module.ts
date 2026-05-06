@@ -10,6 +10,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { ComponentsModule } from './components/components.module';
 import { ComponentTypesModule } from './component-types/component-types.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
+import { ServicesModule } from './services/services.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
     ComponentsModule,
     ComponentTypesModule,
     SuppliersModule,
+    ServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

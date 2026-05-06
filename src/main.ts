@@ -1,12 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import {
   buildAuthCorsOptions,
   resolveOptionalAuthConfig,
 } from './auth/config/auth.config';
+import { buildSwaggerDocumentConfig } from './swagger/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,18 +28,7 @@ async function bootstrap() {
       : { origin: true, credentials: true },
   );
 
-  const config = new DocumentBuilder()
-    .setTitle('Mecanismos Dashboard Backend')
-    .setDescription(
-      'Backend API for authentication plus protected customer-assets CRUD-lite access for ADMIN and SALES users.',
-    )
-    .setVersion('1.0')
-    .addTag('auth')
-    .addTag('component-types')
-    .addTag('customers')
-    .addTag('vehicles')
-    .addTag('components')
-    .build();
+  const config = buildSwaggerDocumentConfig();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
