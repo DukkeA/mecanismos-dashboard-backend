@@ -186,12 +186,16 @@ model InventoryMovement {
 
 model ServiceCatalog {
   id                    String                  @id
-  name                  String                  @unique
+  name                  String
+  slug                  String                  @unique
   description           String?
   isActive              Boolean                 @default(true)
   createdAt             DateTime                @default(now())
   updatedAt             DateTime
   WorkOrderEstimateLine WorkOrderEstimateLine[]
+
+  @@index([isActive])
+  @@index([name])
 }
 
 model Supplier {

@@ -11,6 +11,7 @@ import {
   ComponentTypeSlugConflictError,
   ComponentTypesRepository,
 } from './persistence/component-types.repository';
+import { slugify } from '../common/strings/slugify';
 
 @Injectable()
 export class ComponentTypesService {
@@ -24,7 +25,7 @@ export class ComponentTypesService {
     try {
       return await this.componentTypesRepository.create({
         name: normalizedName,
-        slug: normalizeSlug(createComponentTypeDto.slug ?? normalizedName),
+        slug: slugify(createComponentTypeDto.slug ?? normalizedName),
         description: normalizeOptionalString(
           createComponentTypeDto.description,
         ),
@@ -80,7 +81,7 @@ export class ComponentTypesService {
           : {}),
         ...(normalizedSlugSource !== undefined
           ? {
-              slug: normalizeSlug(normalizedSlugSource),
+              slug: slugify(normalizedSlugSource),
             }
           : {}),
       });
@@ -96,16 +97,6 @@ export class ComponentTypesService {
 
     throw error;
   }
-}
-
-export function normalizeSlug(value: string) {
-  return value
-    .trim()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }
 
 function normalizeOptionalString(value?: string) {

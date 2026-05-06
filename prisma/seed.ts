@@ -119,6 +119,37 @@ const SEED_COMPONENTS = [
   },
 ] as const;
 
+const SEED_SERVICES = [
+  {
+    id: 'seed-service-diagnostico',
+    name: 'Diagnóstico',
+    slug: 'diagnostico',
+    description: 'Diagnóstico inicial para lectura de fallas y definición de alcance.',
+    isActive: true,
+  },
+  {
+    id: 'seed-service-reparacion',
+    name: 'Reparación',
+    slug: 'reparacion',
+    description: 'Servicio base de reparación correctiva sobre componentes y sistemas.',
+    isActive: true,
+  },
+  {
+    id: 'seed-service-calibracion',
+    name: 'Calibración',
+    slug: 'calibracion',
+    description: 'Calibración de banco para componentes de inyección y precisión.',
+    isActive: true,
+  },
+  {
+    id: 'seed-service-instalacion',
+    name: 'Instalación',
+    slug: 'instalacion',
+    description: 'Instalación controlada con verificación final de funcionamiento.',
+    isActive: true,
+  },
+] as const;
+
 const SEED_SUPPLIERS = [
   {
     id: 'seed-supplier-repuestos-central-main',
@@ -365,6 +396,29 @@ async function main() {
       });
 
       console.log(`Seeded component: ${seedComponent.identifier}`);
+    }
+
+    for (const seedService of SEED_SERVICES) {
+      await prisma.serviceCatalog.upsert({
+        where: { slug: seedService.slug },
+        create: {
+          id: seedService.id,
+          name: seedService.name,
+          slug: seedService.slug,
+          description: seedService.description,
+          isActive: seedService.isActive,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          name: seedService.name,
+          description: seedService.description,
+          isActive: seedService.isActive,
+          updatedAt: now,
+        },
+      });
+
+      console.log(`Seeded service: ${seedService.slug}`);
     }
 
     for (const seedSupplier of SEED_SUPPLIERS) {
