@@ -10,6 +10,7 @@ import {
   INestApplication,
   NotFoundException,
   UnauthorizedException,
+  ValidationPipe,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
@@ -66,6 +67,7 @@ describe('Supplier quotes routes (e2e)', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     process.env.AUTH_ACCESS_TOKEN_SECRET = 'access-secret';
     process.env.AUTH_REFRESH_TOKEN_SECRET = 'refresh-secret';
     process.env.AUTH_ALLOWED_ORIGINS = 'http://localhost:5173';
@@ -85,6 +87,13 @@ describe('Supplier quotes routes (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     await app.init();
   });
 
@@ -105,6 +114,23 @@ describe('Supplier quotes routes (e2e)', () => {
       .expect(({ body }: { body: { data: Array<{ status: string }> } }) => {
         expect(body.data[0].status).toBe('VOIDED');
       });
+  });
+
+  it('accepts includeVoided query values for supplier quote timelines', async () => {
+    await request(app.getHttpServer())
+      .get(
+        '/suppliers/supplier-1/quotes?inventoryItemId=item-1&includeVoided=true',
+      )
+      .set('x-test-role', 'SALES')
+      .expect(200);
+
+    expect(procurementService.findSupplierQuoteTimeline).toHaveBeenCalledWith(
+      'supplier-1',
+      expect.objectContaining({
+        inventoryItemId: 'item-1',
+        includeVoided: true,
+      }),
+    );
   });
 
   it('returns 404 when the supplier quote timeline parent does not exist', () => {

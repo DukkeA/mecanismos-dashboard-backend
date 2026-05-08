@@ -254,6 +254,7 @@ function buildSupplierQuoteWhere(input: {
   supplierId: string;
   search?: string;
   status?: SupplierQuoteStatus;
+  includeVoided?: boolean;
   inventoryItemId?: string;
   quotedFrom?: Date;
   quotedTo?: Date;
@@ -262,7 +263,11 @@ function buildSupplierQuoteWhere(input: {
 
   return {
     supplierId: input.supplierId,
-    ...(input.status ? { status: input.status } : {}),
+    ...(input.status
+      ? { status: input.status }
+      : input.includeVoided === true
+        ? {}
+        : { status: 'ACTIVE' as const }),
     ...(input.inventoryItemId
       ? { inventoryItemId: input.inventoryItemId }
       : {}),

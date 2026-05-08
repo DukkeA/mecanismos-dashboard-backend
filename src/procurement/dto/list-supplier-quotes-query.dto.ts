@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDate,
   IsIn,
   IsInt,
@@ -13,6 +14,34 @@ import { SupplierQuoteStatus } from '../../../generated/prisma/enums';
 import { OptionalTrimmedString } from '../../customers/dto/customer-string.transforms';
 
 const supplierQuoteStatuses = Object.values(SupplierQuoteStatus);
+
+function OptionalBooleanQuery() {
+  return Transform(({ value }: { value: unknown }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const normalized = value.trim().toLowerCase();
+
+    if (normalized === 'true') {
+      return true;
+    }
+
+    if (normalized === 'false') {
+      return false;
+    }
+
+    return value;
+  });
+}
 
 export class ListSupplierQuotesQueryDto {
   @ApiPropertyOptional({ default: 1 })
@@ -40,6 +69,16 @@ export class ListSupplierQuotesQueryDto {
   @IsOptional()
   @IsIn(supplierQuoteStatuses)
   status?: SupplierQuoteStatus;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'When true, includes voided quote events in supplier timelines.',
+  })
+  @IsOptional()
+  @OptionalBooleanQuery()
+  @IsBoolean()
+  includeVoided?: boolean;
 
   @ApiPropertyOptional({ example: 'seed-inventory-item-bosch-inyector' })
   @IsOptional()
