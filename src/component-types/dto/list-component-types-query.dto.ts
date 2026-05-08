@@ -8,7 +8,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { OptionalTrimmedString } from '../../customers/dto/customer-string.transforms';
+import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 function OptionalBooleanQuery() {
   return Transform(({ value }: { value: unknown }) => {

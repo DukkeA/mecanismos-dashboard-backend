@@ -11,7 +11,7 @@ import {
   LowercaseEmail,
   OptionalTrimmedString,
   TrimmedString,
-} from './customer-string.transforms';
+} from '../../common/transforms/string.transforms';
 
 const customerDocumentTypes = Object.values(CustomerDocumentType);
 

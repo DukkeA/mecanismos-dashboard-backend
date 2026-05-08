@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { PrismaModule } from '../prisma/prisma.module';
 import { ComponentTypesController } from './component-types.controller';
 import {
   COMPONENT_TYPES_PRISMA_CLIENT,
@@ -8,11 +9,11 @@ import {
 import { ComponentTypesService } from './component-types.service';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [ComponentTypesController],
   providers: [
     ComponentTypesService,
     ComponentTypesRepository,
-    PrismaService,
     {
       provide: COMPONENT_TYPES_PRISMA_CLIENT,
       useExisting: PrismaService,

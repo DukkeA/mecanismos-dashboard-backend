@@ -4,7 +4,7 @@ import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
   OptionalTrimmedString,
   TrimmedString,
-} from '../../customers/dto/customer-string.transforms';
+} from '../../common/transforms/string.transforms';
 
 export class CreateServiceDto {
   @ApiProperty({ example: 'Diagnóstico electrónico' })

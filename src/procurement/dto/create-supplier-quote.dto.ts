@@ -4,7 +4,7 @@ import { IsDate, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import {
   OptionalTrimmedString,
   TrimmedString,
-} from '../../customers/dto/customer-string.transforms';
+} from '../../common/transforms/string.transforms';
 
 export class CreateSupplierQuoteDto {
   @ApiProperty({ example: 'seed-supplier-repuestos-central-main' })

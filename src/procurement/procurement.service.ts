@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 import type { CreateSupplierQuoteDto } from './dto/create-supplier-quote.dto';
 import type { ListSupplierQuotesQueryDto } from './dto/list-supplier-quotes-query.dto';
 import type { UpdateSupplierQuoteDto } from './dto/update-supplier-quote.dto';
@@ -54,12 +55,7 @@ export class ProcurementService {
 
       return {
         data: result.items,
-        meta: {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          totalPages: Math.ceil(result.total / result.limit),
-        },
+        meta: buildPaginationMeta(result),
       };
     } catch (error) {
       if (error instanceof SupplierNotFoundError) {

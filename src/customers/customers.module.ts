@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { PrismaModule } from '../prisma/prisma.module';
 import { CustomersController } from './customers.controller';
 import {
   CUSTOMERS_PRISMA_CLIENT,
@@ -8,11 +9,11 @@ import {
 import { CustomersService } from './customers.service';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [CustomersController],
   providers: [
     CustomersService,
     CustomersRepository,
-    PrismaService,
     {
       provide: CUSTOMERS_PRISMA_CLIENT,
       useExisting: PrismaService,

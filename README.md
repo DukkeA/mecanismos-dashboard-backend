@@ -49,6 +49,7 @@ $ npm run start:prod
 - The Nest runtime now loads `.env` automatically via `@nestjs/config`.
 - You no longer need to export `DATABASE_URL` manually in the shell before starting the app.
 - Keep `.env` at the repository root.
+- `npm run test:e2e` now REQUIRES `DATABASE_URL_TEST`; it fails fast if the value is missing, unsafe, or points to the same database as `DATABASE_URL`.
 
 ## Run tests
 

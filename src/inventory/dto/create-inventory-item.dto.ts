@@ -16,7 +16,7 @@ import {
 import {
   OptionalTrimmedString,
   TrimmedString,
-} from '../../customers/dto/customer-string.transforms';
+} from '../../common/transforms/string.transforms';
 
 const inventoryItemTypes = Object.values(InventoryItemType);
 const inventoryConditions = Object.values(InventoryCondition);

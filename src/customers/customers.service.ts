@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 import type { CreateCustomerDto } from './dto/create-customer.dto';
 import type { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import type { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -28,12 +29,7 @@ export class CustomersService {
 
     return {
       data: result.items,
-      meta: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      meta: buildPaginationMeta(result),
     };
   }
 

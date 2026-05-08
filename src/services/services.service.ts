@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 
 import { slugify } from '../common/strings/slugify';
 import type { CreateServiceDto } from './dto/create-service.dto';
@@ -39,12 +40,7 @@ export class ServicesService {
 
     return {
       data: result.items,
-      meta: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      meta: buildPaginationMeta(result),
     };
   }
 

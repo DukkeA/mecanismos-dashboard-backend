@@ -2,7 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CustomerDocumentType } from '../../../generated/prisma/enums';
-import { OptionalTrimmedString } from './customer-string.transforms';
+import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 const customerDocumentTypes = Object.values(CustomerDocumentType);
 

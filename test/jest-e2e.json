@@ -2,7 +2,14 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
+  "globalSetup": "<rootDir>/global-e2e-setup.ts",
+  "maxWorkers": 1,
   "testRegex": ".e2e-spec.ts$",
+  "moduleNameMapper": {
+    "^\\./enums\\.js$": "<rootDir>/../generated/prisma/enums.ts",
+    "^\\./internal/(.*)\\.js$": "<rootDir>/../generated/prisma/internal/$1.ts",
+    "^(.*generated/prisma/.*)\\.js$": "$1.ts"
+  },
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   }

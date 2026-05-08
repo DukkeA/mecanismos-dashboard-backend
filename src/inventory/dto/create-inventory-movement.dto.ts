@@ -12,7 +12,7 @@ import {
   InventoryMovementReason,
   InventoryMovementType,
 } from '../../../generated/prisma/enums';
-import { OptionalTrimmedString } from '../../customers/dto/customer-string.transforms';
+import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 const inventoryMovementTypes = Object.values(InventoryMovementType).filter(
   (movementType) => movementType !== 'ADJUSTMENT',

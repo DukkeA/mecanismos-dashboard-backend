@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { SupplierType } from '../../../generated/prisma/enums';
-import { OptionalTrimmedString } from './supplier-string.transforms';
+import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 const supplierTypes = Object.values(SupplierType);
 

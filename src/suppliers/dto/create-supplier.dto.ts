@@ -19,7 +19,7 @@ import {
   LowercaseEmail,
   OptionalTrimmedString,
   TrimmedString,
-} from './supplier-string.transforms';
+} from '../../common/transforms/string.transforms';
 import { SupplierPhoneDto } from './supplier-phone.dto';
 
 const supplierTypes = Object.values(SupplierType);

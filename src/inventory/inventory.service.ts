@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 import type { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import type { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
 import type { ListInventoryItemsQueryDto } from './dto/list-inventory-items-query.dto';
@@ -34,12 +35,7 @@ export class InventoryService {
         ...item,
         currentStock: currentStocks[item.id] ?? 0,
       })),
-      meta: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      meta: buildPaginationMeta(result),
     };
   }
 

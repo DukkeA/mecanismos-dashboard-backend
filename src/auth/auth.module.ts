@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { PrismaService } from '../prisma.service';
+import { PrismaModule } from '../prisma/prisma.module';
 import { AuthController } from './auth.controller';
 import { AuthOriginGuard } from './auth-origin.guard';
 import { AuthService } from './auth.service';
@@ -16,6 +17,7 @@ import { RolesGuard } from './roles.guard';
 
 @Module({
   imports: [
+    PrismaModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}),
   ],
@@ -27,7 +29,6 @@ import { RolesGuard } from './roles.guard';
     JwtStrategy,
     JwtAuthGuard,
     RolesGuard,
-    PrismaService,
     {
       provide: AUTH_PRISMA_CLIENT,
       useExisting: PrismaService,

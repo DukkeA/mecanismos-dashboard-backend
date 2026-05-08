@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 import type { CreateSupplierDto } from './dto/create-supplier.dto';
 import type { ListSuppliersQueryDto } from './dto/list-suppliers-query.dto';
 import type { SupplierPhoneDto } from './dto/supplier-phone.dto';
@@ -25,12 +26,7 @@ export class SuppliersService {
 
     return {
       data: result.items,
-      meta: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      meta: buildPaginationMeta(result),
     };
   }
 

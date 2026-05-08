@@ -4,7 +4,7 @@ import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import {
   OptionalTrimmedString,
   TrimmedString,
-} from './supplier-string.transforms';
+} from '../../common/transforms/string.transforms';
 
 export class SupplierPhoneDto {
   @ApiPropertyOptional({ example: 'Principal' })

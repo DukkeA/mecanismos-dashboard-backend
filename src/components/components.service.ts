@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 
 import type { CreateComponentDto } from './dto/create-component.dto';
 import type { ListComponentsQueryDto } from './dto/list-components-query.dto';
@@ -29,12 +30,7 @@ export class ComponentsService {
 
     return {
       data: result.items,
-      meta: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      meta: buildPaginationMeta(result),
     };
   }
 

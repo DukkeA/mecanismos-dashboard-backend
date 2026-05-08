@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { OptionalTrimmedString } from '../../customers/dto/customer-string.transforms';
+import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 export class ListComponentsQueryDto {
   @ApiPropertyOptional({ default: 1 })

@@ -11,7 +11,7 @@ import {
   Min,
 } from 'class-validator';
 import { SupplierQuoteStatus } from '../../../generated/prisma/enums';
-import { OptionalTrimmedString } from '../../customers/dto/customer-string.transforms';
+import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 const supplierQuoteStatuses = Object.values(SupplierQuoteStatus);
 

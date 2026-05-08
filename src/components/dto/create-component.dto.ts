@@ -4,7 +4,7 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
   OptionalTrimmedString,
   TrimmedString,
-} from '../../customers/dto/customer-string.transforms';
+} from '../../common/transforms/string.transforms';
 
 function OptionalVehicleId() {
   return Transform(({ value }: { value: unknown }) => {

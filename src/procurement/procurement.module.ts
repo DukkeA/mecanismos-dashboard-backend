@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { PrismaModule } from '../prisma/prisma.module';
 import {
   PROCUREMENT_PRISMA_CLIENT,
   ProcurementRepository,
@@ -8,11 +9,11 @@ import { ProcurementService } from './procurement.service';
 import { SupplierQuotesController } from './supplier-quotes.controller';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [SupplierQuotesController],
   providers: [
     ProcurementService,
     ProcurementRepository,
-    PrismaService,
     {
       provide: PROCUREMENT_PRISMA_CLIENT,
       useExisting: PrismaService,

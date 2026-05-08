@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 import type { CreateVehicleDto } from './dto/create-vehicle.dto';
 import type { ListVehiclesQueryDto } from './dto/list-vehicles-query.dto';
 import type { UpdateVehicleDto } from './dto/update-vehicle.dto';
@@ -38,12 +39,7 @@ export class VehiclesService {
 
     return {
       data: result.items,
-      meta: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      meta: buildPaginationMeta(result),
     };
   }
 

@@ -3,7 +3,7 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
   OptionalTrimmedString,
   TrimmedString,
-} from '../../customers/dto/customer-string.transforms';
+} from '../../common/transforms/string.transforms';
 import { Transform } from 'class-transformer';
 
 function UppercasePlate() {
