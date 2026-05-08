@@ -10,15 +10,21 @@ describe('inventory procurement postman artifact', () => {
   );
 
   it('ships runner-ready requests for reviewer happy paths', () => {
+    type PostmanItem = { name?: string; request?: unknown; item?: PostmanItem[] };
     const collection = JSON.parse(fs.readFileSync(collectionPath, 'utf8')) as {
       info?: { description?: string };
-      item?: Array<{ name?: string }>;
+      item?: PostmanItem[];
     };
+    const flattenItems = (items: PostmanItem[] = []): PostmanItem[] =>
+      items.flatMap((item) => [item, ...flattenItems(item.item)]);
+    const requests = flattenItems(collection.item).filter(
+      (item) => item.request,
+    );
 
     expect(collection.info?.description).toContain(
       'Runner-ready supplemental verification',
     );
-    expect(collection.item?.map((item) => item.name)).toEqual(
+    expect(requests.map((item) => item.name)).toEqual(
       expect.arrayContaining([
         'Login as Admin',
         'List Inventory Items',

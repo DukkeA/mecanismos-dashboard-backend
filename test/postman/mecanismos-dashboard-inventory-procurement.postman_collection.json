@@ -1,13 +1,587 @@
 {
   "info": {
     "name": "Mecanismos Dashboard Inventory Procurement",
-    "description": "Runner-ready supplemental verification for inventory procurement reviewer flows."
+    "_postman_id": "2df6e4f4-1ac5-4a8c-9d6d-1f6d7b6d6001",
+    "description": "Runner-ready supplemental verification for inventory item catalog, stock movement ledger, supplier quote event history, and protected-route behavior.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "runId", "value": "" },
+    { "key": "supplierId", "value": "" },
+    { "key": "supplierName", "value": "" },
+    { "key": "supplierDocumentNumber", "value": "" },
+    { "key": "supplierEmail", "value": "" },
+    { "key": "inventoryItemId", "value": "" },
+    { "key": "inventoryItemName", "value": "" },
+    { "key": "inventoryItemSearch", "value": "" },
+    { "key": "movementId", "value": "" },
+    { "key": "supplierQuoteId", "value": "" },
+    { "key": "supplierQuoteToVoidId", "value": "" }
+  ],
   "item": [
-    { "name": "Login as Admin" },
-    { "name": "List Inventory Items" },
-    { "name": "Reject Negative Stock Movement" },
-    { "name": "Create Supplier Quote Event" },
-    { "name": "Void Supplier Quote" }
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+                  "const runId = `${now.slice(-6)}${random}`;",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('supplierId', '');",
+                  "pm.collectionVariables.set('inventoryItemId', '');",
+                  "pm.collectionVariables.set('movementId', '');",
+                  "pm.collectionVariables.set('supplierQuoteId', '');",
+                  "pm.collectionVariables.set('supplierQuoteToVoidId', '');",
+                  "pm.collectionVariables.set('supplierName', `Proveedor Inventario Runner ${runId}`);",
+                  "pm.collectionVariables.set('supplierDocumentNumber', `7${runId.slice(0, 8)}`);",
+                  "pm.collectionVariables.set('supplierEmail', `inventory.supplier.${runId}@mecanismos.test`);",
+                  "pm.collectionVariables.set('inventoryItemName', `Tobera Runner ${runId}`);",
+                  "pm.collectionVariables.set('inventoryItemSearch', runId);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('admin login returns admin payload', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Supplier For Quotes",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{supplierName}}\",\n  \"type\": \"COMPANY\",\n  \"documentType\": \"NIT\",\n  \"documentNumber\": \"{{supplierDocumentNumber}}\",\n  \"email\": \"{{supplierEmail}}\",\n  \"phones\": [\n    {\n      \"label\": \"Ventas\",\n      \"phone\": \"3001234567\",\n      \"isPrimary\": true,\n      \"hasWhatsapp\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/suppliers",
+              "host": ["{{baseUrl}}"],
+              "path": ["suppliers"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create supplier returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('supplierId', body.id);",
+                "pm.test('supplier id captured', function () { pm.expect(body.id).to.be.a('string'); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Inventory Item",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{inventoryItemName}}\",\n  \"itemType\": \"STOCK_OWNED\",\n  \"condition\": \"NEW\",\n  \"brand\": \"Denso\",\n  \"reference\": \"DLLA-{{runId}}\",\n  \"identifier\": \"INV-RUNNER-{{runId}}\",\n  \"minimumStock\": 1,\n  \"defaultSalePrice\": 120000,\n  \"notes\": \"Ítem runner para validar inventario y cotizaciones\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create inventory item returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('inventoryItemId', body.id);",
+                "pm.test('inventory item starts without editable stock field', function () {",
+                "  pm.expect(body.id).to.be.a('string');",
+                "  pm.expect(body.name).to.eql(pm.collectionVariables.get('inventoryItemName'));",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Inventory Items",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items?page=1&limit=10&search={{inventoryItemSearch}}&isActive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "{{inventoryItemSearch}}" },
+                { "key": "isActive", "value": "true" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('list inventory items returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('list includes created inventory item with derived stock', function () {",
+                "  const id = pm.collectionVariables.get('inventoryItemId');",
+                "  const item = body.data.find((entry) => entry.id === id);",
+                "  pm.expect(item).to.not.eql(undefined);",
+                "  pm.expect(item.currentStock).to.eql(0);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Reject Negative Stock Movement",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movementType\": \"OUT\",\n  \"reason\": \"SALE\",\n  \"quantity\": 1,\n  \"occurredAt\": \"2026-05-06T10:00:00.000Z\",\n  \"notes\": \"Debe fallar porque el stock actual es cero\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items", "{{inventoryItemId}}", "movements"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('negative stock movement returns 409', function () { pm.response.to.have.status(409); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Stock Entry Movement",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movementType\": \"IN\",\n  \"reason\": \"PURCHASE\",\n  \"quantity\": 5,\n  \"unitCost\": 70000,\n  \"supplierId\": \"{{supplierId}}\",\n  \"occurredAt\": \"2026-05-06T11:00:00.000Z\",\n  \"notes\": \"Entrada runner por compra\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items", "{{inventoryItemId}}", "movements"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('stock entry returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('movementId', body.id);",
+                "pm.test('stock entry returns currentStockAfter 5', function () { pm.expect(body.currentStockAfter).to.eql(5); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Stock Exit Movement",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movementType\": \"OUT\",\n  \"reason\": \"SALE\",\n  \"quantity\": 2,\n  \"occurredAt\": \"2026-05-06T12:00:00.000Z\",\n  \"notes\": \"Salida runner después de entrada\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items", "{{inventoryItemId}}", "movements"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('stock exit returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.test('stock exit returns currentStockAfter 3', function () { pm.expect(body.currentStockAfter).to.eql(3); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Inventory Item With Derived Stock",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items", "{{inventoryItemId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('get inventory item returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('get inventory item returns derived currentStock 3', function () {",
+                "  pm.expect(body.id).to.eql(pm.collectionVariables.get('inventoryItemId'));",
+                "  pm.expect(body.currentStock).to.eql(3);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Item Movements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items", "{{inventoryItemId}}", "movements"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('list item movements returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('movement timeline includes stock entry', function () {",
+                "  pm.expect(body.some((movement) => movement.id === pm.collectionVariables.get('movementId'))).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Inventory Movement",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory-movements/{{movementId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-movements", "{{movementId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('get movement returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('get movement uses captured movementId', function () { pm.expect(body.id).to.eql(pm.collectionVariables.get('movementId')); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Supplier Quote Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"inventoryItemId\": \"{{inventoryItemId}}\",\n  \"quotedCost\": 76000,\n  \"quotedAt\": \"2026-05-06T13:00:00.000Z\",\n  \"notes\": \"Primera cotización runner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/supplier-quotes",
+              "host": ["{{baseUrl}}"],
+              "path": ["supplier-quotes"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create supplier quote returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('supplierQuoteId', body.id);",
+                "pm.test('quote event is active and captured', function () {",
+                "  pm.expect(body.id).to.be.a('string');",
+                "  pm.expect(body.status).to.eql('ACTIVE');",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create New Price Quote Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"inventoryItemId\": \"{{inventoryItemId}}\",\n  \"quotedCost\": 82000,\n  \"quotedAt\": \"2026-05-07T13:00:00.000Z\",\n  \"notes\": \"Nuevo precio: debe ser otro evento, no reemplazo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/supplier-quotes",
+              "host": ["{{baseUrl}}"],
+              "path": ["supplier-quotes"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('new price quote returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('supplierQuoteToVoidId', body.id);",
+                "pm.test('new price quote creates a different event', function () {",
+                "  pm.expect(body.id).to.not.eql(pm.collectionVariables.get('supplierQuoteId'));",
+                "  pm.expect(body.quotedCost).to.eql(82000);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Correct Supplier Quote Metadata",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quotedCost\": 76500,\n  \"correctionReason\": \"Corrección runner por digitación\",\n  \"notes\": \"Proveedor confirmó IVA incluido\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/supplier-quotes/{{supplierQuoteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["supplier-quotes", "{{supplierQuoteId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('correct quote returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('correction reason is persisted', function () {",
+                "  pm.expect(body.quotedCost).to.eql(76500);",
+                "  pm.expect(body.correctionReason).to.eql('Corrección runner por digitación');",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Void Supplier Quote",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voidReason\": \"Cotización runner anulada para validar historial\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/supplier-quotes/{{supplierQuoteToVoidId}}/void",
+              "host": ["{{baseUrl}}"],
+              "path": ["supplier-quotes", "{{supplierQuoteToVoidId}}", "void"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('void quote returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('quote is voided but preserved', function () {",
+                "  pm.expect(body.status).to.eql('VOIDED');",
+                "  pm.expect(body.voidReason).to.eql('Cotización runner anulada para validar historial');",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Item Supplier Quotes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/supplier-quotes",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items", "{{inventoryItemId}}", "supplier-quotes"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('item quote lookup returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('item quote lookup includes history and supplier summaries', function () {",
+                "  pm.expect(body.history.some((quote) => quote.id === pm.collectionVariables.get('supplierQuoteId'))).to.eql(true);",
+                "  pm.expect(body.latestBySupplier.length).to.be.above(0);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Supplier Quote Timeline",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/suppliers/{{supplierId}}/quotes?inventoryItemId={{inventoryItemId}}&includeVoided=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["suppliers", "{{supplierId}}", "quotes"],
+              "query": [
+                { "key": "inventoryItemId", "value": "{{inventoryItemId}}" },
+                { "key": "includeVoided", "value": "true" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('supplier quote timeline returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('supplier quote timeline includes active and voided events', function () {",
+                "  pm.expect(body.data.some((quote) => quote.id === pm.collectionVariables.get('supplierQuoteId'))).to.eql(true);",
+                "  pm.expect(body.data.some((quote) => quote.id === pm.collectionVariables.get('supplierQuoteToVoidId') && quote.status === 'VOIDED')).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Protection & Error Checks",
+      "item": [
+        {
+          "name": "Create Inventory Item invalid payload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"   \",\n  \"itemType\": \"STOCK_OWNED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('invalid inventory item returns 400', function () { pm.response.to.have.status(400); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic login returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('mechanic login returns mechanic payload', function () { pm.expect(body.role).to.eql('MECHANIC'); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Inventory List forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory-items?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory-items"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic inventory list returns 403', function () { pm.response.to.have.status(403); });"
+              ]
+            }
+          }]
+        }
+      ]
+    }
   ]
 }
