@@ -120,7 +120,8 @@ const SEED_COMPONENTS = [
     brand: 'Denso',
     reference: 'DLLA158P854',
     identifier: 'TOB-ANA-001',
-    notes: 'Tobera sin vehiculo para probar vehicleId opcional y tipo requerido.',
+    notes:
+      'Tobera sin vehiculo para probar vehicleId opcional y tipo requerido.',
   },
 ] as const;
 
@@ -129,31 +130,57 @@ const SEED_SERVICES = [
     id: 'seed-service-diagnostico',
     name: 'Diagnóstico',
     slug: 'diagnostico',
-    description: 'Diagnóstico inicial para lectura de fallas y definición de alcance.',
+    description:
+      'Diagnóstico inicial para lectura de fallas y definición de alcance.',
     isActive: true,
   },
   {
     id: 'seed-service-reparacion',
     name: 'Reparación',
     slug: 'reparacion',
-    description: 'Servicio base de reparación correctiva sobre componentes y sistemas.',
+    description:
+      'Servicio base de reparación correctiva sobre componentes y sistemas.',
     isActive: true,
   },
   {
     id: 'seed-service-calibracion',
     name: 'Calibración',
     slug: 'calibracion',
-    description: 'Calibración de banco para componentes de inyección y precisión.',
+    description:
+      'Calibración de banco para componentes de inyección y precisión.',
     isActive: true,
   },
   {
     id: 'seed-service-instalacion',
     name: 'Instalación',
     slug: 'instalacion',
-    description: 'Instalación controlada con verificación final de funcionamiento.',
+    description:
+      'Instalación controlada con verificación final de funcionamiento.',
     isActive: true,
   },
 ] as const;
+
+type SeedSupplierPhone = {
+  id: string;
+  label: string;
+  phone: string;
+  isPrimary: boolean;
+  hasWhatsapp: boolean;
+  notes: string;
+};
+
+type SeedSupplier = {
+  id: string;
+  name: string;
+  type: SupplierType;
+  contactName: string;
+  documentType: SupplierDocumentType;
+  documentNumber: string;
+  email: string;
+  notes: string;
+  isActive: boolean;
+  phones: readonly SeedSupplierPhone[];
+};
 
 const SEED_SUPPLIERS = [
   {
@@ -193,7 +220,8 @@ const SEED_SUPPLIERS = [
     documentType: SupplierDocumentType.NIT,
     documentNumber: '901777222',
     email: 'aliados@repuestos-central.test',
-    notes: '<p>Segundo proveedor con nombre repetido para validar v1 sin unicidad global.</p>',
+    notes:
+      '<p>Segundo proveedor con nombre repetido para validar v1 sin unicidad global.</p>',
     isActive: true,
     phones: [
       {
@@ -235,7 +263,7 @@ const SEED_SUPPLIERS = [
       },
     ],
   },
-] as const;
+] as const satisfies readonly SeedSupplier[];
 
 const SEED_INVENTORY_ITEMS = [
   {
@@ -329,6 +357,22 @@ const SEED_SUPPLIER_QUOTES = [
     voidedAt: new Date('2026-05-03T18:00:00.000Z'),
   },
 ] as const;
+
+function mapSeedSupplierPhones(
+  phones: readonly SeedSupplierPhone[],
+  now: Date,
+) {
+  return phones.map((phone) => ({
+    id: phone.id,
+    label: phone.label,
+    phone: phone.phone,
+    isPrimary: phone.isPrimary,
+    hasWhatsapp: phone.hasWhatsapp,
+    notes: phone.notes,
+    createdAt: now,
+    updatedAt: now,
+  }));
+}
 
 async function main() {
   if (!process.env.DATABASE_URL) {
@@ -535,16 +579,7 @@ async function main() {
           createdAt: now,
           updatedAt: now,
           phones: {
-            create: seedSupplier.phones.map((phone) => ({
-              id: phone.id,
-              label: phone.label,
-              phone: phone.phone,
-              isPrimary: phone.isPrimary,
-              hasWhatsapp: phone.hasWhatsapp,
-              notes: phone.notes,
-              createdAt: now,
-              updatedAt: now,
-            })),
+            create: mapSeedSupplierPhones(seedSupplier.phones, now),
           },
         },
         update: {
@@ -559,16 +594,7 @@ async function main() {
           updatedAt: now,
           phones: {
             deleteMany: {},
-            create: seedSupplier.phones.map((phone) => ({
-              id: phone.id,
-              label: phone.label,
-              phone: phone.phone,
-              isPrimary: phone.isPrimary,
-              hasWhatsapp: phone.hasWhatsapp,
-              notes: phone.notes,
-              createdAt: now,
-              updatedAt: now,
-            })),
+            create: mapSeedSupplierPhones(seedSupplier.phones, now),
           },
         },
       });
