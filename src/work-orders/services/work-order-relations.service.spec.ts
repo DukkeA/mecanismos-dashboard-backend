@@ -3,6 +3,7 @@ import {
   EmployeeType,
   EstimateLineType,
   SupplierQuoteStatus,
+  WorkOrderCostCategory,
   WorkOrderType,
 } from '../../../generated/prisma/enums';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
@@ -228,6 +229,119 @@ describe('WorkOrderRelationsService', () => {
           supplierQuoteHistoryId: 'quote-1',
         },
       ]),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Supplier quote quote-1 does not belong to supplier supplier-1',
+      ),
+    );
+  });
+
+  it('accepts actual-cost direct-purchase links when supplier, inventory item, and quote align', async () => {
+    repository.findSupplierById.mockResolvedValue({
+      id: 'supplier-1',
+      name: 'Proveedor Uno',
+      type: 'COMPANY',
+      isActive: true,
+    } as never);
+    repository.findInventoryItemById.mockResolvedValue({
+      id: 'inventory-1',
+      name: 'Rodamiento SKF',
+      reference: 'SKF-6203',
+      identifier: 'INV-6203',
+      defaultSalePrice: 180000,
+      isActive: true,
+    } as never);
+    repository.findSupplierQuoteHistoryById.mockResolvedValue({
+      id: 'quote-1',
+      supplierId: 'supplier-1',
+      inventoryItemId: 'inventory-1',
+      workOrderId: null,
+      quotedCost: 145000,
+      quotedAt: new Date('2026-05-09T15:00:00.000Z'),
+      status: SupplierQuoteStatus.ACTIVE,
+      supplier: {
+        id: 'supplier-1',
+        name: 'Proveedor Uno',
+        type: 'COMPANY',
+        isActive: true,
+      },
+      inventoryItem: {
+        id: 'inventory-1',
+        name: 'Rodamiento SKF',
+        reference: 'SKF-6203',
+        identifier: 'INV-6203',
+        defaultSalePrice: 180000,
+        isActive: true,
+      },
+    } as never);
+
+    await expect(
+      service.assertActualCostCreateRelations({
+        category: WorkOrderCostCategory.DIRECT_PURCHASE,
+        description: 'Rodamiento SKF',
+        amount: 150000,
+        incurredAt: new Date('2026-05-10T18:00:00.000Z'),
+        supplierId: 'supplier-1',
+        inventoryItemId: 'inventory-1',
+        supplierQuoteHistoryId: 'quote-1',
+      }),
+    ).resolves.toEqual({
+      supplier: expect.objectContaining({ id: 'supplier-1' }),
+      inventoryItem: expect.objectContaining({ id: 'inventory-1' }),
+      supplierQuoteHistory: expect.objectContaining({ id: 'quote-1' }),
+    });
+  });
+
+  it('rejects actual-cost direct purchases without a supplier or with mismatched quote links', async () => {
+    await expect(
+      service.assertActualCostCreateRelations({
+        category: WorkOrderCostCategory.DIRECT_PURCHASE,
+        description: 'Rodamiento SKF',
+        amount: 150000,
+        incurredAt: new Date('2026-05-10T18:00:00.000Z'),
+      }),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'DIRECT_PURCHASE actual costs require a supplierId',
+      ),
+    );
+
+    repository.findSupplierById.mockResolvedValue({
+      id: 'supplier-1',
+      name: 'Proveedor Uno',
+      type: 'COMPANY',
+      isActive: true,
+    } as never);
+    repository.findInventoryItemById.mockResolvedValue({
+      id: 'inventory-1',
+      name: 'Rodamiento SKF',
+      reference: 'SKF-6203',
+      identifier: 'INV-6203',
+      defaultSalePrice: 180000,
+      isActive: true,
+    } as never);
+    repository.findSupplierQuoteHistoryById.mockResolvedValue({
+      id: 'quote-1',
+      supplierId: 'supplier-2',
+      inventoryItemId: 'inventory-1',
+      workOrderId: null,
+      quotedCost: 145000,
+      quotedAt: new Date('2026-05-09T15:00:00.000Z'),
+      status: SupplierQuoteStatus.ACTIVE,
+      supplier: null,
+      inventoryItem: null,
+    } as never);
+
+    await expect(
+      service.assertActualCostCreateRelations({
+        category: WorkOrderCostCategory.DIRECT_PURCHASE,
+        description: 'Rodamiento SKF',
+        amount: 150000,
+        incurredAt: new Date('2026-05-10T18:00:00.000Z'),
+        supplierId: 'supplier-1',
+        inventoryItemId: 'inventory-1',
+        supplierQuoteHistoryId: 'quote-1',
+      }),
     ).rejects.toThrow(
       new BadRequestException(
         'Supplier quote quote-1 does not belong to supplier supplier-1',

@@ -3,11 +3,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { SupplierQuoteStatus } from '../../../generated/prisma/enums';
+import {
+  SupplierQuoteStatus,
+  WorkOrderCostCategory,
+} from '../../../generated/prisma/enums';
+import { CreateWorkOrderActualCostDto } from '../dto/create-work-order-actual-cost.dto';
 import { CreateWorkOrderDto } from '../dto/create-work-order.dto';
 import { UpsertWorkOrderEstimateLineDto } from '../dto/upsert-work-order-estimate.dto';
+import { UpdateWorkOrderActualCostDto } from '../dto/update-work-order-actual-cost.dto';
 import { UpdateWorkOrderDto } from '../dto/update-work-order.dto';
 import {
+  WorkOrderActualCostSummary,
   WorkOrderDetail,
   WorkOrdersRepository,
 } from '../persistence/work-orders.repository';
@@ -17,6 +23,14 @@ type ResolvedWorkOrderRelations = {
   vehicle: Awaited<ReturnType<WorkOrdersRepository['findVehicleById']>>;
   component: Awaited<ReturnType<WorkOrdersRepository['findComponentById']>>;
   assignedEmployee: Awaited<ReturnType<WorkOrdersRepository['findEmployeeById']>>;
+};
+
+type ResolvedActualCostRelations = {
+  supplier: Awaited<ReturnType<WorkOrdersRepository['findSupplierById']>>;
+  inventoryItem: Awaited<ReturnType<WorkOrdersRepository['findInventoryItemById']>>;
+  supplierQuoteHistory: Awaited<
+    ReturnType<WorkOrdersRepository['findSupplierQuoteHistoryById']>
+  >;
 };
 
 @Injectable()
@@ -144,6 +158,38 @@ export class WorkOrderRelationsService {
     }
   }
 
+  assertActualCostCreateRelations(
+    createActualCostDto: CreateWorkOrderActualCostDto,
+  ): Promise<ResolvedActualCostRelations> {
+    return this.resolveActualCostRelations({
+      category: createActualCostDto.category,
+      supplierId: createActualCostDto.supplierId,
+      inventoryItemId: createActualCostDto.inventoryItemId,
+      supplierQuoteHistoryId: createActualCostDto.supplierQuoteHistoryId,
+    });
+  }
+
+  assertActualCostUpdateRelations(
+    currentActualCost: WorkOrderActualCostSummary,
+    updateActualCostDto: UpdateWorkOrderActualCostDto,
+  ): Promise<ResolvedActualCostRelations> {
+    return this.resolveActualCostRelations({
+      category: updateActualCostDto.category ?? currentActualCost.category,
+      supplierId: coalesceRelationUpdate(
+        updateActualCostDto.supplierId,
+        currentActualCost.supplierId ?? null,
+      ),
+      inventoryItemId: coalesceRelationUpdate(
+        updateActualCostDto.inventoryItemId,
+        currentActualCost.inventoryItemId ?? null,
+      ),
+      supplierQuoteHistoryId: coalesceRelationUpdate(
+        updateActualCostDto.supplierQuoteHistoryId,
+        currentActualCost.supplierQuoteHistoryId ?? null,
+      ),
+    });
+  }
+
   private async resolveRelations(input: {
     customerId: string;
     vehicleId?: string | null;
@@ -210,6 +256,82 @@ export class WorkOrderRelationsService {
       vehicle,
       component,
       assignedEmployee,
+    };
+  }
+
+  private async resolveActualCostRelations(input: {
+    category: string;
+    supplierId?: string | null;
+    inventoryItemId?: string | null;
+    supplierQuoteHistoryId?: string | null;
+  }): Promise<ResolvedActualCostRelations> {
+    const supplierId = normalizeOptionalId(input.supplierId);
+    const inventoryItemId = normalizeOptionalId(input.inventoryItemId);
+    const supplierQuoteHistoryId = normalizeOptionalId(
+      input.supplierQuoteHistoryId,
+    );
+
+    if (
+      input.category === WorkOrderCostCategory.DIRECT_PURCHASE &&
+      supplierId === null
+    ) {
+      throw new BadRequestException(
+        'DIRECT_PURCHASE actual costs require a supplierId',
+      );
+    }
+
+    const supplier = supplierId
+      ? await this.workOrdersRepository.findSupplierById(supplierId)
+      : null;
+
+    if (supplierId && !supplier) {
+      throw new NotFoundException(`Supplier ${supplierId} not found`);
+    }
+
+    const inventoryItem = inventoryItemId
+      ? await this.workOrdersRepository.findInventoryItemById(inventoryItemId)
+      : null;
+
+    if (inventoryItemId && !inventoryItem) {
+      throw new NotFoundException(`Inventory item ${inventoryItemId} not found`);
+    }
+
+    const supplierQuoteHistory = supplierQuoteHistoryId
+      ? await this.workOrdersRepository.findSupplierQuoteHistoryById(
+          supplierQuoteHistoryId,
+        )
+      : null;
+
+    if (supplierQuoteHistoryId && !supplierQuoteHistory) {
+      throw new NotFoundException(
+        `Supplier quote ${supplierQuoteHistoryId} not found`,
+      );
+    }
+
+    if (
+      supplierQuoteHistory &&
+      supplierId &&
+      supplierQuoteHistory.supplierId !== supplierId
+    ) {
+      throw new BadRequestException(
+        `Supplier quote ${supplierQuoteHistory.id} does not belong to supplier ${supplierId}`,
+      );
+    }
+
+    if (
+      supplierQuoteHistory &&
+      inventoryItemId &&
+      supplierQuoteHistory.inventoryItemId !== inventoryItemId
+    ) {
+      throw new BadRequestException(
+        `Supplier quote ${supplierQuoteHistory.id} does not belong to inventory item ${inventoryItemId}`,
+      );
+    }
+
+    return {
+      supplier,
+      inventoryItem,
+      supplierQuoteHistory,
     };
   }
 }

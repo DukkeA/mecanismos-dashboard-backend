@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { ValidateIf } from 'class-validator';
 import { IsDate, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { PaymentMethod, WorkOrderCostCategory } from '../../../generated/prisma/enums';
 import { OptionalTrimmedString, TrimmedString } from '../../common/transforms/string.transforms';
@@ -34,7 +35,11 @@ export class CreateWorkOrderActualCostDto {
   paymentMethod?: PaymentMethod;
 
   @ApiPropertyOptional({ example: 'supplier-1' })
-  @IsOptional()
+  @ValidateIf(
+    (dto: CreateWorkOrderActualCostDto) =>
+      dto.category === WorkOrderCostCategory.DIRECT_PURCHASE ||
+      dto.supplierId !== undefined,
+  )
   @OptionalTrimmedString()
   @IsString()
   supplierId?: string;

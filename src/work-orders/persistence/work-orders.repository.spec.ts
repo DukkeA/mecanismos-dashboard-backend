@@ -1,8 +1,10 @@
 import {
   EstimateLineType,
   EstimatePhase,
+  PaymentMethod,
   PaymentStatus,
   SupplierQuoteStatus,
+  WorkOrderCostCategory,
   WorkOrderStatus,
   WorkOrderType,
 } from '../../../generated/prisma/enums';
@@ -949,5 +951,189 @@ describe('WorkOrdersRepository', () => {
       where: { estimateId: 'estimate-final' },
     });
     expect(tx.workOrderEstimateLine.createMany).not.toHaveBeenCalled();
+  });
+
+  it('creates, lists, updates, and deletes actual costs without deleting the parent work order', async () => {
+    type ActualCostCreateArgs = {
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+    type ActualCostFindManyArgs = {
+      where: { workOrderId: string };
+      orderBy: { incurredAt: 'desc' };
+      include: Record<string, unknown>;
+    };
+    type ActualCostFindFirstArgs = {
+      where: { id: string; workOrderId: string };
+      include: Record<string, unknown>;
+    };
+    type ActualCostUpdateArgs = {
+      where: { id: string };
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+    type ActualCostDeleteArgs = {
+      where: { id: string };
+    };
+
+    let receivedCreateArgs: ActualCostCreateArgs | undefined;
+    let receivedFindManyArgs: ActualCostFindManyArgs | undefined;
+    let receivedUpdateArgs: ActualCostUpdateArgs | undefined;
+    let receivedDeleteArgs: ActualCostDeleteArgs | undefined;
+
+    const actualCostRecord = {
+      id: 'cost-1',
+      category: WorkOrderCostCategory.DIRECT_PURCHASE,
+      description: 'Rodamiento SKF',
+      amount: 150000,
+      supplierId: 'supplier-1',
+      inventoryItemId: 'inventory-1',
+      supplierQuoteHistoryId: 'quote-1',
+      paymentMethod: PaymentMethod.TRANSFER,
+      incurredAt: new Date('2026-05-10T18:00:00.000Z'),
+      notes: 'Compra urgente',
+      Supplier: {
+        id: 'supplier-1',
+        name: 'Proveedor Uno',
+        type: 'COMPANY',
+        isActive: true,
+      },
+      InventoryItem: {
+        id: 'inventory-1',
+        name: 'Rodamiento SKF',
+        reference: 'SKF-6203',
+        identifier: 'INV-6203',
+        defaultSalePrice: 180000,
+        isActive: true,
+      },
+      SupplierQuoteHistory: {
+        id: 'quote-1',
+        supplierId: 'supplier-1',
+        inventoryItemId: 'inventory-1',
+        workOrderId: null,
+        quotedCost: 145000,
+        quotedAt: new Date('2026-05-09T15:00:00.000Z'),
+        status: SupplierQuoteStatus.ACTIVE,
+        Supplier: {
+          id: 'supplier-1',
+          name: 'Proveedor Uno',
+          type: 'COMPANY',
+          isActive: true,
+        },
+        InventoryItem: {
+          id: 'inventory-1',
+          name: 'Rodamiento SKF',
+          reference: 'SKF-6203',
+          identifier: 'INV-6203',
+          defaultSalePrice: 180000,
+          isActive: true,
+        },
+      },
+    };
+
+    const prisma = {
+      workOrder: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'wo-1' }),
+        delete: jest.fn(),
+      },
+      workOrderActualCost: {
+        create: jest.fn((args: ActualCostCreateArgs) => {
+          receivedCreateArgs = args;
+          return Promise.resolve(actualCostRecord);
+        }),
+        findMany: jest.fn((args: ActualCostFindManyArgs) => {
+          receivedFindManyArgs = args;
+          return Promise.resolve([actualCostRecord]);
+        }),
+        findFirst: jest.fn((args: ActualCostFindFirstArgs) =>
+          Promise.resolve(
+            args.where.id === 'cost-1' && args.where.workOrderId === 'wo-1'
+              ? actualCostRecord
+              : null,
+          ),
+        ),
+        update: jest.fn((args: ActualCostUpdateArgs) => {
+          receivedUpdateArgs = args;
+          return Promise.resolve({
+            ...actualCostRecord,
+            description: 'Rodamiento SKF 6203',
+            notes: null,
+          });
+        }),
+        delete: jest.fn((args: ActualCostDeleteArgs) => {
+          receivedDeleteArgs = args;
+          return Promise.resolve(actualCostRecord);
+        }),
+      },
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.createActualCost('wo-1', {
+        category: WorkOrderCostCategory.DIRECT_PURCHASE,
+        description: ' Rodamiento SKF ',
+        amount: 150000,
+        supplierId: ' supplier-1 ',
+        inventoryItemId: ' inventory-1 ',
+        supplierQuoteHistoryId: ' quote-1 ',
+        paymentMethod: PaymentMethod.TRANSFER,
+        incurredAt: new Date('2026-05-10T18:00:00.000Z'),
+        notes: ' Compra urgente ',
+      }),
+    ).resolves.toMatchObject({
+      id: 'cost-1',
+      supplier: { id: 'supplier-1', name: 'Proveedor Uno' },
+      inventoryItem: { id: 'inventory-1', sku: 'SKF-6203' },
+      supplierQuoteHistory: { id: 'quote-1' },
+    });
+
+    await expect(repository.findActualCosts('wo-1')).resolves.toEqual([
+      expect.objectContaining({
+        id: 'cost-1',
+        category: WorkOrderCostCategory.DIRECT_PURCHASE,
+      }),
+    ]);
+
+    await expect(
+      repository.updateActualCost('wo-1', 'cost-1', {
+        description: ' Rodamiento SKF 6203 ',
+        notes: ' ',
+      }),
+    ).resolves.toMatchObject({
+      id: 'cost-1',
+      description: 'Rodamiento SKF 6203',
+      notes: null,
+    });
+
+    await expect(
+      repository.removeActualCost('wo-1', 'cost-1'),
+    ).resolves.toBeUndefined();
+
+    expect(receivedCreateArgs).toMatchObject({
+      data: {
+        id: expect.any(String),
+        workOrderId: 'wo-1',
+        category: WorkOrderCostCategory.DIRECT_PURCHASE,
+        description: 'Rodamiento SKF',
+        supplierId: 'supplier-1',
+        inventoryItemId: 'inventory-1',
+        supplierQuoteHistoryId: 'quote-1',
+        notes: 'Compra urgente',
+        updatedAt: expect.any(Date),
+      },
+    });
+    expect(receivedFindManyArgs).toEqual({
+      where: { workOrderId: 'wo-1' },
+      orderBy: { incurredAt: 'desc' },
+      include: expect.any(Object),
+    });
+    expect(receivedUpdateArgs?.data).toMatchObject({
+      description: 'Rodamiento SKF 6203',
+      notes: null,
+      updatedAt: expect.any(Date),
+    });
+    expect(receivedDeleteArgs).toEqual({ where: { id: 'cost-1' } });
+    expect(prisma.workOrder.delete).not.toHaveBeenCalled();
   });
 });
