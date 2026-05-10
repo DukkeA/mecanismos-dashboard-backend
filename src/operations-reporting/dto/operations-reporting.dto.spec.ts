@@ -84,6 +84,10 @@ describe('operations reporting DTO contracts', () => {
       dateTo: '2026-05-31T23:59:59.000Z',
       costCenterId: '  cost-center-1  ',
       expenseCategory: ExpenseCategory.RENT,
+      paymentStatus: PaymentStatus.PENDING,
+    });
+    const invalidExpensesQuery = plainToInstance(ExpensesBreakdownReportQueryDto, {
+      paymentStatus: PaymentStatus.PARTIAL,
     });
 
     expect(summaryQuery.dateFrom).toBeInstanceOf(Date);
@@ -106,6 +110,12 @@ describe('operations reporting DTO contracts', () => {
 
     expect(expensesQuery.costCenterId).toBe('cost-center-1');
     expect(expensesQuery.expenseCategory).toBe(ExpenseCategory.RENT);
+    expect(expensesQuery.paymentStatus).toBe(PaymentStatus.PENDING);
     await expect(validate(expensesQuery)).resolves.toHaveLength(0);
+
+    const invalidExpenseErrors = await validate(invalidExpensesQuery);
+
+    expect(invalidExpenseErrors).toHaveLength(1);
+    expect(invalidExpenseErrors[0]?.property).toBe('paymentStatus');
   });
 });

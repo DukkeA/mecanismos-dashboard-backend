@@ -7,7 +7,7 @@ import {
 import { ReportDateRangeQueryDto } from './report-date-range-query.dto';
 
 const expenseCategories = Object.values(ExpenseCategory);
-const paymentStatuses = Object.values(PaymentStatus);
+const expensePaymentStatuses = [PaymentStatus.PENDING, PaymentStatus.PAID] as const;
 
 export class ExpensesBreakdownReportQueryDto extends ReportDateRangeQueryDto {
   @ApiPropertyOptional({ example: 'cost-center-1' })
@@ -21,8 +21,11 @@ export class ExpensesBreakdownReportQueryDto extends ReportDateRangeQueryDto {
   @IsIn(expenseCategories)
   expenseCategory?: ExpenseCategory;
 
-  @ApiPropertyOptional({ enum: paymentStatuses, example: PaymentStatus.PENDING })
+  @ApiPropertyOptional({
+    enum: expensePaymentStatuses,
+    example: PaymentStatus.PENDING,
+  })
   @IsOptional()
-  @IsIn(paymentStatuses)
-  paymentStatus?: PaymentStatus;
+  @IsIn(expensePaymentStatuses)
+  paymentStatus?: (typeof expensePaymentStatuses)[number];
 }
