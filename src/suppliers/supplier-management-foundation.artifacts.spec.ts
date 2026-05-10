@@ -4,10 +4,10 @@ import type {
   Prisma,
   SupplierDocumentType,
   SupplierType,
-} from '../generated/prisma/client';
+} from '../../generated/prisma/client';
 
 describe('supplier management foundation artifacts', () => {
-  const projectRoot = path.resolve(__dirname, '..');
+  const projectRoot = path.resolve(__dirname, '..', '..');
   const prismaSchemaPath = path.join(projectRoot, 'prisma', 'schema.prisma');
   const migrationsDir = path.join(projectRoot, 'prisma', 'migrations');
   const prismaSeedPath = path.join(projectRoot, 'prisma', 'seed.ts');

@@ -3,13 +3,14 @@
 ## Scope
 
 - Single-package NestJS backend. No monorepo packages here; work from repo root.
-- Current runtime is still mostly scaffold code in `src/`; the real business shape is in `prisma/schema.prisma`, `prisma/migrations/`, and `docs/business-context.md`.
+- The backend follows a modular NestJS monolith: each business feature owns its module, controllers, services, DTOs, repositories, and tests.
+- The business shape is defined by `prisma/schema.prisma`, `prisma/migrations/`, and `docs/business-context.md`.
 
 ## Source of truth
 
 - Trust `package.json` scripts and config files over `README.md`; the README is mostly the default Nest starter text plus a small local env note.
-- Runtime entrypoint: `src/main.ts` bootstraps `AppModule` and listens on `process.env.PORT ?? 3000`.
-- DB wiring lives in `src/prisma.service.ts` and imports the generated client from `generated/prisma/client`.
+- Runtime entrypoint: `src/main.ts` delegates app creation to `src/app.bootstrap.ts` and listens on `process.env.PORT ?? 3000`.
+- DB wiring lives in `src/prisma/prisma.module.ts` and `src/prisma/prisma.service.ts`; `src/prisma.service.ts` is only a compatibility re-export.
 
 ## Commands that matter
 
@@ -39,7 +40,11 @@
 
 ## Code map
 
-- `src/app.module.ts` currently wires only `AppController`, `AppService`, and `PrismaService`.
+- `src/app.module.ts` composes the feature modules and shared infrastructure modules.
+- `src/<feature>/` is the default home for feature code: module, controller, service, DTOs, persistence/repository, and colocated tests.
+- Keep the dependency direction close to `Controller -> Service -> Repository -> Prisma`; do not let controllers talk to Prisma directly.
+- Treat repositories as persistence adapters and services as the place for business rules/orchestration. This keeps a Clean/Hexagonal-style boundary without splitting the monolith into unnecessary packages.
+- Use `src/common/` only for utilities reused across multiple features; feature-internal helpers stay inside that feature.
 - `prisma/migrations/20260504065151_add_business_domain/migration.sql` is the concrete DB baseline for the business domain; check it before making model-level assumptions.
 - `docs/business-context.md` explains domain intent in Spanish; use it to interpret why the Prisma models exist, not as executable truth.
 
