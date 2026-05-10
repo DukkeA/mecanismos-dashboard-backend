@@ -1,0 +1,304 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Work Orders",
+    "_postman_id": "c306efc8-c175-4d74-8fbc-2ea4c26da2eb",
+    "description": "Runner-ready supplemental verification for seeded SALE/WORKSHOP reads plus create, estimate, cost, payment, and role-protection work-order flows without generated-ID assumptions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "seedSaleWorkOrderId", "value": "seed-work-order-sale-counter-quote" },
+    { "key": "seedWorkshopWorkOrderId", "value": "seed-work-order-workshop-injector-repair" },
+    { "key": "createdWorkOrderId", "value": "" },
+    { "key": "createdActualCostId", "value": "" },
+    { "key": "createdPaymentId", "value": "" },
+    { "key": "estimatePhase", "value": "INITIAL" },
+    { "key": "runId", "value": "" },
+    { "key": "workshopSummary", "value": "" },
+    { "key": "missingWorkOrderId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+                  "const runId = `${now.slice(-6)}${random}`;",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('createdWorkOrderId', '');",
+                  "pm.collectionVariables.set('createdActualCostId', '');",
+                  "pm.collectionVariables.set('createdPaymentId', '');",
+                  "pm.collectionVariables.set('estimatePhase', 'INITIAL');",
+                  "pm.collectionVariables.set('workshopSummary', `Runner Work Order ${runId}`);",
+                  "pm.collectionVariables.set('missingWorkOrderId', `missing-wo-${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Workshop Work Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"WORKSHOP\",\n  \"customerId\": \"seed-customer-acme-industrial\",\n  \"vehicleId\": \"seed-vehicle-acme-foton-aumark\",\n  \"componentId\": \"seed-component-acme-inyector\",\n  \"assignedEmployeeId\": \"seed-employee-ana-torres\",\n  \"summary\": \"{{workshopSummary}}\",\n  \"customerReportedIssue\": \"Ruido irregular en prueba runner\",\n  \"diagnosisRequired\": true,\n  \"diagnosisSummary\": \"Requiere revisión inicial runner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create work order returns 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('createdWorkOrderId', body.id);",
+                  "pm.test('create work order captures id', function () { pm.expect(body.id).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Created Work Order",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('get created work order returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Upsert Initial Estimate",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estimatedLaborHours\": 2.5,\n  \"baseCostAmount\": 180000,\n  \"contingencyPct\": 10,\n  \"totalCostAmount\": 198000,\n  \"totalPriceAmount\": 260000,\n  \"notes\": \"Estimate runner\",\n  \"lines\": [\n    {\n      \"lineType\": \"PART\",\n      \"description\": \"Inyector Bosch 0445120231\",\n      \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n      \"supplierId\": \"seed-supplier-repuestos-central-main\",\n      \"supplierQuoteHistoryId\": \"seed-supplier-quote-bosch-central-v2\",\n      \"quantity\": 1,\n      \"unitCost\": 182000,\n      \"unitPrice\": 240000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/estimates/{{estimatePhase}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}", "estimates", "{{estimatePhase}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('upsert estimate returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Actual Cost",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"DIRECT_PURCHASE\",\n  \"description\": \"Compra runner\",\n  \"amount\": 182000,\n  \"incurredAt\": \"2026-05-10T13:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"supplierId\": \"seed-supplier-repuestos-central-main\",\n  \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n  \"supplierQuoteHistoryId\": \"seed-supplier-quote-bosch-central-v2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/actual-costs",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}", "actual-costs"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create actual cost returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('createdActualCostId', body.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 260000,\n  \"paidAt\": \"2026-05-10T15:30:00.000Z\",\n  \"paymentMethod\": \"CASH\",\n  \"notes\": \"Pago runner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}", "payments"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create payment returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('createdPaymentId', body.id);"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Seeded Reads",
+      "item": [
+        {
+          "name": "Get Seeded Sale Work Order",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{seedSaleWorkOrderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{seedSaleWorkOrderId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('seeded sale read returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Seeded Workshop Work Order",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{seedWorkshopWorkOrderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{seedWorkshopWorkOrderId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('seeded workshop read returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Protection & Error Checks",
+      "item": [
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic login returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Work Orders list forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/work-orders?page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic cannot list work orders', function () { pm.response.to.have.status(403); });"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}

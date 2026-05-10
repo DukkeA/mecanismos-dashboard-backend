@@ -1,0 +1,218 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import type { Prisma } from '../../generated/prisma/client';
+import {
+  type WorkOrderSeedPrismaClient,
+  seedWorkOrders,
+} from '../../prisma/seed-work-orders';
+
+type WorkOrderUpsertArgs = Prisma.WorkOrderUpsertArgs;
+type WorkshopWorkOrderDetailsDeleteManyArgs =
+  Prisma.WorkshopWorkOrderDetailsDeleteManyArgs;
+type WorkshopWorkOrderDetailsCreateManyArgs =
+  Prisma.WorkshopWorkOrderDetailsCreateManyArgs;
+type WorkOrderEstimateUpsertArgs = Prisma.WorkOrderEstimateUpsertArgs;
+type WorkOrderEstimateLineDeleteManyArgs =
+  Prisma.WorkOrderEstimateLineDeleteManyArgs;
+type WorkOrderEstimateLineCreateManyArgs =
+  Prisma.WorkOrderEstimateLineCreateManyArgs;
+type WorkOrderActualCostDeleteManyArgs = Prisma.WorkOrderActualCostDeleteManyArgs;
+type WorkOrderActualCostCreateManyArgs = Prisma.WorkOrderActualCostCreateManyArgs;
+type WorkOrderPaymentDeleteManyArgs = Prisma.WorkOrderPaymentDeleteManyArgs;
+type WorkOrderPaymentCreateManyArgs = Prisma.WorkOrderPaymentCreateManyArgs;
+type InventoryMovementUpdateManyArgs = Prisma.InventoryMovementUpdateManyArgs;
+type SupplierQuoteHistoryUpdateManyArgs = Prisma.SupplierQuoteHistoryUpdateManyArgs;
+
+void (seedWorkOrders satisfies (
+  prisma: WorkOrderSeedPrismaClient,
+  now: Date,
+) => Promise<void>);
+
+describe('work-order seeds', () => {
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  const prismaSeedPath = path.join(projectRoot, 'prisma', 'seed.ts');
+
+  it('upserts stable sale and workshop work orders with deterministic child artifacts', async () => {
+    const workOrderUpsert = jest
+      .fn<Promise<unknown>, [WorkOrderUpsertArgs]>()
+      .mockResolvedValue(undefined);
+    const workshopDetailsDeleteMany = jest
+      .fn<Promise<unknown>, [WorkshopWorkOrderDetailsDeleteManyArgs]>()
+      .mockResolvedValue(undefined);
+    const workshopDetailsCreateMany = jest
+      .fn<Promise<unknown>, [WorkshopWorkOrderDetailsCreateManyArgs]>()
+      .mockResolvedValue(undefined);
+    const estimateUpsert = jest
+      .fn<Promise<unknown>, [WorkOrderEstimateUpsertArgs]>()
+      .mockResolvedValue(undefined);
+    const estimateLineDeleteMany = jest
+      .fn<Promise<unknown>, [WorkOrderEstimateLineDeleteManyArgs]>()
+      .mockResolvedValue(undefined);
+    const estimateLineCreateMany = jest
+      .fn<Promise<unknown>, [WorkOrderEstimateLineCreateManyArgs]>()
+      .mockResolvedValue(undefined);
+    const actualCostDeleteMany = jest
+      .fn<Promise<unknown>, [WorkOrderActualCostDeleteManyArgs]>()
+      .mockResolvedValue(undefined);
+    const actualCostCreateMany = jest
+      .fn<Promise<unknown>, [WorkOrderActualCostCreateManyArgs]>()
+      .mockResolvedValue(undefined);
+    const paymentDeleteMany = jest
+      .fn<Promise<unknown>, [WorkOrderPaymentDeleteManyArgs]>()
+      .mockResolvedValue(undefined);
+    const paymentCreateMany = jest
+      .fn<Promise<unknown>, [WorkOrderPaymentCreateManyArgs]>()
+      .mockResolvedValue(undefined);
+    const inventoryMovementUpdateMany = jest
+      .fn<Promise<unknown>, [InventoryMovementUpdateManyArgs]>()
+      .mockResolvedValue(undefined);
+    const supplierQuoteHistoryUpdateMany = jest
+      .fn<Promise<unknown>, [SupplierQuoteHistoryUpdateManyArgs]>()
+      .mockResolvedValue(undefined);
+
+    const transactionClient = {
+      workOrder: { upsert: workOrderUpsert },
+      workshopWorkOrderDetails: {
+        deleteMany: workshopDetailsDeleteMany,
+        createMany: workshopDetailsCreateMany,
+      },
+      workOrderEstimate: { upsert: estimateUpsert },
+      workOrderEstimateLine: {
+        deleteMany: estimateLineDeleteMany,
+        createMany: estimateLineCreateMany,
+      },
+      workOrderActualCost: {
+        deleteMany: actualCostDeleteMany,
+        createMany: actualCostCreateMany,
+      },
+      workOrderPayment: {
+        deleteMany: paymentDeleteMany,
+        createMany: paymentCreateMany,
+      },
+      inventoryMovement: {
+        updateMany: inventoryMovementUpdateMany,
+      },
+      supplierQuoteHistory: {
+        updateMany: supplierQuoteHistoryUpdateMany,
+      },
+    };
+
+    const transaction = jest
+      .fn<Promise<void>, [(callback: typeof transactionClient) => Promise<void>]>()
+      .mockImplementation(async (callback) => callback(transactionClient));
+
+    await seedWorkOrders(
+      {
+        $transaction: transaction,
+      },
+      new Date('2026-05-10T12:00:00.000Z'),
+    );
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(workOrderUpsert).toHaveBeenCalledTimes(2);
+    expect(workOrderUpsert.mock.calls[0]?.[0]).toMatchObject({
+      where: { id: 'seed-work-order-sale-counter-quote' },
+      create: {
+        id: 'seed-work-order-sale-counter-quote',
+        type: 'SALE',
+        customerId: 'seed-customer-ana-gomez',
+        summary: 'Venta de tobera y diagnóstico comercial',
+      },
+      update: {
+        type: 'SALE',
+        customerId: 'seed-customer-ana-gomez',
+      },
+    });
+    expect(workOrderUpsert.mock.calls[1]?.[0]).toMatchObject({
+      where: { id: 'seed-work-order-workshop-injector-repair' },
+      create: {
+        id: 'seed-work-order-workshop-injector-repair',
+        type: 'WORKSHOP',
+        customerId: 'seed-customer-acme-industrial',
+        vehicleId: 'seed-vehicle-acme-foton-aumark',
+        componentId: 'seed-component-acme-inyector',
+        assignedEmployeeId: 'seed-employee-ana-torres',
+        paymentStatus: 'PAID',
+      },
+    });
+    expect(workshopDetailsDeleteMany).toHaveBeenCalledWith({
+      where: {
+        workOrderId: {
+          in: [
+            'seed-work-order-sale-counter-quote',
+            'seed-work-order-workshop-injector-repair',
+          ],
+        },
+      },
+    });
+    expect(workshopDetailsCreateMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          id: 'seed-workshop-details-injector-repair',
+          workOrderId: 'seed-work-order-workshop-injector-repair',
+          diagnosisRequired: true,
+        }),
+      ],
+    });
+    expect(estimateUpsert).toHaveBeenCalledTimes(2);
+    expect(estimateLineCreateMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'seed-work-order-estimate-line-sale-part',
+          estimateId: 'seed-work-order-estimate-sale-initial',
+          inventoryItemId: 'seed-inventory-item-cotizable-tobera',
+        }),
+        expect.objectContaining({
+          id: 'seed-work-order-estimate-line-workshop-service',
+          estimateId: 'seed-work-order-estimate-workshop-final',
+          serviceCatalogId: 'seed-service-reparacion',
+        }),
+      ]),
+    });
+    expect(actualCostCreateMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          id: 'seed-work-order-actual-cost-workshop-purchase',
+          workOrderId: 'seed-work-order-workshop-injector-repair',
+          supplierId: 'seed-supplier-repuestos-central-main',
+          supplierQuoteHistoryId: 'seed-supplier-quote-bosch-central-v2',
+        }),
+      ],
+    });
+    expect(paymentCreateMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          id: 'seed-work-order-payment-workshop-final',
+          workOrderId: 'seed-work-order-workshop-injector-repair',
+          amount: 620000,
+        }),
+      ],
+    });
+    expect(inventoryMovementUpdateMany).toHaveBeenNthCalledWith(1, {
+      where: { id: 'seed-inventory-movement-bosch-out-1' },
+      data: {
+        workOrderId: 'seed-work-order-workshop-injector-repair',
+        isReservedForWorkOrder: true,
+      },
+    });
+    expect(supplierQuoteHistoryUpdateMany).toHaveBeenNthCalledWith(1, {
+      where: { id: 'seed-supplier-quote-bosch-central-v2' },
+      data: {
+        workOrderId: 'seed-work-order-workshop-injector-repair',
+      },
+    });
+  });
+
+  it('hooks work-order seeds into prisma/seed.ts after inventory and supplier quote seeds', () => {
+    const seedSource = fs.readFileSync(prismaSeedPath, 'utf8');
+
+    expect(seedSource).toContain(
+      "import { seedWorkOrders } from './seed-work-orders';",
+    );
+    expect(
+      seedSource.indexOf('await seedWorkOrders(prisma, now);'),
+    ).toBeGreaterThan(
+      seedSource.indexOf('await prisma.supplierQuoteHistory.upsert({'),
+    );
+  });
+});

@@ -16,6 +16,7 @@ import {
 import { seedEmployeesAndBonuses } from './seed-employees';
 import { seedExpenses } from './seed-expenses';
 import { seedDefaultCostCenters } from './seed-cost-centers';
+import { seedWorkOrders } from './seed-work-orders';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -671,6 +672,12 @@ async function main() {
 
       console.log(`Seeded supplier quote: ${seedSupplierQuote.id}`);
     }
+
+    await seedWorkOrders(prisma, now);
+
+    console.log(
+      'Seeded work orders: seed-work-order-sale-counter-quote, seed-work-order-workshop-injector-repair',
+    );
   } finally {
     await prisma.$disconnect();
   }
