@@ -71,7 +71,7 @@ describe('WorkOrderProfitabilityReportService', () => {
           {
             id: 'cost-1',
             amount: 60,
-            category: WorkOrderCostCategory.PART,
+            category: WorkOrderCostCategory.MISC,
             incurredAt: new Date('2026-05-04T00:00:00.000Z'),
           },
         ],
@@ -139,7 +139,7 @@ describe('WorkOrderProfitabilityReportService', () => {
           {
             id: 'cost-2',
             amount: 15,
-            category: WorkOrderCostCategory.LABOR,
+            category: WorkOrderCostCategory.OTHER,
             incurredAt: new Date('2026-05-07T00:00:00.000Z'),
           },
         ],
@@ -229,7 +229,7 @@ describe('WorkOrderProfitabilityReportService', () => {
           {
             id: 'cost-unknown',
             amount: 70000,
-            category: WorkOrderCostCategory.OUTSOURCED,
+            category: WorkOrderCostCategory.OUTSOURCED_SERVICE,
             incurredAt: new Date('2026-05-10T12:00:00.000Z'),
           },
         ],

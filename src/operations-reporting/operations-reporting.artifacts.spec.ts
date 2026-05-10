@@ -10,6 +10,12 @@ type PostmanCollectionItem = {
       raw?: string;
     };
   };
+  event?: Array<{
+    listen?: string;
+    script?: {
+      exec?: string[];
+    };
+  }>;
 };
 
 type PostmanCollection = {
@@ -108,16 +114,35 @@ describe('operations-reporting reviewer artifacts', () => {
       method: 'GET',
       rawUrl:
         '{{baseUrl}}/operations-reporting/summary?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
+      testScriptCoverage: expect.arrayContaining([
+        expect.stringContaining("pm.test('summary returns 200'"),
+        expect.stringContaining("pm.test('summary is approximate cash-operational'"),
+      ]),
     });
     expect(findRequest(collection, 'Get Pending Payments Report')).toMatchObject({
       method: 'GET',
       rawUrl:
         '{{baseUrl}}/operations-reporting/pending-payments?paymentStatus=PARTIAL&dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
+      testScriptCoverage: expect.arrayContaining([
+        expect.stringContaining("pm.test('pending payments returns 200'"),
+        expect.stringContaining(
+          "pm.test('partial payment row exposes remaining balance'",
+        ),
+        expect.stringContaining(
+          "pm.test('unknown payable row keeps balance null'",
+        ),
+      ]),
     });
     expect(findRequest(collection, 'Get Expenses Report')).toMatchObject({
       method: 'GET',
       rawUrl:
         '{{baseUrl}}/operations-reporting/expenses?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
+      testScriptCoverage: expect.arrayContaining([
+        expect.stringContaining("pm.test('expenses report returns 200'"),
+        expect.stringContaining(
+          "pm.test('expenses report includes paid and pending seeded rows'",
+        ),
+      ]),
     });
   });
 });
@@ -141,11 +166,29 @@ function findRequest(collection: PostmanCollection, requestName: string) {
     (item) => item.name === requestName,
   );
 
-  expect(request).toBeDefined();
+  expect(request).toMatchObject({
+    name: requestName,
+    request: {
+      method: expect.any(String),
+      url: {
+        raw: expect.stringContaining('{{baseUrl}}/operations-reporting/'),
+      },
+    },
+  });
+
+  const testScriptCoverage =
+    request?.event
+      ?.filter((event) => event.listen === 'test')
+      .flatMap((event) => event.script?.exec ?? []) ?? [];
+
+  expect(testScriptCoverage).toEqual(
+    expect.arrayContaining([expect.stringContaining('pm.test(')]),
+  );
 
   return {
     method: request?.request?.method,
     rawUrl: request?.request?.url?.raw,
+    testScriptCoverage,
   };
 }
 
