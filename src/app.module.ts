@@ -16,6 +16,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { EmployeesModule } from './employees/employees.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { WorkOrdersModule } from './work-orders/work-orders.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ExpensesModule } from './expenses/expenses.module';
     CostCentersModule,
     EmployeesModule,
     ExpensesModule,
+    WorkOrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
