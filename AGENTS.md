@@ -46,6 +46,7 @@
 - Keep the dependency direction close to `Controller -> Service -> Repository -> Prisma`; do not let controllers talk to Prisma directly.
 - Treat repositories as persistence adapters and services as the place for business rules/orchestration. This keeps a Clean/Hexagonal-style boundary without splitting the monolith into unnecessary packages.
 - Use `src/common/` only for utilities reused across multiple features; feature-internal helpers stay inside that feature.
+- Observability is mandatory for anything operationally relevant: follow the shared HTTP request/error logging patterns, include useful context for failures, and never log secrets, passwords, tokens, cookies, or full sensitive payloads.
 - `prisma/migrations/20260504065151_add_business_domain/migration.sql` is the concrete DB baseline for the business domain; check it before making model-level assumptions.
 - `docs/business-context.md` explains domain intent in Spanish; use it to interpret why the Prisma models exist, not as executable truth.
 

@@ -19,6 +19,7 @@ La intención es acercarse a Clean/Hexagonal Architecture sin sobrediseñar: HTT
 | `src/common` | Solo contiene utilidades reutilizadas por varios features. Nada de junk drawer. |
 | Prisma | `PrismaModule` es explícito, non-global y es el único owner de `PrismaService`. |
 | Repositorios | Los servicios hablan con repositorios del dominio, no con Prisma crudo. |
+| Observabilidad | Todo flujo operacionalmente relevante debe seguir patrones de logging útiles y seguros. Sin secretos, tokens, cookies ni payloads sensibles completos. |
 | E2E | `npm run test:e2e` prepara y usa únicamente `DATABASE_URL_TEST`. |
 | Smoke | Si se mantiene una prueba Prisma-free, debe estar claramente separada y nombrada como smoke. |
 
@@ -40,6 +41,13 @@ La intención es acercarse a Clean/Hexagonal Architecture sin sobrediseñar: HTT
 - Los tokens de repositorio se conservan con `useExisting: PrismaService`.
 - `AppModule` importa `PrismaModule`, pero no vuelve a declarar `PrismaService`.
 
+## Observabilidad y logging
+
+- El bootstrap registra request/response metadata suficiente para diagnosticar: `requestId`, método, ruta sanitizada, status y duración.
+- Los errores HTTP deben loguear contexto útil sin filtrar secretos ni datos sensibles.
+- Si un feature agrega flujos críticos, validaciones complejas, integraciones externas o estados difíciles de diagnosticar, debe reutilizar o extender los patrones compartidos en `src/common/logging/`.
+- No uses `console.log` suelto en código de aplicación; preferí `Logger`/middleware/filtros compartidos.
+
 ## Test taxonomy
 
 | Nivel | Comando | Propósito |
@@ -58,5 +66,6 @@ La intención es acercarse a Clean/Hexagonal Architecture sin sobrediseñar: HTT
 
 - [ ] Ningún feature importa helpers privados de otro feature.
 - [ ] Ningún módulo feature vuelve a proveer `PrismaService`.
+- [ ] Los flujos relevantes tienen observabilidad suficiente para diagnosticar fallos en dev/e2e/producción.
 - [ ] `npm run test:e2e` depende de `DATABASE_URL_TEST` y no de la DB de desarrollo.
 - [ ] El flujo principal sigue `Controller -> Service -> Repository -> Prisma`.
