@@ -109,7 +109,7 @@ describe('work-order seeds', () => {
     );
 
     expect(transaction).toHaveBeenCalledTimes(1);
-    expect(workOrderUpsert).toHaveBeenCalledTimes(2);
+    expect(workOrderUpsert).toHaveBeenCalledTimes(4);
     expect(workOrderUpsert.mock.calls[0]?.[0]).toMatchObject({
       where: { id: 'seed-work-order-sale-counter-quote' },
       create: {
@@ -135,12 +135,30 @@ describe('work-order seeds', () => {
         paymentStatus: 'PAID',
       },
     });
+    expect(workOrderUpsert.mock.calls[2]?.[0]).toMatchObject({
+      where: { id: 'seed-work-order-workshop-partial-payment' },
+      create: {
+        id: 'seed-work-order-workshop-partial-payment',
+        assignedEmployeeId: 'seed-employee-ana-torres',
+        paymentStatus: 'PARTIAL',
+      },
+    });
+    expect(workOrderUpsert.mock.calls[3]?.[0]).toMatchObject({
+      where: { id: 'seed-work-order-workshop-unknown-payable' },
+      create: {
+        id: 'seed-work-order-workshop-unknown-payable',
+        assignedEmployeeId: 'seed-employee-ana-torres',
+        paymentStatus: 'PARTIAL',
+      },
+    });
     expect(workshopDetailsDeleteMany).toHaveBeenCalledWith({
       where: {
         workOrderId: {
           in: [
             'seed-work-order-sale-counter-quote',
             'seed-work-order-workshop-injector-repair',
+            'seed-work-order-workshop-partial-payment',
+            'seed-work-order-workshop-unknown-payable',
           ],
         },
       },
@@ -152,9 +170,17 @@ describe('work-order seeds', () => {
           workOrderId: 'seed-work-order-workshop-injector-repair',
           diagnosisRequired: true,
         }),
+        expect.objectContaining({
+          id: 'seed-workshop-details-partial-payment',
+          workOrderId: 'seed-work-order-workshop-partial-payment',
+        }),
+        expect.objectContaining({
+          id: 'seed-workshop-details-unknown-payable',
+          workOrderId: 'seed-work-order-workshop-unknown-payable',
+        }),
       ],
     });
-    expect(estimateUpsert).toHaveBeenCalledTimes(2);
+    expect(estimateUpsert).toHaveBeenCalledTimes(3);
     expect(estimateLineCreateMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
         expect.objectContaining({
@@ -167,26 +193,51 @@ describe('work-order seeds', () => {
           estimateId: 'seed-work-order-estimate-workshop-final',
           serviceCatalogId: 'seed-service-reparacion',
         }),
+        expect.objectContaining({
+          id: 'seed-work-order-estimate-line-partial-service',
+          estimateId: 'seed-work-order-estimate-partial-final',
+          unitPrice: 250000,
+        }),
       ]),
     });
     expect(actualCostCreateMany).toHaveBeenCalledWith({
-      data: [
+      data: expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-work-order-actual-cost-workshop-purchase',
           workOrderId: 'seed-work-order-workshop-injector-repair',
           supplierId: 'seed-supplier-repuestos-central-main',
           supplierQuoteHistoryId: 'seed-supplier-quote-bosch-central-v2',
         }),
-      ],
+        expect.objectContaining({
+          id: 'seed-work-order-actual-cost-partial-outsourced',
+          workOrderId: 'seed-work-order-workshop-partial-payment',
+          amount: 110000,
+        }),
+        expect.objectContaining({
+          id: 'seed-work-order-actual-cost-unknown-outsourced',
+          workOrderId: 'seed-work-order-workshop-unknown-payable',
+          amount: 70000,
+        }),
+      ]),
     });
     expect(paymentCreateMany).toHaveBeenCalledWith({
-      data: [
+      data: expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-work-order-payment-workshop-final',
           workOrderId: 'seed-work-order-workshop-injector-repair',
           amount: 620000,
         }),
-      ],
+        expect.objectContaining({
+          id: 'seed-work-order-payment-partial-advance',
+          workOrderId: 'seed-work-order-workshop-partial-payment',
+          amount: 100000,
+        }),
+        expect.objectContaining({
+          id: 'seed-work-order-payment-unknown-advance',
+          workOrderId: 'seed-work-order-workshop-unknown-payable',
+          amount: 30000,
+        }),
+      ]),
     });
     expect(inventoryMovementUpdateMany).toHaveBeenNthCalledWith(1, {
       where: { id: 'seed-inventory-movement-bosch-out-1' },

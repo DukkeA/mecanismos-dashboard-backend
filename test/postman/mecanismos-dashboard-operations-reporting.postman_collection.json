@@ -1,0 +1,288 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Operations Reporting",
+    "_postman_id": "e66ad8c6-a083-4e4d-b86b-87db6211c9fd",
+    "description": "Runner-ready supplemental verification for cash-operational summary, receivables, profitability, mechanics, expenses, and protected validation paths.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "seedPartialWorkOrderId", "value": "seed-work-order-workshop-partial-payment" },
+    { "key": "seedUnknownPayableWorkOrderId", "value": "seed-work-order-workshop-unknown-payable" },
+    { "key": "seedMechanicEmployeeId", "value": "seed-employee-ana-torres" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Summary Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations-reporting/summary?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations-reporting", "summary"],
+              "query": [
+                { "key": "dateFrom", "value": "2026-04-01T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-31T23:59:59.999Z" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('summary returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('summary is approximate cash-operational', function () {",
+                "  pm.expect(body.approximate).to.eql(true);",
+                "  pm.expect(body.basis).to.eql('cash-operational');",
+                "  pm.expect(body.totals).to.be.an('object');",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Pending Payments Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations-reporting/pending-payments?paymentStatus=PARTIAL&dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations-reporting", "pending-payments"],
+              "query": [
+                { "key": "paymentStatus", "value": "PARTIAL" },
+                { "key": "dateFrom", "value": "2026-04-01T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-31T23:59:59.999Z" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('pending payments returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "const partial = body.data.find((item) => item.workOrderId === pm.collectionVariables.get('seedPartialWorkOrderId'));",
+                "const unknown = body.data.find((item) => item.workOrderId === pm.collectionVariables.get('seedUnknownPayableWorkOrderId'));",
+                "pm.test('partial payment row exposes remaining balance', function () {",
+                "  pm.expect(partial).to.be.an('object');",
+                "  pm.expect(partial.balance).to.eql(150000);",
+                "  pm.expect(partial.payableAmount).to.eql(250000);",
+                "});",
+                "pm.test('unknown payable row keeps balance null', function () {",
+                "  pm.expect(unknown).to.be.an('object');",
+                "  pm.expect(unknown.payableAmount).to.eql(null);",
+                "  pm.expect(unknown.balance).to.eql(null);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Work-Order Profitability Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations-reporting/work-order-profitability?assignedEmployeeId={{seedMechanicEmployeeId}}&dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations-reporting", "work-order-profitability"],
+              "query": [
+                { "key": "assignedEmployeeId", "value": "{{seedMechanicEmployeeId}}" },
+                { "key": "dateFrom", "value": "2026-04-01T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-31T23:59:59.999Z" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('profitability returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "const unknown = body.data.find((item) => item.workOrderId === pm.collectionVariables.get('seedUnknownPayableWorkOrderId'));",
+                "pm.test('unknown payable profitability stays null-derived', function () {",
+                "  pm.expect(unknown).to.be.an('object');",
+                "  pm.expect(unknown.payableAmount).to.eql(null);",
+                "  pm.expect(unknown.grossUtility).to.eql(null);",
+                "  pm.expect(unknown.grossMargin).to.eql(null);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Mechanics Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations-reporting/mechanics?assignedEmployeeId={{seedMechanicEmployeeId}}&dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations-reporting", "mechanics"],
+              "query": [
+                { "key": "assignedEmployeeId", "value": "{{seedMechanicEmployeeId}}" },
+                { "key": "dateFrom", "value": "2026-04-01T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-31T23:59:59.999Z" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanics report returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "const row = body.data.find((item) => item.employeeId === pm.collectionVariables.get('seedMechanicEmployeeId'));",
+                "pm.test('mechanic row only aggregates assigned work', function () {",
+                "  pm.expect(row).to.be.an('object');",
+                "  pm.expect(row.assignedOrderCount).to.be.above(0);",
+                "  pm.expect(row.unknownPayableCount).to.be.above(0);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Expenses Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations-reporting/expenses?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations-reporting", "expenses"],
+              "query": [
+                { "key": "dateFrom", "value": "2026-04-01T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-31T23:59:59.999Z" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('expenses report returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('expenses report includes paid and pending seeded rows', function () {",
+                "  const hasPendingRent = body.data.some((item) => item.expenseCategory === 'RENT' && item.paymentStatus === 'PENDING');",
+                "  const hasPaidUtility = body.data.some((item) => item.expenseCategory === 'UTILITY' && item.paymentStatus === 'PAID');",
+                "  pm.expect(hasPendingRent).to.eql(true);",
+                "  pm.expect(hasPaidUtility).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Validation & Protection",
+      "item": [
+        {
+          "name": "Reject Invalid Summary Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations-reporting/summary?dateFrom=2026-06-01T00:00:00.000Z&dateTo=2026-05-01T00:00:00.000Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations-reporting", "summary"],
+              "query": [
+                { "key": "dateFrom", "value": "2026-06-01T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-01T00:00:00.000Z" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('invalid range returns 400', function () { pm.response.to.have.status(400); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic login returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Operations Reporting forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations-reporting/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations-reporting", "summary"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic receives 403', function () { pm.response.to.have.status(403); });"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}

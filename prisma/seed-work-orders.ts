@@ -48,8 +48,11 @@ export type WorkOrderSeedPrismaClient = {
 
 const saleWorkOrderId = 'seed-work-order-sale-counter-quote';
 const workshopWorkOrderId = 'seed-work-order-workshop-injector-repair';
+const partialPaymentWorkOrderId = 'seed-work-order-workshop-partial-payment';
+const unknownPayableWorkOrderId = 'seed-work-order-workshop-unknown-payable';
 const workshopEstimateId = 'seed-work-order-estimate-workshop-final';
 const saleEstimateId = 'seed-work-order-estimate-sale-initial';
+const partialPaymentEstimateId = 'seed-work-order-estimate-partial-final';
 
 const seedWorkOrderRows = [
   {
@@ -84,15 +87,68 @@ const seedWorkOrderRows = [
     estimatedCollectionAt: new Date('2026-05-09T15:00:00.000Z'),
     completedAt: new Date('2026-05-09T13:30:00.000Z'),
   },
+  {
+    id: partialPaymentWorkOrderId,
+    type: WorkOrderType.WORKSHOP,
+    status: WorkOrderStatus.IN_PROGRESS,
+    paymentStatus: PaymentStatus.PARTIAL,
+    customerId: 'seed-customer-ana-gomez',
+    vehicleId: 'seed-vehicle-ana-hilux',
+    componentId: 'seed-component-ana-tobera',
+    assignedEmployeeId: 'seed-employee-ana-torres',
+    summary: 'Servicio parcial con anticipo y saldo pendiente',
+    externalLink: 'https://mecanismos.test/work-orders/seed-workshop-partial-payment',
+    notes:
+      'Caso WORKSHOP con estimate FINAL y pago parcial para reportes de receivables.',
+    estimatedCompletionAt: new Date('2026-05-18T17:00:00.000Z'),
+    estimatedCollectionAt: new Date('2026-05-19T15:00:00.000Z'),
+    completedAt: null,
+  },
+  {
+    id: unknownPayableWorkOrderId,
+    type: WorkOrderType.WORKSHOP,
+    status: WorkOrderStatus.IN_PROGRESS,
+    paymentStatus: PaymentStatus.PARTIAL,
+    customerId: 'seed-customer-acme-industrial',
+    vehicleId: 'seed-vehicle-acme-foton-aumark',
+    componentId: 'seed-component-acme-inyector',
+    assignedEmployeeId: 'seed-employee-ana-torres',
+    summary: 'Trabajo asignado sin estimate publicado',
+    externalLink: 'https://mecanismos.test/work-orders/seed-workshop-unknown-payable',
+    notes:
+      'Caso WORKSHOP para payable desconocido con costo real y anticipo ya registrados.',
+    estimatedCompletionAt: new Date('2026-05-21T17:00:00.000Z'),
+    estimatedCollectionAt: new Date('2026-05-21T18:00:00.000Z'),
+    completedAt: null,
+  },
 ] as const;
 
-const workshopDetails = {
-  id: 'seed-workshop-details-injector-repair',
-  workOrderId: workshopWorkOrderId,
-  customerReportedIssue: 'El inyector presenta retorno excesivo y pérdida de potencia.',
-  diagnosisRequired: true,
-  diagnosisSummary: 'Se confirmó desgaste interno y se requirió reparación + calibración final.',
-} as const;
+const workshopDetails = [
+  {
+    id: 'seed-workshop-details-injector-repair',
+    workOrderId: workshopWorkOrderId,
+    customerReportedIssue: 'El inyector presenta retorno excesivo y pérdida de potencia.',
+    diagnosisRequired: true,
+    diagnosisSummary:
+      'Se confirmó desgaste interno y se requirió reparación + calibración final.',
+  },
+  {
+    id: 'seed-workshop-details-partial-payment',
+    workOrderId: partialPaymentWorkOrderId,
+    customerReportedIssue: 'El vehículo presenta falla intermitente y requiere avance parcial.',
+    diagnosisRequired: true,
+    diagnosisSummary:
+      'Se autorizó anticipo para diagnóstico y servicio correctivo aún en curso.',
+  },
+  {
+    id: 'seed-workshop-details-unknown-payable',
+    workOrderId: unknownPayableWorkOrderId,
+    customerReportedIssue: 'Pendiente definición de alcance final antes de emitir estimate.',
+    diagnosisRequired: true,
+    diagnosisSummary:
+      'Ya hay costos y un anticipo, pero todavía no se publica estimate INITIAL/FINAL.',
+  },
+] as const;
 
 const estimates = [
   {
@@ -118,6 +174,18 @@ const estimates = [
     totalCostAmount: 520000,
     totalPriceAmount: 620000,
     notes: 'Incluye repuesto, reparación y calibración.',
+  },
+  {
+    id: partialPaymentEstimateId,
+    workOrderId: partialPaymentWorkOrderId,
+    phase: EstimatePhase.FINAL,
+    estimatedLaborHours: '2.00',
+    baseCostAmount: 180000,
+    contingencyPct: 0,
+    contingencyAmount: 0,
+    totalCostAmount: 180000,
+    totalPriceAmount: 250000,
+    notes: 'Estimate FINAL para el caso de pago parcial.',
   },
 ] as const;
 
@@ -164,6 +232,20 @@ const estimateLines = [
     unitPrice: 330000,
     notes: 'Servicio principal del caso WORKSHOP.',
   },
+  {
+    id: 'seed-work-order-estimate-line-partial-service',
+    estimateId: partialPaymentEstimateId,
+    lineType: EstimateLineType.SERVICE,
+    description: 'Servicio correctivo con anticipo parcial',
+    inventoryItemId: null,
+    serviceCatalogId: 'seed-service-reparacion',
+    supplierId: null,
+    supplierQuoteHistoryId: null,
+    quantity: 1,
+    unitCost: 180000,
+    unitPrice: 250000,
+    notes: 'Línea única para receivable parcial.',
+  },
 ] as const;
 
 const actualCosts = [
@@ -180,6 +262,32 @@ const actualCosts = [
     incurredAt: new Date('2026-05-08T10:30:00.000Z'),
     notes: 'Costo real enlazado a cotización activa.',
   },
+  {
+    id: 'seed-work-order-actual-cost-partial-outsourced',
+    workOrderId: partialPaymentWorkOrderId,
+    category: WorkOrderCostCategory.OUTSOURCED_SERVICE,
+    description: 'Servicio tercerizado para diagnóstico parcial',
+    amount: 110000,
+    supplierId: null,
+    inventoryItemId: null,
+    supplierQuoteHistoryId: null,
+    paymentMethod: PaymentMethod.OTHER,
+    incurredAt: new Date('2026-05-18T11:00:00.000Z'),
+    notes: 'Costo real del caso con saldo pendiente.',
+  },
+  {
+    id: 'seed-work-order-actual-cost-unknown-outsourced',
+    workOrderId: unknownPayableWorkOrderId,
+    category: WorkOrderCostCategory.OUTSOURCED_SERVICE,
+    description: 'Diagnóstico avanzado antes de estimate',
+    amount: 70000,
+    supplierId: null,
+    inventoryItemId: null,
+    supplierQuoteHistoryId: null,
+    paymentMethod: PaymentMethod.TRANSFER,
+    incurredAt: new Date('2026-05-20T09:15:00.000Z'),
+    notes: 'Sirve para reportes con payable desconocido.',
+  },
 ] as const;
 
 const payments = [
@@ -190,6 +298,22 @@ const payments = [
     paymentMethod: PaymentMethod.TRANSFER,
     paidAt: new Date('2026-05-09T16:00:00.000Z'),
     notes: 'Pago total contra estimate FINAL.',
+  },
+  {
+    id: 'seed-work-order-payment-partial-advance',
+    workOrderId: partialPaymentWorkOrderId,
+    amount: 100000,
+    paymentMethod: PaymentMethod.CASH,
+    paidAt: new Date('2026-05-18T15:30:00.000Z'),
+    notes: 'Anticipo del caso con pago parcial.',
+  },
+  {
+    id: 'seed-work-order-payment-unknown-advance',
+    workOrderId: unknownPayableWorkOrderId,
+    amount: 30000,
+    paymentMethod: PaymentMethod.TRANSFER,
+    paidAt: new Date('2026-05-20T16:45:00.000Z'),
+    notes: 'Anticipo registrado antes de publicar estimate.',
   },
 ] as const;
 
@@ -228,14 +352,19 @@ export async function seedWorkOrders(
     await transaction.workshopWorkOrderDetails.deleteMany({
       where: {
         workOrderId: {
-          in: [saleWorkOrderId, workshopWorkOrderId],
+          in: [
+            saleWorkOrderId,
+            workshopWorkOrderId,
+            partialPaymentWorkOrderId,
+            unknownPayableWorkOrderId,
+          ],
         },
       },
     });
     await transaction.workshopWorkOrderDetails.createMany({
-      data: [{
-        ...workshopDetails,
-      }],
+      data: workshopDetails.map((detail) => ({
+        ...detail,
+      })),
     });
 
     for (const estimate of estimates) {
@@ -268,7 +397,11 @@ export async function seedWorkOrders(
     }
 
     await transaction.workOrderEstimateLine.deleteMany({
-      where: { estimateId: { in: [saleEstimateId, workshopEstimateId] } },
+      where: {
+        estimateId: {
+          in: [saleEstimateId, workshopEstimateId, partialPaymentEstimateId],
+        },
+      },
     });
     await transaction.workOrderEstimateLine.createMany({
       data: estimateLines.map((line) => ({
@@ -279,7 +412,16 @@ export async function seedWorkOrders(
     });
 
     await transaction.workOrderActualCost.deleteMany({
-      where: { workOrderId: { in: [saleWorkOrderId, workshopWorkOrderId] } },
+      where: {
+        workOrderId: {
+          in: [
+            saleWorkOrderId,
+            workshopWorkOrderId,
+            partialPaymentWorkOrderId,
+            unknownPayableWorkOrderId,
+          ],
+        },
+      },
     });
     await transaction.workOrderActualCost.createMany({
       data: actualCosts.map((actualCost) => ({
@@ -290,7 +432,16 @@ export async function seedWorkOrders(
     });
 
     await transaction.workOrderPayment.deleteMany({
-      where: { workOrderId: { in: [saleWorkOrderId, workshopWorkOrderId] } },
+      where: {
+        workOrderId: {
+          in: [
+            saleWorkOrderId,
+            workshopWorkOrderId,
+            partialPaymentWorkOrderId,
+            unknownPayableWorkOrderId,
+          ],
+        },
+      },
     });
     await transaction.workOrderPayment.createMany({
       data: payments.map((payment) => ({
