@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Expenses",
+    "_postman_id": "ded7ba8e-f0d4-4687-8d86-67502e3be14f",
+    "description": "Runner-ready supplemental verification for protected expense lifecycle, cost-center validation, scheduled/paid semantics, and protected-route error cases.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "runId", "value": "" },
+    { "key": "expenseId", "value": "" },
+    { "key": "expenseName", "value": "" },
+    { "key": "expenseSearch", "value": "" },
+    { "key": "expenseCostCenterId", "value": "" },
+    { "key": "missingExpenseId", "value": "" },
+    { "key": "missingCostCenterId", "value": "missing-cost-center" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+                  "const runId = `${now.slice(-6)}${random}`;",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('expenseId', '');",
+                  "pm.collectionVariables.set('expenseCostCenterId', '');",
+                  "pm.collectionVariables.set('expenseName', `Gasto Runner ${runId}`);",
+                  "pm.collectionVariables.set('expenseSearch', runId);",
+                  "pm.collectionVariables.set('missingExpenseId', `missing-${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('admin login returns admin payload', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Cost Centers for Expense Setup",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers?page=1&limit=10&search=GENERAL&isActive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "GENERAL" },
+                { "key": "isActive", "value": "true" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('cost center setup returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "const general = body.data.find((item) => item.code === 'GENERAL') || body.data[0];",
+                "pm.collectionVariables.set('expenseCostCenterId', general && general.id ? general.id : '');",
+                "pm.test('cost center setup captures a usable id', function () {",
+                "  pm.expect(pm.collectionVariables.get('expenseCostCenterId')).to.be.a('string').and.not.empty;",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Scheduled Expense",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{expenseName}}\",\n  \"category\": \"RENT\",\n  \"amount\": 1500000,\n  \"expectedAt\": \"2026-05-15T00:00:00.000Z\",\n  \"costCenterId\": \"{{expenseCostCenterId}}\",\n  \"notes\": \"Programado por runner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create scheduled expense returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('expenseId', body.id);",
+                "pm.test('scheduled expense starts unpaid', function () {",
+                "  pm.expect(body.id).to.be.a('string');",
+                "  pm.expect(body.paidAt).to.eql(null);",
+                "  pm.expect(body.paymentMethod).to.eql(null);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Expenses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/expenses?page=1&limit=10&search={{expenseSearch}}&category=RENT&isPaid=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "{{expenseSearch}}" },
+                { "key": "category", "value": "RENT" },
+                { "key": "isPaid", "value": "false" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('list expenses returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('list expenses includes created expense', function () {",
+                "  const expenseId = pm.collectionVariables.get('expenseId');",
+                "  pm.expect(body.data.some((item) => item.id === expenseId)).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Expense",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('get expense returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('get expense uses captured expenseId', function () {",
+                "  pm.expect(body.id).to.eql(pm.collectionVariables.get('expenseId'));",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Mark Expense Paid",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paidAt\": \"2026-05-16T14:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"notes\": \"Pago confirmado por runner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mark expense paid returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('mark expense paid stores payment data', function () {",
+                "  pm.expect(body.paymentMethod).to.eql('TRANSFER');",
+                "  pm.expect(body.paidAt).to.not.eql(null);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Reject Unknown Cost Center",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gasto con centro faltante\",\n  \"category\": \"UTILITY\",\n  \"amount\": 100000,\n  \"expectedAt\": \"2026-05-20T00:00:00.000Z\",\n  \"costCenterId\": \"{{missingCostCenterId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('unknown cost center returns 404', function () { pm.response.to.have.status(404); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Reject Payment Method Without paidAt",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gasto inválido runner\",\n  \"category\": \"OTHER\",\n  \"amount\": 25000,\n  \"expectedAt\": \"2026-05-20T00:00:00.000Z\",\n  \"paymentMethod\": \"CASH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('payment method without paidAt returns 400', function () { pm.response.to.have.status(400); });"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Protected Errors",
+      "item": [
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic login returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Expense List forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic expense list returns 403', function () { pm.response.to.have.status(403); });"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}

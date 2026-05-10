@@ -1,0 +1,426 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Employees",
+    "_postman_id": "3cccd841-11ea-4a98-9a77-f1c1ad8fb8b2",
+    "description": "Runner-ready supplemental verification for employee lifecycle, cost-center reference validation, employee-owned bonuses, and protected-route error cases.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "runId", "value": "" },
+    { "key": "employeeId", "value": "" },
+    { "key": "employeeName", "value": "" },
+    { "key": "employeeSearch", "value": "" },
+    { "key": "employeeCostCenterId", "value": "" },
+    { "key": "missingEmployeeId", "value": "" },
+    { "key": "missingCostCenterId", "value": "missing-cost-center" },
+    { "key": "bonusId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+                  "const runId = `${now.slice(-6)}${random}`;",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('employeeId', '');",
+                  "pm.collectionVariables.set('bonusId', '');",
+                  "pm.collectionVariables.set('employeeCostCenterId', '');",
+                  "pm.collectionVariables.set('employeeName', `Empleado Runner ${runId}`);",
+                  "pm.collectionVariables.set('employeeSearch', runId);",
+                  "pm.collectionVariables.set('missingEmployeeId', `missing-${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('admin login returns admin payload', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Cost Center Options",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/employees/cost-center-options",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "cost-center-options"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('cost-center options returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "const general = body.find((item) => item.code === 'GENERAL') || body[0];",
+                "pm.collectionVariables.set('employeeCostCenterId', general && general.id ? general.id : '');",
+                "pm.test('cost-center options return a usable id', function () {",
+                "  pm.expect(Array.isArray(body)).to.eql(true);",
+                "  pm.expect(pm.collectionVariables.get('employeeCostCenterId')).to.be.a('string').and.not.empty;",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{employeeName}}\",\n  \"type\": \"MECHANIC\",\n  \"phone\": \"3001234567\",\n  \"baseSalaryMonthly\": 2500000,\n  \"costCenterId\": \"{{employeeCostCenterId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create employee returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('employeeId', body.id);",
+                "pm.test('create employee captures employeeId', function () {",
+                "  pm.expect(body.id).to.be.a('string');",
+                "  pm.expect(body.isActive).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Employees",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/employees?page=1&limit=10&search={{employeeSearch}}&type=MECHANIC&isActive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "{{employeeSearch}}" },
+                { "key": "type", "value": "MECHANIC" },
+                { "key": "isActive", "value": "true" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('list employees returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('list employees includes created employee', function () {",
+                "  const employeeId = pm.collectionVariables.get('employeeId');",
+                "  pm.expect(body.data.some((item) => item.id === employeeId)).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Employee",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{employeeId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('get employee returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('get employee uses captured employeeId', function () {",
+                "  pm.expect(body.id).to.eql(pm.collectionVariables.get('employeeId'));",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Deactivate Employee",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false,\n  \"name\": \"{{employeeName}} Inactivo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{employeeId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('deactivate employee returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('deactivate employee returns inactive row', function () {",
+                "  pm.expect(body.isActive).to.eql(false);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Employee Bonus",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 180000,\n  \"description\": \"Bono runner\",\n  \"paidAt\": \"2026-05-10T09:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{employeeId}}/bonuses",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{employeeId}}", "bonuses"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create employee bonus returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('bonusId', body.id);",
+                "pm.test('create employee bonus captures bonusId', function () {",
+                "  pm.expect(body.employeeId).to.eql(pm.collectionVariables.get('employeeId'));",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Employee Bonuses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{employeeId}}/bonuses?page=1&limit=10&from=2026-01-01T00:00:00.000Z&to=2026-12-31T23:59:59.999Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{employeeId}}", "bonuses"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "from", "value": "2026-01-01T00:00:00.000Z" },
+                { "key": "to", "value": "2026-12-31T23:59:59.999Z" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('list employee bonuses returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('list employee bonuses includes created bonus', function () {",
+                "  const bonusId = pm.collectionVariables.get('bonusId');",
+                "  pm.expect(body.data.some((item) => item.id === bonusId)).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Protection & Error Checks",
+      "item": [
+        {
+          "name": "Create Employee invalid payload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"   \",\n  \"type\": \"MECHANIC\",\n  \"baseSalaryMonthly\": -1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('invalid employee create returns 400', function () { pm.response.to.have.status(400); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Employee unknown cost center",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{employeeName}} costo inválido\",\n  \"type\": \"MECHANIC\",\n  \"baseSalaryMonthly\": 2500000,\n  \"costCenterId\": \"{{missingCostCenterId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('unknown cost center returns 404', function () { pm.response.to.have.status(404); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Missing Employee",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{missingEmployeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{missingEmployeeId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('missing employee returns 404', function () { pm.response.to.have.status(404); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Bonus List missing employee",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{missingEmployeeId}}/bonuses",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{missingEmployeeId}}", "bonuses"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('missing employee bonus list returns 404', function () { pm.response.to.have.status(404); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Logout Admin Session",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Employee List forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic employee listing returns 403', function () { pm.response.to.have.status(403); });"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}

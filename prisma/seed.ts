@@ -13,6 +13,9 @@ import {
   SupplierQuoteStatus,
   SupplierType,
 } from '../generated/prisma/client';
+import { seedEmployeesAndBonuses } from './seed-employees';
+import { seedExpenses } from './seed-expenses';
+import { seedDefaultCostCenters } from './seed-cost-centers';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -562,6 +565,18 @@ async function main() {
 
       console.log(`Seeded service: ${seedService.slug}`);
     }
+
+    await seedDefaultCostCenters(prisma, now);
+
+    console.log('Seeded default cost centers: GENERAL, BODEGA, OFICINA');
+
+    await seedExpenses(prisma, now);
+
+    console.log('Seeded operational expenses');
+
+    await seedEmployeesAndBonuses(prisma, now);
+
+    console.log('Seeded employees and manual bonuses');
 
     for (const seedSupplier of SEED_SUPPLIERS) {
       await prisma.supplier.upsert({

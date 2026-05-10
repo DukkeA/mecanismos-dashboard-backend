@@ -1,0 +1,286 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Cost Centers",
+    "_postman_id": "f1a2f32a-7fe0-4c17-a33f-d1976f9cf301",
+    "description": "Runner-ready supplemental verification for cost-center create/list/get/update, canonical duplicate rejection, and protected-route error cases.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "runId", "value": "" },
+    { "key": "costCenterId", "value": "" },
+    { "key": "costCenterCode", "value": "" },
+    { "key": "costCenterSearch", "value": "" },
+    { "key": "missingCostCenterId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+                  "const runId = `${now.slice(-6)}${random}`;",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('costCenterId', '');",
+                  "pm.collectionVariables.set('costCenterCode', `CC${runId}`);",
+                  "pm.collectionVariables.set('costCenterSearch', runId);",
+                  "pm.collectionVariables.set('missingCostCenterId', `missing-${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('admin login returns admin payload', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));",
+                  "  pm.expect(body.role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Cost Center",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"  {{costCenterCode}}  \",\n  \"name\": \"Centro {{runId}}\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('create cost center returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('costCenterId', body.id);",
+                "pm.test('create cost center captures canonical code', function () {",
+                "  pm.expect(body.id).to.be.a('string');",
+                "  pm.expect(body.code).to.eql(pm.collectionVariables.get('costCenterCode'));",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create Duplicate Canonical Cost Center",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"  {{costCenterCode}}  \",\n  \"name\": \"Duplicado {{runId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('duplicate canonical cost center returns 409', function () { pm.response.to.have.status(409); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List Cost Centers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers?page=1&limit=10&search={{costCenterSearch}}&isActive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "{{costCenterSearch}}" },
+                { "key": "isActive", "value": "true" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('list cost centers returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('list cost centers includes created row', function () {",
+                "  const costCenterId = pm.collectionVariables.get('costCenterId');",
+                "  pm.expect(body.data.some((item) => item.id === costCenterId)).to.eql(true);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Cost Center",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers/{{costCenterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers", "{{costCenterId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('get cost center returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('get cost center uses captured id', function () {",
+                "  pm.expect(body.id).to.eql(pm.collectionVariables.get('costCenterId'));",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Update Cost Center",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"  cc{{runId}}-upd  \",\n  \"name\": \"Centro actualizado {{runId}}\",\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers/{{costCenterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers", "{{costCenterId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('update cost center returns 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('update cost center returns canonical inactive record', function () {",
+                "  pm.expect(body.isActive).to.eql(false);",
+                "  pm.expect(body.code).to.eql(`CC${pm.collectionVariables.get('runId')}-UPD`);",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Protection & Error Checks",
+      "item": [
+        {
+          "name": "Get Missing Cost Center",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers/{{missingCostCenterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers", "{{missingCostCenterId}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('missing cost center returns 404', function () { pm.response.to.have.status(404); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic login returns 200', function () { pm.response.to.have.status(200); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Cost Center List forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('mechanic list returns 403', function () { pm.response.to.have.status(403); });"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}

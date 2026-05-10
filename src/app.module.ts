@@ -13,6 +13,9 @@ import { ServicesModule } from './services/services.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ProcurementModule } from './procurement/procurement.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { CostCentersModule } from './cost-centers/cost-centers.module';
+import { EmployeesModule } from './employees/employees.module';
+import { ExpensesModule } from './expenses/expenses.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { PrismaModule } from './prisma/prisma.module';
     ServicesModule,
     InventoryModule,
     ProcurementModule,
+    CostCentersModule,
+    EmployeesModule,
+    ExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
