@@ -5,6 +5,8 @@ import {
   buildAuthCorsOptions,
   resolveOptionalAuthConfig,
 } from './auth/config/auth.config';
+import { HttpExceptionLoggingFilter } from './common/logging/http-exception-logging.filter';
+import { createHttpRequestLogger } from './common/logging/http-request-logger.middleware';
 import { buildSwaggerDocumentConfig } from './swagger/swagger.config';
 
 export type ConfigureAppOptions = {
@@ -13,12 +15,17 @@ export type ConfigureAppOptions = {
 };
 
 export function configureApp(
-  app: Pick<INestApplication, 'use' | 'useGlobalPipes' | 'enableCors'>,
+  app: Pick<
+    INestApplication,
+    'enableCors' | 'use' | 'useGlobalFilters' | 'useGlobalPipes'
+  >,
   options: ConfigureAppOptions = {},
 ) {
   const env = options.env ?? process.env;
 
+  app.use(createHttpRequestLogger());
   app.use(cookieParser());
+  app.useGlobalFilters(new HttpExceptionLoggingFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

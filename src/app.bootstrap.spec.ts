@@ -24,13 +24,16 @@ describe('configureApp', () => {
   it('applies production middleware and validation defaults', () => {
     const app = {
       use: jest.fn(),
+      useGlobalFilters: jest.fn(),
       useGlobalPipes: jest.fn(),
       enableCors: jest.fn(),
     };
 
     configureApp(app as never, { enableSwagger: false });
 
+    expect(app.use).toHaveBeenNthCalledWith(1, expect.any(Function));
     expect(app.use).toHaveBeenCalledWith('cookie-parser-middleware');
+    expect(app.useGlobalFilters).toHaveBeenCalledWith(expect.any(Object));
     expect(app.useGlobalPipes).toHaveBeenCalledWith(expect.any(ValidationPipe));
     expect(app.enableCors).toHaveBeenCalledWith({
       origin: ['http://localhost:5173'],
@@ -45,6 +48,7 @@ describe('configureApp', () => {
     const setup = jest.spyOn(SwaggerModule, 'setup').mockImplementation();
     const app = {
       use: jest.fn(),
+      useGlobalFilters: jest.fn(),
       useGlobalPipes: jest.fn(),
       enableCors: jest.fn(),
     };
