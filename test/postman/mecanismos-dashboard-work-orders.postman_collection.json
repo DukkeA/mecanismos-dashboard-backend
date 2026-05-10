@@ -13,6 +13,7 @@
     { "key": "mechanicPassword", "value": "Mecanico123!" },
     { "key": "seedSaleWorkOrderId", "value": "seed-work-order-sale-counter-quote" },
     { "key": "seedWorkshopWorkOrderId", "value": "seed-work-order-workshop-injector-repair" },
+    { "key": "unboundSupplierQuoteId", "value": "seed-supplier-quote-bosch-central-v1" },
     { "key": "createdWorkOrderId", "value": "" },
     { "key": "createdActualCostId", "value": "" },
     { "key": "createdPaymentId", "value": "" },
@@ -127,7 +128,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"estimatedLaborHours\": 2.5,\n  \"baseCostAmount\": 180000,\n  \"contingencyPct\": 10,\n  \"totalCostAmount\": 198000,\n  \"totalPriceAmount\": 260000,\n  \"notes\": \"Estimate runner\",\n  \"lines\": [\n    {\n      \"lineType\": \"PART\",\n      \"description\": \"Inyector Bosch 0445120231\",\n      \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n      \"supplierId\": \"seed-supplier-repuestos-central-main\",\n      \"supplierQuoteHistoryId\": \"seed-supplier-quote-bosch-central-v2\",\n      \"quantity\": 1,\n      \"unitCost\": 182000,\n      \"unitPrice\": 240000\n    }\n  ]\n}"
+              "raw": "{\n  \"estimatedLaborHours\": 2.5,\n  \"baseCostAmount\": 180000,\n  \"contingencyPct\": 10,\n  \"totalCostAmount\": 198000,\n  \"totalPriceAmount\": 260000,\n  \"notes\": \"Estimate runner\",\n  \"lines\": [\n    {\n      \"lineType\": \"PART\",\n      \"description\": \"Inyector Bosch 0445120231\",\n      \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n      \"supplierId\": \"seed-supplier-repuestos-central-main\",\n      \"supplierQuoteHistoryId\": \"{{unboundSupplierQuoteId}}\",\n      \"quantity\": 1,\n      \"unitCost\": 182000,\n      \"unitPrice\": 240000\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/estimates/{{estimatePhase}}",
@@ -152,7 +153,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"category\": \"DIRECT_PURCHASE\",\n  \"description\": \"Compra runner\",\n  \"amount\": 182000,\n  \"incurredAt\": \"2026-05-10T13:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"supplierId\": \"seed-supplier-repuestos-central-main\",\n  \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n  \"supplierQuoteHistoryId\": \"seed-supplier-quote-bosch-central-v2\"\n}"
+              "raw": "{\n  \"category\": \"DIRECT_PURCHASE\",\n  \"description\": \"Compra runner\",\n  \"amount\": 182000,\n  \"incurredAt\": \"2026-05-10T13:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"supplierId\": \"seed-supplier-repuestos-central-main\",\n  \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n  \"supplierQuoteHistoryId\": \"{{unboundSupplierQuoteId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/actual-costs",

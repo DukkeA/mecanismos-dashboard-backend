@@ -225,7 +225,7 @@ describe('WorkOrdersController (real db e2e)', () => {
             unitPrice: 250000,
             supplierId: 'seed-supplier-repuestos-central-main',
             inventoryItemId: 'seed-inventory-item-bosch-inyector',
-            supplierQuoteHistoryId: 'seed-supplier-quote-bosch-central-v2',
+            supplierQuoteHistoryId: 'seed-supplier-quote-bosch-central-v1',
           },
           {
             lineType: 'SERVICE',
@@ -283,6 +283,37 @@ describe('WorkOrdersController (real db e2e)', () => {
       });
   });
 
+  it('rejects estimate lines that reuse a supplier quote linked to another work order', async () => {
+    const cookies = await loginAsRole(app, 'ADMIN');
+    const workOrderId = await createSaleWorkOrder(app, cookies, `estimate-locked-${Date.now()}`);
+
+    await request(app.getHttpServer())
+      .put(`/work-orders/${workOrderId}/estimates/INITIAL`)
+      .set('Cookie', cookies)
+      .send({
+        totalCostAmount: 182000,
+        totalPriceAmount: 250000,
+        lines: [
+          {
+            lineType: 'PART',
+            description: 'Inyector Bosch bloqueado',
+            quantity: 1,
+            unitCost: 182000,
+            unitPrice: 250000,
+            supplierId: 'seed-supplier-repuestos-central-main',
+            inventoryItemId: 'seed-inventory-item-bosch-inyector',
+            supplierQuoteHistoryId: 'seed-supplier-quote-bosch-central-v2',
+          },
+        ],
+      })
+      .expect(400)
+      .expect(({ body }: { body: { message: string | string[] } }) => {
+        expect(body.message).toContain(
+          `Supplier quote seed-supplier-quote-bosch-central-v2 does not belong to work order ${workOrderId}`,
+        );
+      });
+  });
+
   it('creates, lists, updates, and removes actual costs without deleting the parent order', async () => {
     const cookies = await loginAsRole(app, 'ADMIN');
     const workOrderId = await createSaleWorkOrder(app, cookies, `cost-${Date.now()}`);
@@ -298,7 +329,7 @@ describe('WorkOrdersController (real db e2e)', () => {
         paymentMethod: PaymentMethod.TRANSFER,
         supplierId: 'seed-supplier-repuestos-central-main',
         inventoryItemId: 'seed-inventory-item-bosch-inyector',
-        supplierQuoteHistoryId: 'seed-supplier-quote-bosch-central-v2',
+        supplierQuoteHistoryId: 'seed-supplier-quote-bosch-central-v1',
       })
       .expect(201);
     const created = readBody<ActualCostResponse>(createdResponse);

@@ -13,9 +13,11 @@
 - Reviewer docs may reference the stable seed IDs directly.
 - Runner mutations must capture created IDs from responses.
 - Do not hardcode generated IDs in docs, Postman requests, or artifact tests.
+- When a reviewer creates a new work order, estimate/cost examples must use the unbound quote `seed-supplier-quote-bosch-central-v1`; `seed-supplier-quote-bosch-central-v2` stays reserved for the seeded workshop case.
 
 ## Relationship rules
 
 - Vehicle and component links must belong to the selected customer.
+- Supplier quotes already linked to another work order must be rejected for estimate lines.
 - `DIRECT_PURCHASE` actual costs require a supplier.
 - Payment status should match the seeded financial picture: the workshop example is fully paid, the sale example stays pending.

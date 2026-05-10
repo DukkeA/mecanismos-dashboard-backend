@@ -9,12 +9,13 @@
 
 1. Run `npx prisma db seed`.
 2. Read `GET /work-orders/seed-work-order-sale-counter-quote` and `GET /work-orders/seed-work-order-workshop-injector-repair` from Postman first.
-3. Run the Postman runner flow to create one new workshop order, then verify estimate, cost, and payment requests reuse captured IDs.
+3. Run the Postman runner flow to create one new workshop order, then verify estimate and cost requests use `{{unboundSupplierQuoteId}}` (`seed-supplier-quote-bosch-central-v1`) while payment requests reuse captured IDs.
 
 ## Why this matters
 
 - The seed spec protects idempotent stable IDs for docs and reviewer reads.
 - The artifact spec protects docs and Postman from drifting back to generated IDs.
+- The seeded quote `seed-supplier-quote-bosch-central-v2` is intentionally bound to `seed-work-order-workshop-injector-repair`, so created-order flows must not reuse it.
 - `npm run test` is the lane gate because strict TDD is active.
 
 ## Rollback order

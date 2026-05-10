@@ -236,6 +236,50 @@ describe('WorkOrderRelationsService', () => {
     );
   });
 
+  it('rejects estimate-line links when the supplier quote belongs to another work order', async () => {
+    repository.findSupplierById.mockResolvedValue({
+      id: 'supplier-1',
+      name: 'Proveedor Uno',
+      type: 'COMPANY',
+      isActive: true,
+    });
+    repository.findInventoryItemById.mockResolvedValue({
+      id: 'inventory-1',
+      name: 'Rodamiento delantero',
+      reference: 'ROD-01',
+      identifier: 'INV-01',
+      defaultSalePrice: 95000,
+      isActive: true,
+    });
+    repository.findSupplierQuoteHistoryById.mockResolvedValue({
+      id: 'quote-1',
+      supplierId: 'supplier-1',
+      inventoryItemId: 'inventory-1',
+      workOrderId: 'wo-locked',
+      quotedCost: 60000,
+      quotedAt: new Date('2026-05-10T20:00:00.000Z'),
+      status: SupplierQuoteStatus.ACTIVE,
+      supplier: null,
+      inventoryItem: null,
+    });
+
+    await expect(
+      service.assertEstimateLineRelations('wo-1', [
+        {
+          lineType: EstimateLineType.PART,
+          description: 'Rodamiento delantero',
+          inventoryItemId: 'inventory-1',
+          supplierId: 'supplier-1',
+          supplierQuoteHistoryId: 'quote-1',
+        },
+      ]),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Supplier quote quote-1 does not belong to work order wo-1',
+      ),
+    );
+  });
+
   it('accepts actual-cost direct-purchase links when supplier, inventory item, and quote align', async () => {
     repository.findSupplierById.mockResolvedValue({
       id: 'supplier-1',

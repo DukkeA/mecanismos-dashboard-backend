@@ -201,6 +201,7 @@ describe('work-order seeds', () => {
         workOrderId: 'seed-work-order-workshop-injector-repair',
       },
     });
+    expect(supplierQuoteHistoryUpdateMany).toHaveBeenCalledTimes(1);
   });
 
   it('hooks work-order seeds into prisma/seed.ts after inventory and supplier quote seeds', () => {

@@ -6,6 +6,9 @@ type PostmanCollectionItem = {
   item?: PostmanCollectionItem[];
   request?: {
     method?: string;
+    body?: {
+      raw?: string;
+    };
     url?: {
       raw?: string;
     };
@@ -19,6 +22,8 @@ type PostmanCollection = {
   variable?: Array<{ key?: string; value?: string }>;
   item?: PostmanCollectionItem[];
 };
+
+const UNBOUND_SUPPLIER_QUOTE_ID = 'seed-supplier-quote-bosch-central-v1';
 
 describe('work-order reviewer artifacts', () => {
   const projectRoot = path.resolve(__dirname, '..', '..');
@@ -87,6 +92,7 @@ describe('work-order reviewer artifacts', () => {
         'seedWorkshopWorkOrderId',
         'createdWorkOrderId',
         'estimatePhase',
+        'unboundSupplierQuoteId',
       ]),
     );
     expect(listRequestNames(collection)).toEqual(
@@ -109,6 +115,18 @@ describe('work-order reviewer artifacts', () => {
       method: 'PUT',
       rawUrl: '{{baseUrl}}/work-orders/{{createdWorkOrderId}}/estimates/{{estimatePhase}}',
     });
+    expect(findRawBody(collection, 'Upsert Initial Estimate')).toContain(
+      '"supplierQuoteHistoryId": "{{unboundSupplierQuoteId}}"',
+    );
+    expect(findRawBody(collection, 'Create Actual Cost')).toContain(
+      '"supplierQuoteHistoryId": "{{unboundSupplierQuoteId}}"',
+    );
+    expect(findRawBody(collection, 'Upsert Initial Estimate')).not.toContain(
+      'seed-supplier-quote-bosch-central-v2',
+    );
+    expect(findRawBody(collection, 'Create Actual Cost')).not.toContain(
+      'seed-supplier-quote-bosch-central-v2',
+    );
   });
 });
 
@@ -137,6 +155,16 @@ function findRequest(collection: PostmanCollection, requestName: string) {
     method: request?.request?.method,
     rawUrl: request?.request?.url?.raw,
   };
+}
+
+function findRawBody(collection: PostmanCollection, requestName: string) {
+  const request = flattenItems(collection.item).find(
+    (item) => item.name === requestName,
+  );
+
+  expect(request).toBeDefined();
+
+  return request?.request?.body?.raw ?? '';
 }
 
 function flattenItems(
