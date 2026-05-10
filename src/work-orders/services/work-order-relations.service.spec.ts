@@ -1,5 +1,10 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { EmployeeType, WorkOrderType } from '../../../generated/prisma/enums';
+import {
+  EmployeeType,
+  EstimateLineType,
+  SupplierQuoteStatus,
+  WorkOrderType,
+} from '../../../generated/prisma/enums';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
 import { WorkOrderRelationsService } from './work-order-relations.service';
 
@@ -9,6 +14,10 @@ describe('WorkOrderRelationsService', () => {
     findVehicleById: jest.fn(),
     findComponentById: jest.fn(),
     findEmployeeById: jest.fn(),
+    findInventoryItemById: jest.fn(),
+    findServiceCatalogById: jest.fn(),
+    findSupplierById: jest.fn(),
+    findSupplierQuoteHistoryById: jest.fn(),
   } as unknown as jest.Mocked<WorkOrdersRepository>;
 
   let service: WorkOrderRelationsService;
@@ -124,6 +133,104 @@ describe('WorkOrderRelationsService', () => {
     ).rejects.toThrow(
       new BadRequestException(
         'Component component-1 does not belong to vehicle vehicle-1',
+      ),
+    );
+  });
+
+  it('accepts estimate-line links when linked records exist and supplier quotes match', async () => {
+    repository.findInventoryItemById.mockResolvedValue({
+      id: 'inventory-1',
+      name: 'Rodamiento delantero',
+      reference: 'ROD-01',
+      identifier: 'INV-01',
+      defaultSalePrice: 95000,
+      isActive: true,
+    });
+    repository.findServiceCatalogById.mockResolvedValue({
+      id: 'service-1',
+      name: 'Diagnóstico eléctrico',
+      slug: 'diagnostico-electrico',
+      isActive: true,
+    });
+    repository.findSupplierById.mockResolvedValue({
+      id: 'supplier-1',
+      name: 'Proveedor Uno',
+      type: 'COMPANY',
+      isActive: true,
+    });
+    repository.findSupplierQuoteHistoryById.mockResolvedValue({
+      id: 'quote-1',
+      supplierId: 'supplier-1',
+      inventoryItemId: 'inventory-1',
+      workOrderId: 'wo-1',
+      quotedCost: 60000,
+      quotedAt: new Date('2026-05-10T20:00:00.000Z'),
+      status: SupplierQuoteStatus.ACTIVE,
+      supplier: {
+        id: 'supplier-1',
+        name: 'Proveedor Uno',
+        type: 'COMPANY',
+        isActive: true,
+      },
+      inventoryItem: {
+        id: 'inventory-1',
+        name: 'Rodamiento delantero',
+        reference: 'ROD-01',
+        identifier: 'INV-01',
+        defaultSalePrice: 95000,
+        isActive: true,
+      },
+    });
+
+    await expect(
+      service.assertEstimateLineRelations('wo-1', [
+        {
+          lineType: EstimateLineType.PART,
+          description: 'Rodamiento delantero',
+          inventoryItemId: 'inventory-1',
+          supplierId: 'supplier-1',
+          supplierQuoteHistoryId: 'quote-1',
+        },
+        {
+          lineType: EstimateLineType.SERVICE,
+          description: 'Diagnóstico eléctrico',
+          serviceCatalogId: 'service-1',
+        },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects estimate-line links when the supplier quote does not match the selected supplier', async () => {
+    repository.findSupplierById.mockResolvedValue({
+      id: 'supplier-1',
+      name: 'Proveedor Uno',
+      type: 'COMPANY',
+      isActive: true,
+    });
+    repository.findSupplierQuoteHistoryById.mockResolvedValue({
+      id: 'quote-1',
+      supplierId: 'supplier-9',
+      inventoryItemId: 'inventory-1',
+      workOrderId: 'wo-1',
+      quotedCost: 60000,
+      quotedAt: new Date('2026-05-10T20:00:00.000Z'),
+      status: SupplierQuoteStatus.ACTIVE,
+      supplier: null,
+      inventoryItem: null,
+    });
+
+    await expect(
+      service.assertEstimateLineRelations('wo-1', [
+        {
+          lineType: EstimateLineType.PART,
+          description: 'Rodamiento delantero',
+          supplierId: 'supplier-1',
+          supplierQuoteHistoryId: 'quote-1',
+        },
+      ]),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Supplier quote quote-1 does not belong to supplier supplier-1',
       ),
     );
   });

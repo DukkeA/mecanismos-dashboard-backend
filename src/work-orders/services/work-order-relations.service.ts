@@ -3,7 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { SupplierQuoteStatus } from '../../../generated/prisma/enums';
 import { CreateWorkOrderDto } from '../dto/create-work-order.dto';
+import { UpsertWorkOrderEstimateLineDto } from '../dto/upsert-work-order-estimate.dto';
 import { UpdateWorkOrderDto } from '../dto/update-work-order.dto';
 import {
   WorkOrderDetail,
@@ -51,6 +53,95 @@ export class WorkOrderRelationsService {
         currentWorkOrder.assignedEmployeeId,
       ),
     });
+  }
+
+  async assertEstimateLineRelations(
+    workOrderId: string,
+    lines: UpsertWorkOrderEstimateLineDto[] = [],
+  ) {
+    for (const line of lines) {
+      const inventoryItemId = normalizeOptionalId(line.inventoryItemId);
+      const serviceCatalogId = normalizeOptionalId(line.serviceCatalogId);
+      const supplierId = normalizeOptionalId(line.supplierId);
+      const supplierQuoteHistoryId = normalizeOptionalId(
+        line.supplierQuoteHistoryId,
+      );
+
+      const inventoryItem = inventoryItemId
+        ? await this.workOrdersRepository.findInventoryItemById(inventoryItemId)
+        : null;
+
+      if (inventoryItemId && !inventoryItem) {
+        throw new NotFoundException(
+          `Inventory item ${inventoryItemId} not found`,
+        );
+      }
+
+      const serviceCatalog = serviceCatalogId
+        ? await this.workOrdersRepository.findServiceCatalogById(serviceCatalogId)
+        : null;
+
+      if (serviceCatalogId && !serviceCatalog) {
+        throw new NotFoundException(
+          `Service catalog ${serviceCatalogId} not found`,
+        );
+      }
+
+      const supplier = supplierId
+        ? await this.workOrdersRepository.findSupplierById(supplierId)
+        : null;
+
+      if (supplierId && !supplier) {
+        throw new NotFoundException(`Supplier ${supplierId} not found`);
+      }
+
+      const supplierQuote = supplierQuoteHistoryId
+        ? await this.workOrdersRepository.findSupplierQuoteHistoryById(
+            supplierQuoteHistoryId,
+          )
+        : null;
+
+      if (supplierQuoteHistoryId && !supplierQuote) {
+        throw new NotFoundException(
+          `Supplier quote ${supplierQuoteHistoryId} not found`,
+        );
+      }
+
+      if (
+        supplierQuote &&
+        supplierQuote.status !== SupplierQuoteStatus.ACTIVE
+      ) {
+        throw new BadRequestException(
+          `Supplier quote ${supplierQuote.id} is not active`,
+        );
+      }
+
+      if (supplierQuote && supplierId && supplierQuote.supplierId !== supplierId) {
+        throw new BadRequestException(
+          `Supplier quote ${supplierQuote.id} does not belong to supplier ${supplierId}`,
+        );
+      }
+
+      if (
+        supplierQuote &&
+        inventoryItemId &&
+        supplierQuote.inventoryItemId !== inventoryItemId
+      ) {
+        throw new BadRequestException(
+          `Supplier quote ${supplierQuote.id} does not belong to inventory item ${inventoryItemId}`,
+        );
+      }
+
+      if (
+        supplierQuote &&
+        supplierQuote.workOrderId &&
+        supplierQuote.workOrderId !== workOrderId
+      ) {
+        throw new BadRequestException(
+          `Supplier quote ${supplierQuote.id} does not belong to work order ${workOrderId}`,
+        );
+      }
+    }
   }
 
   private async resolveRelations(input: {

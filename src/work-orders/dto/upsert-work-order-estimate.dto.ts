@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { EstimateLineType } from '../../../generated/prisma/enums';
 import { OptionalTrimmedString, TrimmedString } from '../../common/transforms/string.transforms';
 
@@ -72,7 +81,7 @@ export class UpsertWorkOrderEstimateDto {
   @ApiPropertyOptional({ example: 8 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
+  @IsNumber({ allowInfinity: false, allowNaN: false, maxDecimalPlaces: 2 })
   @Min(0)
   estimatedLaborHours?: number;
 

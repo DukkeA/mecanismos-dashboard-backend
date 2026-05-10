@@ -1,4 +1,11 @@
-import { PaymentStatus, WorkOrderStatus, WorkOrderType } from '../../../generated/prisma/enums';
+import {
+  EstimateLineType,
+  EstimatePhase,
+  PaymentStatus,
+  SupplierQuoteStatus,
+  WorkOrderStatus,
+  WorkOrderType,
+} from '../../../generated/prisma/enums';
 import { WorkOrdersRepository } from './work-orders.repository';
 
 describe('WorkOrdersRepository', () => {
@@ -679,5 +686,268 @@ describe('WorkOrdersRepository', () => {
     expect(receivedWorkshopDetailDeleteManyArgs).toEqual({
       where: { workOrderId: 'wo-sale-1' },
     });
+  });
+  it('upserts INITIAL estimates transactionally by replacing previous lines with the submitted set', async () => {
+    type UpsertArgs = {
+      where: { workOrderId_phase: { workOrderId: string; phase: EstimatePhase } };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    };
+    type DeleteManyArgs = { where: { estimateId: string } };
+    type CreateManyArgs = { data: Record<string, unknown>[] };
+
+    let receivedUpsertArgs: UpsertArgs | undefined;
+    let receivedDeleteManyArgs: DeleteManyArgs | undefined;
+    let receivedCreateManyArgs: CreateManyArgs | undefined;
+
+    const tx = {
+      workOrderEstimate: {
+        upsert: jest.fn((args: UpsertArgs) => {
+          receivedUpsertArgs = args;
+
+          return Promise.resolve({ id: 'estimate-initial' });
+        }),
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            id: 'estimate-initial',
+            workOrderId: 'wo-1',
+            phase: EstimatePhase.INITIAL,
+            estimatedLaborHours: { toNumber: () => 1.5 },
+            laborHourlyCostSnapshot: null,
+            baseCostAmount: 120000,
+            contingencyPct: 10,
+            contingencyAmount: 30000,
+            totalCostAmount: 150000,
+            totalPriceAmount: 220000,
+            recommendedMinimumPrice: null,
+            recommendedPrice: null,
+            recommendedHighPrice: null,
+            notes: 'Estimación inicial',
+            createdAt: new Date('2026-05-10T20:00:00.000Z'),
+            updatedAt: new Date('2026-05-10T20:05:00.000Z'),
+            WorkOrderEstimateLine: [
+              {
+                id: 'line-new-1',
+                lineType: EstimateLineType.PART,
+                description: 'Rodamiento delantero',
+                inventoryItemId: 'inventory-1',
+                serviceCatalogId: null,
+                supplierId: 'supplier-1',
+                supplierQuoteHistoryId: 'quote-1',
+                quantity: 2,
+                unitCost: 60000,
+                unitPrice: 95000,
+                notes: 'Incluye garantía',
+                createdAt: new Date('2026-05-10T20:00:00.000Z'),
+                updatedAt: new Date('2026-05-10T20:05:00.000Z'),
+                InventoryItem: {
+                  id: 'inventory-1',
+                  name: 'Rodamiento delantero',
+                  reference: 'ROD-01',
+                  identifier: 'INV-01',
+                  defaultSalePrice: 95000,
+                  isActive: true,
+                },
+                ServiceCatalog: null,
+                Supplier: {
+                  id: 'supplier-1',
+                  name: 'Proveedor Uno',
+                  type: 'COMPANY',
+                  isActive: true,
+                },
+                SupplierQuoteHistory: {
+                  id: 'quote-1',
+                  supplierId: 'supplier-1',
+                  inventoryItemId: 'inventory-1',
+                  workOrderId: 'wo-1',
+                  quotedCost: 60000,
+                  quotedAt: new Date('2026-05-10T19:00:00.000Z'),
+                  status: SupplierQuoteStatus.ACTIVE,
+                  Supplier: {
+                    id: 'supplier-1',
+                    name: 'Proveedor Uno',
+                    type: 'COMPANY',
+                    isActive: true,
+                  },
+                  InventoryItem: {
+                    id: 'inventory-1',
+                    name: 'Rodamiento delantero',
+                    reference: 'ROD-01',
+                    identifier: 'INV-01',
+                    defaultSalePrice: 95000,
+                    isActive: true,
+                  },
+                },
+              },
+            ],
+          }),
+        ),
+      },
+      workOrderEstimateLine: {
+        deleteMany: jest.fn((args: DeleteManyArgs) => {
+          receivedDeleteManyArgs = args;
+
+          return Promise.resolve({ count: 2 });
+        }),
+        createMany: jest.fn((args: CreateManyArgs) => {
+          receivedCreateManyArgs = args;
+
+          return Promise.resolve({ count: 1 });
+        }),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.upsertEstimate('wo-1', EstimatePhase.INITIAL, {
+        estimatedLaborHours: 1.5,
+        baseCostAmount: 120000,
+        contingencyPct: 10,
+        totalCostAmount: 150000,
+        totalPriceAmount: 220000,
+        notes: ' Estimación inicial ',
+        lines: [
+          {
+            lineType: EstimateLineType.PART,
+            description: ' Rodamiento delantero ',
+            inventoryItemId: ' inventory-1 ',
+            supplierId: ' supplier-1 ',
+            supplierQuoteHistoryId: ' quote-1 ',
+            quantity: 2,
+            unitCost: 60000,
+            unitPrice: 95000,
+            notes: ' Incluye garantía ',
+          },
+        ],
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'estimate-initial',
+        phase: EstimatePhase.INITIAL,
+        estimatedLaborHours: 1.5,
+        lines: [
+          expect.objectContaining({
+            id: 'line-new-1',
+            description: 'Rodamiento delantero',
+            inventoryItem: expect.objectContaining({ id: 'inventory-1' }),
+            supplier: expect.objectContaining({ id: 'supplier-1' }),
+            supplierQuoteHistory: expect.objectContaining({
+              id: 'quote-1',
+              supplier: expect.objectContaining({ id: 'supplier-1' }),
+              inventoryItem: expect.objectContaining({ id: 'inventory-1' }),
+            }),
+          }),
+        ],
+      }),
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(receivedUpsertArgs).toMatchObject({
+      where: {
+        workOrderId_phase: {
+          workOrderId: 'wo-1',
+          phase: EstimatePhase.INITIAL,
+        },
+      },
+      create: {
+        id: expect.any(String),
+        workOrderId: 'wo-1',
+        phase: EstimatePhase.INITIAL,
+        estimatedLaborHours: 1.5,
+        baseCostAmount: 120000,
+        contingencyPct: 10,
+        contingencyAmount: 30000,
+        totalCostAmount: 150000,
+        totalPriceAmount: 220000,
+        notes: 'Estimación inicial',
+      },
+    });
+    expect(receivedDeleteManyArgs).toEqual({
+      where: { estimateId: 'estimate-initial' },
+    });
+    expect(receivedCreateManyArgs?.data).toEqual([
+      expect.objectContaining({
+        id: expect.any(String),
+        estimateId: 'estimate-initial',
+        lineType: EstimateLineType.PART,
+        description: 'Rodamiento delantero',
+        inventoryItemId: 'inventory-1',
+        supplierId: 'supplier-1',
+        supplierQuoteHistoryId: 'quote-1',
+        quantity: 2,
+        unitCost: 60000,
+        unitPrice: 95000,
+        notes: 'Incluye garantía',
+      }),
+    ]);
+  });
+
+  it('upserts FINAL estimates transactionally and clears previous lines when the new set is empty', async () => {
+    const tx = {
+      workOrderEstimate: {
+        upsert: jest.fn(() => Promise.resolve({ id: 'estimate-final' })),
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            id: 'estimate-final',
+            workOrderId: 'wo-1',
+            phase: EstimatePhase.FINAL,
+            estimatedLaborHours: { toNumber: () => 2 },
+            laborHourlyCostSnapshot: null,
+            baseCostAmount: 180000,
+            contingencyPct: null,
+            contingencyAmount: 0,
+            totalCostAmount: 180000,
+            totalPriceAmount: 260000,
+            recommendedMinimumPrice: null,
+            recommendedPrice: null,
+            recommendedHighPrice: null,
+            notes: 'Cierre',
+            createdAt: new Date('2026-05-10T20:00:00.000Z'),
+            updatedAt: new Date('2026-05-10T20:05:00.000Z'),
+            WorkOrderEstimateLine: [],
+          }),
+        ),
+      },
+      workOrderEstimateLine: {
+        deleteMany: jest.fn(() => Promise.resolve({ count: 3 })),
+        createMany: jest.fn(() => Promise.resolve({ count: 0 })),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.upsertEstimate('wo-1', EstimatePhase.FINAL, {
+        estimatedLaborHours: 2,
+        baseCostAmount: 180000,
+        totalCostAmount: 180000,
+        totalPriceAmount: 260000,
+        notes: ' Cierre ',
+        lines: [],
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        phase: EstimatePhase.FINAL,
+        lines: [],
+      }),
+    );
+
+    expect(tx.workOrderEstimateLine.deleteMany).toHaveBeenCalledWith({
+      where: { estimateId: 'estimate-final' },
+    });
+    expect(tx.workOrderEstimateLine.createMany).not.toHaveBeenCalled();
   });
 });

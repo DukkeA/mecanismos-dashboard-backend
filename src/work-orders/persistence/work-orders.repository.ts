@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
+  EstimatePhase,
   PaymentStatus,
   WorkOrderStatus,
   WorkOrderType,
@@ -8,6 +9,7 @@ import {
 import type { Prisma } from '../../../generated/prisma/client';
 import type { CreateWorkOrderDto } from '../dto/create-work-order.dto';
 import type { ListWorkOrdersQueryDto } from '../dto/list-work-orders-query.dto';
+import type { UpsertWorkOrderEstimateDto } from '../dto/upsert-work-order-estimate.dto';
 import type { UpdateWorkOrderDto } from '../dto/update-work-order.dto';
 
 export const WORK_ORDERS_PRISMA_CLIENT = Symbol('WORK_ORDERS_PRISMA_CLIENT');
@@ -51,6 +53,73 @@ export type WorkOrderEstimateSummary = {
   totalCostAmount: number;
   totalPriceAmount: number;
   notes: string | null;
+};
+
+export type WorkOrderEstimateLineInventorySummary = {
+  id: string;
+  name?: string | null;
+  reference?: string | null;
+  identifier?: string | null;
+  defaultSalePrice?: number | null;
+  isActive?: boolean | null;
+};
+
+export type WorkOrderEstimateLineServiceCatalogSummary = {
+  id: string;
+  name?: string | null;
+  slug?: string | null;
+  isActive?: boolean | null;
+};
+
+export type WorkOrderEstimateLineSupplierSummary = {
+  id: string;
+  name?: string | null;
+  type?: string | null;
+  isActive?: boolean | null;
+};
+
+export type WorkOrderEstimateLineSupplierQuoteSummary = {
+  id: string;
+  supplierId: string;
+  inventoryItemId: string;
+  workOrderId: string | null;
+  quotedCost: number;
+  quotedAt: Date;
+  status: string;
+  supplier: WorkOrderEstimateLineSupplierSummary | null;
+  inventoryItem: WorkOrderEstimateLineInventorySummary | null;
+};
+
+export type WorkOrderEstimateLineDetail = {
+  id: string;
+  lineType: string;
+  description: string;
+  inventoryItemId: string | null;
+  serviceCatalogId: string | null;
+  supplierId: string | null;
+  supplierQuoteHistoryId: string | null;
+  quantity: number;
+  unitCost: number | null;
+  unitPrice: number | null;
+  notes: string | null;
+  inventoryItem: WorkOrderEstimateLineInventorySummary | null;
+  serviceCatalog: WorkOrderEstimateLineServiceCatalogSummary | null;
+  supplier: WorkOrderEstimateLineSupplierSummary | null;
+  supplierQuoteHistory: WorkOrderEstimateLineSupplierQuoteSummary | null;
+};
+
+export type WorkOrderEstimateDetail = {
+  id: string;
+  workOrderId: string;
+  phase: string;
+  estimatedLaborHours: number | null;
+  baseCostAmount: number;
+  contingencyPct: number | null;
+  contingencyAmount: number;
+  totalCostAmount: number;
+  totalPriceAmount: number;
+  notes: string | null;
+  lines: WorkOrderEstimateLineDetail[];
 };
 
 export type WorkOrderActualCostSummary = {
@@ -141,6 +210,69 @@ type WorkOrdersPrismaClient = {
       select: { id: true; name: true; type: true; isActive: true };
     }): Promise<WorkOrderEmployeeSummary | null>;
   };
+  inventoryItem: {
+    findUnique(args: {
+      where: { id: string };
+      select: {
+        id: true;
+        name: true;
+        reference: true;
+        identifier: true;
+        defaultSalePrice: true;
+        isActive: true;
+      };
+    }): Promise<WorkOrderEstimateLineInventorySummary | null>;
+  };
+  serviceCatalog: {
+    findUnique(args: {
+      where: { id: string };
+      select: { id: true; name: true; slug: true; isActive: true };
+    }): Promise<WorkOrderEstimateLineServiceCatalogSummary | null>;
+  };
+  supplier: {
+    findUnique(args: {
+      where: { id: string };
+      select: { id: true; name: true; type: true; isActive: true };
+    }): Promise<WorkOrderEstimateLineSupplierSummary | null>;
+  };
+  supplierQuoteHistory: {
+    findUnique(args: {
+      where: { id: string };
+      select: {
+        id: true;
+        supplierId: true;
+        inventoryItemId: true;
+        workOrderId: true;
+        quotedCost: true;
+        quotedAt: true;
+        status: true;
+        Supplier: { select: { id: true; name: true; type: true; isActive: true } };
+        InventoryItem: {
+          select: {
+            id: true;
+            name: true;
+            reference: true;
+            identifier: true;
+            defaultSalePrice: true;
+            isActive: true;
+          };
+        };
+      };
+    }): Promise<
+      | {
+          id: string;
+          supplierId: string;
+          inventoryItemId: string;
+          workOrderId: string | null;
+          quotedCost: number;
+          quotedAt: Date;
+          status: string;
+          Supplier: WorkOrderEstimateLineSupplierSummary | null;
+          InventoryItem: WorkOrderEstimateLineInventorySummary | null;
+        }
+      | null
+    >;
+  };
   workOrder: {
     create(args: { data: Record<string, unknown>; include: typeof workOrderDetailInclude }): Promise<WorkOrderRecord>;
     findMany(args: {
@@ -161,6 +293,26 @@ type WorkOrdersPrismaClient = {
       include: typeof workOrderDetailInclude;
     }): Promise<WorkOrderRecord>;
   };
+  workOrderEstimate?: {
+    upsert(args: {
+      where: { workOrderId_phase: { workOrderId: string; phase: EstimatePhase } };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }): Promise<{ id: string }>;
+    findUnique(args: {
+      where: { workOrderId_phase: { workOrderId: string; phase: EstimatePhase } };
+      include: typeof estimateDetailInclude;
+    }): Promise<WorkOrderEstimateRecord | null>;
+    findMany(args: {
+      where: { workOrderId: string };
+      orderBy: { createdAt: 'asc' };
+      include: typeof estimateDetailInclude;
+    }): Promise<WorkOrderEstimateRecord[]>;
+  };
+  workOrderEstimateLine?: {
+    deleteMany(args: { where: { estimateId: string } }): Promise<unknown>;
+    createMany(args: { data: Record<string, unknown>[] }): Promise<unknown>;
+  };
   workshopWorkOrderDetails?: {
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
     upsert(args: {
@@ -174,8 +326,52 @@ type WorkOrdersPrismaClient = {
 
 type WorkOrdersPrismaTransactionClient = Pick<
   WorkOrdersPrismaClient,
-  'workOrder' | 'workshopWorkOrderDetails'
+  'workOrder' | 'workOrderEstimate' | 'workOrderEstimateLine' | 'workshopWorkOrderDetails'
 >;
+
+type DecimalValue = number | string | { toNumber(): number } | null;
+
+type WorkOrderEstimateRecord = {
+  id: string;
+  workOrderId: string;
+  phase: string;
+  estimatedLaborHours: DecimalValue;
+  baseCostAmount: number;
+  contingencyPct: number | null;
+  contingencyAmount: number;
+  totalCostAmount: number;
+  totalPriceAmount: number;
+  notes: string | null;
+  WorkOrderEstimateLine: WorkOrderEstimateLineRecord[];
+};
+
+type WorkOrderEstimateLineRecord = {
+  id: string;
+  lineType: string;
+  description: string;
+  inventoryItemId: string | null;
+  serviceCatalogId: string | null;
+  supplierId: string | null;
+  supplierQuoteHistoryId: string | null;
+  quantity: number;
+  unitCost: number | null;
+  unitPrice: number | null;
+  notes: string | null;
+  InventoryItem: WorkOrderEstimateLineInventorySummary | null;
+  ServiceCatalog: WorkOrderEstimateLineServiceCatalogSummary | null;
+  Supplier: WorkOrderEstimateLineSupplierSummary | null;
+  SupplierQuoteHistory: {
+    id: string;
+    supplierId: string;
+    inventoryItemId: string;
+    workOrderId: string | null;
+    quotedCost: number;
+    quotedAt: Date;
+    status: string;
+    Supplier: WorkOrderEstimateLineSupplierSummary | null;
+    InventoryItem: WorkOrderEstimateLineInventorySummary | null;
+  } | null;
+};
 
 type WorkOrderRecord = {
   id: string;
@@ -244,6 +440,23 @@ const workOrderDetailInclude = {
   },
   WorkOrderPayment: {
     orderBy: { paidAt: 'desc' as const },
+  },
+} as const;
+
+const estimateDetailInclude = {
+  WorkOrderEstimateLine: {
+    orderBy: { createdAt: 'asc' as const },
+    include: {
+      InventoryItem: true,
+      ServiceCatalog: true,
+      Supplier: true,
+      SupplierQuoteHistory: {
+        include: {
+          Supplier: true,
+          InventoryItem: true,
+        },
+      },
+    },
   },
 } as const;
 
@@ -374,6 +587,83 @@ export class WorkOrdersRepository {
       .then(mapWorkOrderRecord);
   }
 
+  async upsertEstimate(
+    workOrderId: string,
+    phase: EstimatePhase,
+    input: UpsertWorkOrderEstimateDto,
+  ) {
+    if (!this.prisma.$transaction) {
+      throw new Error('Estimate persistence requires transactional Prisma delegates');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      if (!tx.workOrderEstimate || !tx.workOrderEstimateLine) {
+        throw new Error('Estimate persistence requires estimate Prisma delegates');
+      }
+
+      const estimate = await tx.workOrderEstimate!.upsert({
+        where: {
+          workOrderId_phase: {
+            workOrderId,
+            phase,
+          },
+        },
+        create: buildEstimateCreatePayload(workOrderId, phase, input),
+        update: buildEstimateUpdatePayload(workOrderId, phase, input),
+      });
+
+      await tx.workOrderEstimateLine!.deleteMany({
+        where: { estimateId: estimate.id },
+      });
+
+      const lines = buildEstimateLineCreateManyData(estimate.id, input.lines);
+
+      if (lines.length > 0) {
+        await tx.workOrderEstimateLine!.createMany({ data: lines });
+      }
+
+      const persisted = await tx.workOrderEstimate!.findUnique({
+        where: {
+          workOrderId_phase: {
+            workOrderId,
+            phase,
+          },
+        },
+        include: estimateDetailInclude,
+      });
+
+      return mapEstimateRecord(
+        persisted ?? {
+          id: estimate.id,
+          workOrderId,
+          phase,
+          estimatedLaborHours: input.estimatedLaborHours ?? null,
+          baseCostAmount: input.baseCostAmount ?? 0,
+          contingencyPct: input.contingencyPct ?? null,
+          contingencyAmount: deriveContingencyAmount(input),
+          totalCostAmount: input.totalCostAmount ?? 0,
+          totalPriceAmount: input.totalPriceAmount ?? 0,
+          notes: normalizeOptionalString(input.notes),
+          WorkOrderEstimateLine: [],
+        },
+      );
+    });
+  }
+
+  async findEstimatesByWorkOrderId(workOrderId: string) {
+    if (!this.prisma.workOrderEstimate) {
+      return [];
+    }
+
+    const estimates = await this.prisma.workOrderEstimate.findMany({
+      where: { workOrderId },
+      orderBy: { createdAt: 'asc' },
+      include: estimateDetailInclude,
+    });
+
+    return estimates.map(mapEstimateRecord);
+  }
+
   findCustomerById(id: string) {
     return this.prisma.customer.findUnique({
       where: { id },
@@ -425,6 +715,91 @@ export class WorkOrdersRepository {
         isActive: true,
       },
     });
+  }
+
+  findInventoryItemById(id: string) {
+    return this.prisma.inventoryItem.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        reference: true,
+        identifier: true,
+        defaultSalePrice: true,
+        isActive: true,
+      },
+    });
+  }
+
+  findServiceCatalogById(id: string) {
+    return this.prisma.serviceCatalog.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+      },
+    });
+  }
+
+  findSupplierById(id: string) {
+    return this.prisma.supplier.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        isActive: true,
+      },
+    });
+  }
+
+  async findSupplierQuoteHistoryById(id: string) {
+    const quote = await this.prisma.supplierQuoteHistory.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        supplierId: true,
+        inventoryItemId: true,
+        workOrderId: true,
+        quotedCost: true,
+        quotedAt: true,
+        status: true,
+        Supplier: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            isActive: true,
+          },
+        },
+        InventoryItem: {
+          select: {
+            id: true,
+            name: true,
+            reference: true,
+            identifier: true,
+            defaultSalePrice: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    return quote
+      ? {
+          id: quote.id,
+          supplierId: quote.supplierId,
+          inventoryItemId: quote.inventoryItemId,
+          workOrderId: quote.workOrderId,
+          quotedCost: quote.quotedCost,
+          quotedAt: quote.quotedAt,
+          status: quote.status,
+          supplier: quote.Supplier,
+          inventoryItem: quote.InventoryItem,
+        }
+      : null;
   }
 }
 
@@ -543,6 +918,70 @@ function buildWorkshopDetailsPayload(
   };
 }
 
+function buildEstimateCreatePayload(
+  workOrderId: string,
+  phase: EstimatePhase,
+  input: UpsertWorkOrderEstimateDto,
+) {
+  return {
+    id: randomUUID(),
+    workOrderId,
+    phase,
+    estimatedLaborHours: input.estimatedLaborHours ?? null,
+    baseCostAmount: input.baseCostAmount ?? 0,
+    contingencyPct: input.contingencyPct ?? null,
+    contingencyAmount: deriveContingencyAmount(input),
+    totalCostAmount: input.totalCostAmount ?? 0,
+    totalPriceAmount: input.totalPriceAmount ?? 0,
+    notes: normalizeOptionalString(input.notes),
+    updatedAt: new Date(),
+  };
+}
+
+function buildEstimateUpdatePayload(
+  workOrderId: string,
+  phase: EstimatePhase,
+  input: UpsertWorkOrderEstimateDto,
+) {
+  const { id: _id, ...payload } = buildEstimateCreatePayload(
+    workOrderId,
+    phase,
+    input,
+  );
+
+  return payload;
+}
+
+function buildEstimateLineCreateManyData(
+  estimateId: string,
+  lines: UpsertWorkOrderEstimateDto['lines'],
+) {
+  return (lines ?? []).map((line) => ({
+    id: randomUUID(),
+    estimateId,
+    lineType: line.lineType,
+    description: line.description.trim(),
+    inventoryItemId: normalizeOptionalForeignKey(line.inventoryItemId),
+    serviceCatalogId: normalizeOptionalForeignKey(line.serviceCatalogId),
+    supplierId: normalizeOptionalForeignKey(line.supplierId),
+    supplierQuoteHistoryId: normalizeOptionalForeignKey(
+      line.supplierQuoteHistoryId,
+    ),
+    quantity: line.quantity ?? 1,
+    unitCost: line.unitCost ?? null,
+    unitPrice: line.unitPrice ?? null,
+    notes: normalizeOptionalString(line.notes),
+    updatedAt: new Date(),
+  }));
+}
+
+function deriveContingencyAmount(input: UpsertWorkOrderEstimateDto) {
+  const totalCostAmount = input.totalCostAmount ?? 0;
+  const baseCostAmount = input.baseCostAmount ?? 0;
+
+  return Math.max(totalCostAmount - baseCostAmount, 0);
+}
+
 function buildDateWindow(
   field: 'estimatedCompletionAt' | 'estimatedCollectionAt' | 'completedAt',
   from?: Date,
@@ -608,6 +1047,50 @@ function mapWorkOrderRecord(record: WorkOrderRecord): WorkOrderDetail {
   };
 }
 
+function mapEstimateRecord(record: WorkOrderEstimateRecord): WorkOrderEstimateDetail {
+  return {
+    id: record.id,
+    workOrderId: record.workOrderId,
+    phase: record.phase,
+    estimatedLaborHours: normalizeDecimalNumber(record.estimatedLaborHours),
+    baseCostAmount: record.baseCostAmount,
+    contingencyPct: record.contingencyPct,
+    contingencyAmount: record.contingencyAmount,
+    totalCostAmount: record.totalCostAmount,
+    totalPriceAmount: record.totalPriceAmount,
+    notes: record.notes,
+    lines: record.WorkOrderEstimateLine.map((line) => ({
+      id: line.id,
+      lineType: line.lineType,
+      description: line.description,
+      inventoryItemId: line.inventoryItemId,
+      serviceCatalogId: line.serviceCatalogId,
+      supplierId: line.supplierId,
+      supplierQuoteHistoryId: line.supplierQuoteHistoryId,
+      quantity: line.quantity,
+      unitCost: line.unitCost,
+      unitPrice: line.unitPrice,
+      notes: line.notes,
+      inventoryItem: line.InventoryItem,
+      serviceCatalog: line.ServiceCatalog,
+      supplier: line.Supplier,
+      supplierQuoteHistory: line.SupplierQuoteHistory
+        ? {
+            id: line.SupplierQuoteHistory.id,
+            supplierId: line.SupplierQuoteHistory.supplierId,
+            inventoryItemId: line.SupplierQuoteHistory.inventoryItemId,
+            workOrderId: line.SupplierQuoteHistory.workOrderId,
+            quotedCost: line.SupplierQuoteHistory.quotedCost,
+            quotedAt: line.SupplierQuoteHistory.quotedAt,
+            status: line.SupplierQuoteHistory.status,
+            supplier: line.SupplierQuoteHistory.Supplier,
+            inventoryItem: line.SupplierQuoteHistory.InventoryItem,
+          }
+        : null,
+    })),
+  };
+}
+
 function normalizeOptionalForeignKey(value?: string | null) {
   if (value === null) {
     return null;
@@ -628,4 +1111,20 @@ function normalizeJsonString(value: Prisma.JsonValue | null) {
   }
 
   return value === null ? null : JSON.stringify(value);
+}
+
+function normalizeDecimalNumber(value: DecimalValue) {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return Number(value);
+  }
+
+  return value.toNumber();
 }
