@@ -17,6 +17,7 @@ import { CostCentersModule } from './cost-centers/cost-centers.module';
 import { EmployeesModule } from './employees/employees.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
+import { OperationsReportingModule } from './operations-reporting/operations-reporting.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
     EmployeesModule,
     ExpensesModule,
     WorkOrdersModule,
+    OperationsReportingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
