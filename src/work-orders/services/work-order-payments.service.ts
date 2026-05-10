@@ -1,27 +1,52 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkOrderPaymentDto } from '../dto/create-work-order-payment.dto';
 import { UpdateWorkOrderPaymentDto } from '../dto/update-work-order-payment.dto';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
+import { WorkOrderReadModelService } from './work-order-read-model.service';
 
 @Injectable()
 export class WorkOrderPaymentsService {
-  constructor(private readonly workOrdersRepository: WorkOrdersRepository) {
-    void this.workOrdersRepository;
+  constructor(
+    private readonly workOrdersRepository: WorkOrdersRepository,
+    private readonly workOrderReadModelService: WorkOrderReadModelService,
+  ) {}
+
+  async createPayment(id: string, dto: CreateWorkOrderPaymentDto) {
+    const workOrder = await this.workOrderReadModelService.findOne(id);
+
+    return this.workOrdersRepository.createPayment(id, dto, workOrder);
   }
 
-  createPayment(_id: string, _dto: CreateWorkOrderPaymentDto) {
-    throw new NotImplementedException('Lane 6 implements payment creation');
+  async findPayments(id: string) {
+    const workOrder = await this.workOrderReadModelService.findOne(id);
+
+    return workOrder.payments;
   }
 
-  findPayments(_id: string) {
-    throw new NotImplementedException('Lane 6 implements payment reads');
+  async updatePayment(
+    id: string,
+    paymentId: string,
+    dto: UpdateWorkOrderPaymentDto,
+  ) {
+    const workOrder = await this.workOrderReadModelService.findOne(id);
+    assertPaymentExists(workOrder.payments, paymentId);
+
+    return this.workOrdersRepository.updatePayment(id, paymentId, dto, workOrder);
   }
 
-  updatePayment(_id: string, _paymentId: string, _dto: UpdateWorkOrderPaymentDto) {
-    throw new NotImplementedException('Lane 6 implements payment updates');
-  }
+  async removePayment(id: string, paymentId: string) {
+    const workOrder = await this.workOrderReadModelService.findOne(id);
+    assertPaymentExists(workOrder.payments, paymentId);
 
-  removePayment(_id: string, _paymentId: string) {
-    throw new NotImplementedException('Lane 6 implements payment deletion');
+    return this.workOrdersRepository.removePayment(id, paymentId, workOrder);
+  }
+}
+
+function assertPaymentExists(
+  payments: Array<{ id: string }>,
+  paymentId: string,
+) {
+  if (!payments.some((payment) => payment.id === paymentId)) {
+    throw new NotFoundException(`Payment ${paymentId} not found`);
   }
 }

@@ -1133,7 +1133,422 @@ describe('WorkOrdersRepository', () => {
       notes: null,
       updatedAt: expect.any(Date),
     });
-    expect(receivedDeleteArgs).toEqual({ where: { id: 'cost-1' } });
-    expect(prisma.workOrder.delete).not.toHaveBeenCalled();
+  expect(receivedDeleteArgs).toEqual({ where: { id: 'cost-1' } });
+  expect(prisma.workOrder.delete).not.toHaveBeenCalled();
+  });
+
+  it('creates a payment and derives PARTIAL from the FINAL estimate total before INITIAL', async () => {
+    type PaymentCreateArgs = { data: Record<string, unknown> };
+    type WorkOrderUpdateArgs = {
+      where: { id: string };
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+
+    let receivedPaymentCreateArgs: PaymentCreateArgs | undefined;
+    let receivedWorkOrderUpdateArgs: WorkOrderUpdateArgs | undefined;
+
+    const tx = {
+      workOrderPayment: {
+        create: jest.fn((args: PaymentCreateArgs) => {
+          receivedPaymentCreateArgs = args;
+          return Promise.resolve({ id: 'payment-1' });
+        }),
+      },
+      workOrder: {
+        update: jest.fn((args: WorkOrderUpdateArgs) => {
+          receivedWorkOrderUpdateArgs = args;
+
+          return Promise.resolve(
+            buildWorkOrderRecord({
+              paymentStatus: PaymentStatus.PARTIAL,
+              WorkOrderEstimate: [
+                buildEstimateRecord('estimate-initial-1', 'INITIAL', 70000),
+                buildEstimateRecord('estimate-final-1', 'FINAL', 100000),
+              ],
+              WorkOrderPayment: [buildPaymentRecord('payment-1', 50000)],
+            }),
+          );
+        }),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.createPayment(
+        'wo-1',
+        {
+          amount: 50000,
+          paidAt: new Date('2026-05-10T20:00:00.000Z'),
+          paymentMethod: 'CASH',
+          notes: ' Abono inicial ',
+        },
+        buildWorkOrderDetail({
+          paymentStatus: PaymentStatus.PENDING,
+          estimates: [
+            buildEstimateSummary('estimate-initial-1', 'INITIAL', 70000),
+            buildEstimateSummary('estimate-final-1', 'FINAL', 100000),
+          ],
+          payments: [],
+        }),
+      ),
+    ).resolves.toMatchObject({
+      id: 'wo-1',
+      paymentStatus: PaymentStatus.PARTIAL,
+      payments: [{ id: 'payment-1', amount: 50000 }],
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(receivedPaymentCreateArgs).toMatchObject({
+      data: {
+        id: expect.any(String),
+        workOrderId: 'wo-1',
+        amount: 50000,
+        paymentMethod: 'CASH',
+        paidAt: new Date('2026-05-10T20:00:00.000Z'),
+        notes: 'Abono inicial',
+        updatedAt: expect.any(Date),
+      },
+    });
+    expect(receivedWorkOrderUpdateArgs?.data).toMatchObject({
+      paymentStatus: PaymentStatus.PARTIAL,
+      updatedAt: expect.any(Date),
+    });
+  });
+
+  it('updates a payment and derives PAID from INITIAL when FINAL is absent', async () => {
+    type PaymentUpdateArgs = {
+      where: { id: string };
+      data: Record<string, unknown>;
+    };
+    type WorkOrderUpdateArgs = {
+      where: { id: string };
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+
+    let receivedPaymentUpdateArgs: PaymentUpdateArgs | undefined;
+    let receivedWorkOrderUpdateArgs: WorkOrderUpdateArgs | undefined;
+
+    const tx = {
+      workOrderPayment: {
+        update: jest.fn((args: PaymentUpdateArgs) => {
+          receivedPaymentUpdateArgs = args;
+          return Promise.resolve({ id: 'payment-1' });
+        }),
+      },
+      workOrder: {
+        update: jest.fn((args: WorkOrderUpdateArgs) => {
+          receivedWorkOrderUpdateArgs = args;
+
+          return Promise.resolve(
+            buildWorkOrderRecord({
+              paymentStatus: PaymentStatus.PAID,
+              WorkOrderEstimate: [
+                buildEstimateRecord('estimate-initial-1', 'INITIAL', 100000),
+              ],
+              WorkOrderPayment: [
+                buildPaymentRecord('payment-1', 100000, 'TRANSFER'),
+              ],
+            }),
+          );
+        }),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.updatePayment(
+        'wo-1',
+        'payment-1',
+        {
+          amount: 100000,
+          paymentMethod: 'TRANSFER',
+        },
+        buildWorkOrderDetail({
+          paymentStatus: PaymentStatus.PARTIAL,
+          estimates: [buildEstimateSummary('estimate-initial-1', 'INITIAL', 100000)],
+          payments: [buildPaymentSummary('payment-1', 50000)],
+        }),
+      ),
+    ).resolves.toMatchObject({
+      id: 'wo-1',
+      paymentStatus: PaymentStatus.PAID,
+      payments: [{ id: 'payment-1', amount: 100000, paymentMethod: 'TRANSFER' }],
+    });
+
+    expect(receivedPaymentUpdateArgs).toMatchObject({
+      where: { id: 'payment-1' },
+      data: {
+        amount: 100000,
+        paymentMethod: 'TRANSFER',
+        updatedAt: expect.any(Date),
+      },
+    });
+    expect(receivedWorkOrderUpdateArgs?.data).toMatchObject({
+      paymentStatus: PaymentStatus.PAID,
+      updatedAt: expect.any(Date),
+    });
+  });
+
+  it('removes a payment and derives PENDING when totals remain payable', async () => {
+    type PaymentDeleteArgs = { where: { id: string } };
+    type WorkOrderUpdateArgs = {
+      where: { id: string };
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+
+    let receivedPaymentDeleteArgs: PaymentDeleteArgs | undefined;
+    let receivedWorkOrderUpdateArgs: WorkOrderUpdateArgs | undefined;
+
+    const tx = {
+      workOrderPayment: {
+        delete: jest.fn((args: PaymentDeleteArgs) => {
+          receivedPaymentDeleteArgs = args;
+          return Promise.resolve({ id: 'payment-1' });
+        }),
+      },
+      workOrder: {
+        update: jest.fn((args: WorkOrderUpdateArgs) => {
+          receivedWorkOrderUpdateArgs = args;
+
+          return Promise.resolve(
+            buildWorkOrderRecord({
+              paymentStatus: PaymentStatus.PENDING,
+              WorkOrderEstimate: [
+                buildEstimateRecord('estimate-final-1', 'FINAL', 100000),
+              ],
+              WorkOrderPayment: [],
+            }),
+          );
+        }),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.removePayment(
+        'wo-1',
+        'payment-1',
+        buildWorkOrderDetail({
+          paymentStatus: PaymentStatus.PARTIAL,
+          estimates: [buildEstimateSummary('estimate-final-1', 'FINAL', 100000)],
+          payments: [buildPaymentSummary('payment-1', 50000)],
+        }),
+      ),
+    ).resolves.toMatchObject({
+      id: 'wo-1',
+      paymentStatus: PaymentStatus.PENDING,
+      payments: [],
+    });
+
+    expect(receivedPaymentDeleteArgs).toEqual({ where: { id: 'payment-1' } });
+    expect(receivedWorkOrderUpdateArgs?.data).toMatchObject({
+      paymentStatus: PaymentStatus.PENDING,
+      updatedAt: expect.any(Date),
+    });
+  });
+
+  it('keeps the manual payment status when no estimate total exists', async () => {
+    type PaymentCreateArgs = { data: Record<string, unknown> };
+    type WorkOrderUpdateArgs = {
+      where: { id: string };
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+
+    let receivedPaymentCreateArgs: PaymentCreateArgs | undefined;
+    let receivedWorkOrderUpdateArgs: WorkOrderUpdateArgs | undefined;
+
+    const tx = {
+      workOrderPayment: {
+        create: jest.fn((args: PaymentCreateArgs) => {
+          receivedPaymentCreateArgs = args;
+          return Promise.resolve({ id: 'payment-2' });
+        }),
+      },
+      workOrder: {
+        update: jest.fn((args: WorkOrderUpdateArgs) => {
+          receivedWorkOrderUpdateArgs = args;
+
+          return Promise.resolve(
+            buildWorkOrderRecord({
+              paymentStatus: PaymentStatus.PAID,
+              WorkOrderEstimate: [],
+              WorkOrderPayment: [buildPaymentRecord('payment-2', 15000, 'CARD')],
+            }),
+          );
+        }),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.createPayment(
+        'wo-1',
+        {
+          amount: 15000,
+          paidAt: new Date('2026-05-11T10:00:00.000Z'),
+          paymentMethod: 'CARD',
+        },
+        buildWorkOrderDetail({
+          paymentStatus: PaymentStatus.PAID,
+          estimates: [],
+          payments: [],
+        }),
+      ),
+    ).resolves.toMatchObject({
+      id: 'wo-1',
+      paymentStatus: PaymentStatus.PAID,
+      payments: [{ id: 'payment-2', amount: 15000, paymentMethod: 'CARD' }],
+    });
+
+    expect(receivedPaymentCreateArgs?.data).toMatchObject({
+      workOrderId: 'wo-1',
+      amount: 15000,
+      paymentMethod: 'CARD',
+    });
+    expect(receivedWorkOrderUpdateArgs?.data).toMatchObject({
+      paymentStatus: PaymentStatus.PAID,
+      updatedAt: expect.any(Date),
+    });
   });
 });
+
+function buildWorkOrderDetail(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'wo-1',
+    number: 1001,
+    type: WorkOrderType.WORKSHOP,
+    status: WorkOrderStatus.IN_PROGRESS,
+    paymentStatus: PaymentStatus.PENDING,
+    customerId: 'customer-1',
+    vehicleId: null,
+    componentId: null,
+    assignedEmployeeId: null,
+    summary: 'Diagnóstico',
+    externalLink: null,
+    notes: null,
+    estimatedCompletionAt: null,
+    estimatedCollectionAt: null,
+    completedAt: null,
+    createdAt: new Date('2026-05-10T20:00:00.000Z'),
+    updatedAt: new Date('2026-05-10T20:00:00.000Z'),
+    customer: { id: 'customer-1', name: 'Cliente Uno' },
+    vehicle: null,
+    component: null,
+    assignedEmployee: null,
+    workshopDetails: null,
+    estimates: [],
+    actualCosts: [],
+    payments: [],
+    ...overrides,
+  };
+}
+
+function buildWorkOrderRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'wo-1',
+    number: 1001,
+    type: WorkOrderType.WORKSHOP,
+    status: WorkOrderStatus.IN_PROGRESS,
+    paymentStatus: PaymentStatus.PENDING,
+    customerId: 'customer-1',
+    vehicleId: null,
+    componentId: null,
+    assignedEmployeeId: null,
+    summary: 'Diagnóstico',
+    externalLink: null,
+    notes: null,
+    estimatedCompletionAt: null,
+    estimatedCollectionAt: null,
+    completedAt: null,
+    createdAt: new Date('2026-05-10T20:00:00.000Z'),
+    updatedAt: new Date('2026-05-10T20:00:00.000Z'),
+    Customer: {
+      id: 'customer-1',
+      name: 'Cliente Uno',
+      phone: '3000000000',
+      documentType: 'CEDULA',
+      documentNumber: '123',
+      email: null,
+    },
+    Vehicle: null,
+    Component: null,
+    Employee: null,
+    WorkshopWorkOrderDetails: null,
+    WorkOrderEstimate: [],
+    WorkOrderActualCost: [],
+    WorkOrderPayment: [],
+    ...overrides,
+  };
+}
+
+function buildEstimateSummary(id: string, phase: string, totalPriceAmount: number) {
+  return {
+    id,
+    phase,
+    totalCostAmount: totalPriceAmount,
+    totalPriceAmount,
+    notes: null,
+  };
+}
+
+function buildEstimateRecord(id: string, phase: string, totalPriceAmount: number) {
+  return {
+    id,
+    phase,
+    totalCostAmount: totalPriceAmount,
+    totalPriceAmount,
+    notes: null,
+  };
+}
+
+function buildPaymentSummary(id: string, amount: number) {
+  return {
+    id,
+    amount,
+    paymentMethod: 'CASH',
+    paidAt: new Date('2026-05-10T20:00:00.000Z'),
+    notes: null,
+  };
+}
+
+function buildPaymentRecord(id: string, amount: number, paymentMethod = 'CASH') {
+  return {
+    id,
+    amount,
+    paymentMethod,
+    paidAt: new Date('2026-05-10T20:00:00.000Z'),
+    notes: null,
+  };
+}

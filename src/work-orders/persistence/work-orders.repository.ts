@@ -6,12 +6,14 @@ import {
   WorkOrderStatus,
   WorkOrderType,
 } from '../../../generated/prisma/enums';
+import type { CreateWorkOrderPaymentDto } from '../dto/create-work-order-payment.dto';
 import type { Prisma } from '../../../generated/prisma/client';
 import type { CreateWorkOrderActualCostDto } from '../dto/create-work-order-actual-cost.dto';
 import type { CreateWorkOrderDto } from '../dto/create-work-order.dto';
 import type { ListWorkOrdersQueryDto } from '../dto/list-work-orders-query.dto';
 import type { UpsertWorkOrderEstimateDto } from '../dto/upsert-work-order-estimate.dto';
 import type { UpdateWorkOrderActualCostDto } from '../dto/update-work-order-actual-cost.dto';
+import type { UpdateWorkOrderPaymentDto } from '../dto/update-work-order-payment.dto';
 import type { UpdateWorkOrderDto } from '../dto/update-work-order.dto';
 
 export const WORK_ORDERS_PRISMA_CLIENT = Symbol('WORK_ORDERS_PRISMA_CLIENT');
@@ -395,13 +397,22 @@ type WorkOrdersPrismaClient = {
       create: Record<string, unknown>;
       update: Record<string, unknown>;
     }): Promise<unknown>;
-    deleteMany(args: { where: { workOrderId: string } }): Promise<unknown>;
+      deleteMany(args: { where: { workOrderId: string } }): Promise<unknown>;
+  };
+  workOrderPayment?: {
+    create(args: { data: Record<string, unknown> }): Promise<unknown>;
+    update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<unknown>;
+    delete(args: { where: { id: string } }): Promise<unknown>;
   };
 };
 
 type WorkOrdersPrismaTransactionClient = Pick<
   WorkOrdersPrismaClient,
-  'workOrder' | 'workOrderEstimate' | 'workOrderEstimateLine' | 'workshopWorkOrderDetails'
+  | 'workOrder'
+  | 'workOrderEstimate'
+  | 'workOrderEstimateLine'
+  | 'workshopWorkOrderDetails'
+  | 'workOrderPayment'
 >;
 
 type DecimalValue = number | string | { toNumber(): number } | null;
@@ -881,6 +892,66 @@ export class WorkOrdersRepository {
     });
   }
 
+  createPayment(
+    id: string,
+    input: CreateWorkOrderPaymentDto,
+    currentWorkOrder: WorkOrderDetail,
+  ) {
+    return this.runPaymentMutation(
+      id,
+      currentWorkOrder,
+      async (tx) => {
+        await tx.workOrderPayment!.create({
+          data: buildCreatePaymentData(id, input),
+        });
+      },
+      [...currentWorkOrder.payments, buildCreatedPaymentSummary(input)],
+    );
+  }
+
+  updatePayment(
+    id: string,
+    paymentId: string,
+    input: UpdateWorkOrderPaymentDto,
+    currentWorkOrder: WorkOrderDetail,
+  ) {
+    return this.runPaymentMutation(
+      id,
+      currentWorkOrder,
+      async (tx) => {
+        await tx.workOrderPayment!.update({
+          where: { id: paymentId },
+          data: buildUpdatePaymentData(input),
+        });
+      },
+      currentWorkOrder.payments.map((payment) =>
+        payment.id === paymentId
+          ? {
+              ...payment,
+              ...buildUpdatedPaymentSummary(payment, input),
+            }
+          : payment,
+      ),
+    );
+  }
+
+  removePayment(
+    id: string,
+    paymentId: string,
+    currentWorkOrder: WorkOrderDetail,
+  ) {
+    return this.runPaymentMutation(
+      id,
+      currentWorkOrder,
+      async (tx) => {
+        await tx.workOrderPayment!.delete({
+          where: { id: paymentId },
+        });
+      },
+      currentWorkOrder.payments.filter((payment) => payment.id !== paymentId),
+    );
+  }
+
   findCustomerById(id: string) {
     return this.prisma.customer.findUnique({
       where: { id },
@@ -1018,6 +1089,38 @@ export class WorkOrdersRepository {
         }
       : null;
   }
+
+  private async runPaymentMutation(
+    id: string,
+    currentWorkOrder: WorkOrderDetail,
+    mutatePayment: (tx: WorkOrdersPrismaTransactionClient) => Promise<void>,
+    nextPayments: WorkOrderPaymentSummary[],
+  ) {
+    if (!this.prisma.$transaction) {
+      throw new Error('WorkOrdersRepository payment mutations require transactions');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await mutatePayment(tx);
+
+      const paymentStatus = resolvePaymentStatus(
+        currentWorkOrder.paymentStatus,
+        currentWorkOrder.estimates,
+        nextPayments,
+      );
+
+      const workOrder = await tx.workOrder.update({
+        where: { id },
+        data: {
+          paymentStatus,
+          updatedAt: new Date(),
+        },
+        include: workOrderDetailInclude,
+      });
+
+      return mapWorkOrderRecord(workOrder);
+    });
+  }
 }
 
 function buildWorkOrderWhere(query: ListWorkOrdersQueryDto): WorkOrderWhereInput {
@@ -1132,6 +1235,21 @@ function buildWorkshopDetailsPayload(
     customerReportedIssue,
     diagnosisRequired: input.diagnosisRequired ?? false,
     diagnosisSummary,
+  };
+}
+
+function buildCreatePaymentData(
+  workOrderId: string,
+  input: CreateWorkOrderPaymentDto,
+) {
+  return {
+    id: randomUUID(),
+    workOrderId,
+    amount: input.amount,
+    paymentMethod: input.paymentMethod ?? null,
+    paidAt: input.paidAt,
+    notes: normalizeOptionalString(input.notes),
+    updatedAt: new Date(),
   };
 }
 
@@ -1250,6 +1368,74 @@ function buildActualCostUpdateData(input: UpdateWorkOrderActualCostDto) {
       : {}),
     updatedAt: new Date(),
   };
+}
+
+function buildUpdatePaymentData(input: UpdateWorkOrderPaymentDto) {
+  return {
+    ...(input.amount !== undefined ? { amount: input.amount } : {}),
+    ...(input.paymentMethod !== undefined
+      ? { paymentMethod: input.paymentMethod }
+      : {}),
+    ...(input.paidAt !== undefined ? { paidAt: input.paidAt } : {}),
+    ...(input.notes !== undefined
+      ? { notes: normalizeOptionalString(input.notes) }
+      : {}),
+    updatedAt: new Date(),
+  };
+}
+
+function buildCreatedPaymentSummary(input: CreateWorkOrderPaymentDto) {
+  return {
+    id: randomUUID(),
+    amount: input.amount,
+    paymentMethod: input.paymentMethod ?? null,
+    paidAt: input.paidAt,
+    notes: normalizeOptionalString(input.notes),
+  };
+}
+
+function buildUpdatedPaymentSummary(
+  payment: WorkOrderPaymentSummary,
+  input: UpdateWorkOrderPaymentDto,
+) {
+  return {
+    amount: input.amount ?? payment.amount,
+    paymentMethod:
+      input.paymentMethod !== undefined
+        ? input.paymentMethod
+        : payment.paymentMethod,
+    paidAt: input.paidAt ?? payment.paidAt,
+    notes:
+      input.notes !== undefined
+        ? normalizeOptionalString(input.notes)
+        : payment.notes,
+  };
+}
+
+function resolvePaymentStatus(
+  currentStatus: string,
+  estimates: WorkOrderEstimateSummary[],
+  payments: WorkOrderPaymentSummary[],
+) {
+  const payableEstimate =
+    estimates.find((estimate) => estimate.phase === 'FINAL') ??
+    estimates.find((estimate) => estimate.phase === 'INITIAL');
+
+  if (!payableEstimate) {
+    return currentStatus;
+  }
+
+  const paidTotal = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+  if (paidTotal <= 0) {
+    return PaymentStatus.PENDING;
+  }
+
+  if (paidTotal < payableEstimate.totalPriceAmount) {
+    return PaymentStatus.PARTIAL;
+  }
+
+  return PaymentStatus.PAID;
 }
 
 function buildDateWindow(
