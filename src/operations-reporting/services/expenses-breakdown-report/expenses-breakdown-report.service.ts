@@ -41,6 +41,7 @@ export class ExpensesBreakdownReportService {
 }
 
 type ExpenseRow = ExpensesBreakdownReportResponseDto['data'][number];
+type ExpenseBreakdownPaymentStatus = 'PAID' | 'PENDING';
 
 function toRepositoryQuery(
   query: ExpensesBreakdownReportQueryDto,
@@ -81,9 +82,14 @@ function groupExpensesByBreakdown(
 function addExpenseToGroup(
   groupedRows: Map<string, ExpenseRow>,
   expense: ExpenseReadModel,
-  paymentStatus: PaymentStatus.PAID | PaymentStatus.PENDING,
+  paymentStatus: ExpenseBreakdownPaymentStatus,
 ) {
   const sourceDate = paymentStatus === PaymentStatus.PAID ? expense.paidAt : expense.expectedAt;
+
+  if (!sourceDate) {
+    return;
+  }
+
   const period = sourceDate.toISOString().slice(0, 10);
   const costCenterId = expense.costCenterId;
   const costCenterName = expense.CostCenter?.name ?? null;

@@ -9,6 +9,7 @@ import {
   seedExpenses,
 } from '../../prisma/seed-expenses';
 import {
+  type WorkOrderSeedPrismaTransactionClient,
   type WorkOrderSeedPrismaClient,
   seedWorkOrders,
 } from '../../prisma/seed-work-orders';
@@ -76,17 +77,13 @@ describe('operations-reporting seed fixtures', () => {
       },
     };
 
-    await seedWorkOrders(
-      {
-        $transaction: jest
-          .fn<
-            Promise<void>,
-            [(callback: typeof transactionClient) => Promise<void>]
-          >()
-          .mockImplementation(async (callback) => callback(transactionClient)),
-      },
-      new Date('2026-05-10T12:00:00.000Z'),
-    );
+    const prisma: WorkOrderSeedPrismaClient = {
+      $transaction: async <T>(
+        callback: (transaction: WorkOrderSeedPrismaTransactionClient) => Promise<T>,
+      ) => callback(transactionClient),
+    };
+
+    await seedWorkOrders(prisma, new Date('2026-05-10T12:00:00.000Z'));
 
     expect(workOrderUpsert).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,6 +1,11 @@
 import { Test } from '@nestjs/testing';
 
-import { EstimatePhase, PaymentStatus, WorkOrderStatus } from '../../../../generated/prisma/enums';
+import {
+  EstimatePhase,
+  PaymentStatus,
+  WorkOrderCostCategory,
+  WorkOrderStatus,
+} from '../../../../generated/prisma/enums';
 import {
   OperationsReportingRepository,
   type WorkOrderFinancialReadModel,
@@ -10,7 +15,9 @@ import { WorkOrderProfitabilityReportService } from './work-order-profitability-
 describe('WorkOrderProfitabilityReportService', () => {
   const repository = {
     findWorkOrdersWithFinancials: jest.fn(),
-  } as unknown as jest.Mocked<Pick<OperationsReportingRepository, 'findWorkOrdersWithFinancials'>>;
+  } as unknown as jest.Mocked<
+    Pick<OperationsReportingRepository, 'findWorkOrdersWithFinancials'>
+  >;
 
   let service: WorkOrderProfitabilityReportService;
 
@@ -49,14 +56,22 @@ describe('WorkOrderProfitabilityReportService', () => {
           { phase: EstimatePhase.FINAL, totalPriceAmount: 150 },
         ],
         WorkOrderPayment: [
-          { id: 'payment-1', amount: 40, paidAt: new Date('2026-05-02T00:00:00.000Z') },
-          { id: 'payment-2', amount: 10, paidAt: new Date('2026-05-03T00:00:00.000Z') },
+          {
+            id: 'payment-1',
+            amount: 40,
+            paidAt: new Date('2026-05-02T00:00:00.000Z'),
+          },
+          {
+            id: 'payment-2',
+            amount: 10,
+            paidAt: new Date('2026-05-03T00:00:00.000Z'),
+          },
         ],
         WorkOrderActualCost: [
           {
             id: 'cost-1',
             amount: 60,
-            category: 'PART' as never,
+            category: WorkOrderCostCategory.PART,
             incurredAt: new Date('2026-05-04T00:00:00.000Z'),
           },
         ],
@@ -99,14 +114,14 @@ describe('WorkOrderProfitabilityReportService', () => {
   });
 
   it('keeps payable-derived fields null when a work order has no initial or final estimate', async () => {
-    repository.findWorkOrdersWithFinancials.mockResolvedValue([
+    const workOrders: WorkOrderFinancialReadModel[] = [
       {
         id: 'wo-2',
         number: 102,
         createdAt: new Date('2026-05-05T10:00:00.000Z'),
         status: WorkOrderStatus.IN_PROGRESS,
         paymentStatus: PaymentStatus.PARTIAL,
-        customerId: null,
+        customerId: 'customer-2',
         assignedEmployeeId: null,
         Customer: null,
         Vehicle: null,
@@ -114,18 +129,24 @@ describe('WorkOrderProfitabilityReportService', () => {
         Employee: null,
         WorkOrderEstimate: [],
         WorkOrderPayment: [
-          { id: 'payment-3', amount: 25, paidAt: new Date('2026-05-06T00:00:00.000Z') },
+          {
+            id: 'payment-3',
+            amount: 25,
+            paidAt: new Date('2026-05-06T00:00:00.000Z'),
+          },
         ],
         WorkOrderActualCost: [
           {
             id: 'cost-2',
             amount: 15,
-            category: 'LABOR' as never,
+            category: WorkOrderCostCategory.LABOR,
             incurredAt: new Date('2026-05-07T00:00:00.000Z'),
           },
         ],
       },
-    ] as WorkOrderFinancialReadModel[]);
+    ];
+
+    repository.findWorkOrdersWithFinancials.mockResolvedValue(workOrders);
 
     await expect(service.getReport({})).resolves.toEqual({
       approximate: true,
@@ -143,5 +164,102 @@ describe('WorkOrderProfitabilityReportService', () => {
         },
       ],
     });
+  });
+
+  it('keeps known-payable and unknown-payable work orders distinct in the same profitability report', async () => {
+    const workOrders: WorkOrderFinancialReadModel[] = [
+      {
+        id: 'seed-work-order-workshop-injector-repair',
+        number: 201,
+        createdAt: new Date('2026-05-09T10:00:00.000Z'),
+        status: WorkOrderStatus.COMPLETED,
+        paymentStatus: PaymentStatus.PAID,
+        customerId: 'seed-customer-acme-industrial',
+        assignedEmployeeId: 'seed-employee-ana-torres',
+        Customer: {
+          id: 'seed-customer-acme-industrial',
+          name: 'Acme Industrial SAS',
+        },
+        Vehicle: null,
+        Component: null,
+        Employee: null,
+        WorkOrderEstimate: [
+          { phase: EstimatePhase.FINAL, totalPriceAmount: 620000 },
+        ],
+        WorkOrderPayment: [
+          {
+            id: 'payment-known',
+            amount: 620000,
+            paidAt: new Date('2026-05-09T15:00:00.000Z'),
+          },
+        ],
+        WorkOrderActualCost: [
+          {
+            id: 'cost-known',
+            amount: 182000,
+            category: WorkOrderCostCategory.DIRECT_PURCHASE,
+            incurredAt: new Date('2026-05-08T12:00:00.000Z'),
+          },
+        ],
+      },
+      {
+        id: 'seed-work-order-workshop-unknown-payable',
+        number: 202,
+        createdAt: new Date('2026-05-10T10:00:00.000Z'),
+        status: WorkOrderStatus.IN_PROGRESS,
+        paymentStatus: PaymentStatus.PARTIAL,
+        customerId: 'seed-customer-acme-industrial',
+        assignedEmployeeId: 'seed-employee-ana-torres',
+        Customer: {
+          id: 'seed-customer-acme-industrial',
+          name: 'Acme Industrial SAS',
+        },
+        Vehicle: null,
+        Component: null,
+        Employee: null,
+        WorkOrderEstimate: [],
+        WorkOrderPayment: [
+          {
+            id: 'payment-unknown',
+            amount: 30000,
+            paidAt: new Date('2026-05-10T15:00:00.000Z'),
+          },
+        ],
+        WorkOrderActualCost: [
+          {
+            id: 'cost-unknown',
+            amount: 70000,
+            category: WorkOrderCostCategory.OUTSOURCED,
+            incurredAt: new Date('2026-05-10T12:00:00.000Z'),
+          },
+        ],
+      },
+    ];
+
+    repository.findWorkOrdersWithFinancials.mockResolvedValue(workOrders);
+
+    const report = await service.getReport({});
+
+    expect(report.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          workOrderId: 'seed-work-order-workshop-injector-repair',
+          customerName: 'Acme Industrial SAS',
+          payableAmount: 620000,
+          paidTotal: 620000,
+          actualCostTotal: 182000,
+          grossUtility: 438000,
+        }),
+        expect.objectContaining({
+          workOrderId: 'seed-work-order-workshop-unknown-payable',
+          customerName: 'Acme Industrial SAS',
+          payableAmount: null,
+          paidTotal: 30000,
+          actualCostTotal: 70000,
+          grossUtility: null,
+          grossMargin: null,
+        }),
+      ]),
+    );
   });
 });

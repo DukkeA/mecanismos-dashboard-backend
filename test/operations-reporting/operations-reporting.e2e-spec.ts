@@ -51,6 +51,7 @@ type WorkOrderProfitabilityResponse = {
   approximate: boolean;
   basis: string;
   data: Array<{
+    workOrderId: string;
     customerName: string | null;
     payableAmount: number | null;
     paidTotal: number;
@@ -64,6 +65,7 @@ type MechanicsResponse = {
   approximate: boolean;
   basis: string;
   data: Array<{
+    employeeId: string;
     employeeName: string;
     assignedOrderCount: number;
     payableTotal: number | null;
@@ -158,17 +160,33 @@ describe('OperationsReportingController (real db e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(({ body }: { body: WorkOrderProfitabilityResponse }) => {
           expectCashOperationalEnvelope(body);
-          const workshopRow = body.data.find(
-            (row) => row.customerName === 'Acme Industrial SAS',
+          const knownPayableRow = body.data.find(
+            (row) =>
+              row.workOrderId === 'seed-work-order-workshop-injector-repair',
+          );
+          const unknownPayableRow = body.data.find(
+            (row) =>
+              row.workOrderId === 'seed-work-order-workshop-unknown-payable',
           );
 
-          expect(workshopRow).toMatchObject({
+          expect(knownPayableRow).toMatchObject({
+            workOrderId: 'seed-work-order-workshop-injector-repair',
             payableAmount: 620000,
             paidTotal: 620000,
             actualCostTotal: 182000,
             grossUtility: 438000,
           });
-          expect(workshopRow?.grossMargin).toBeCloseTo(438000 / 620000);
+          expect(knownPayableRow?.grossMargin).toBeCloseTo(438000 / 620000);
+
+          expect(unknownPayableRow).toMatchObject({
+            workOrderId: 'seed-work-order-workshop-unknown-payable',
+            customerName: 'Acme Industrial SAS',
+            payableAmount: null,
+            paidTotal: 30000,
+            actualCostTotal: 70000,
+            grossUtility: null,
+            grossMargin: null,
+          });
         });
 
       await request(app.getHttpServer())
@@ -178,19 +196,20 @@ describe('OperationsReportingController (real db e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(({ body }: { body: MechanicsResponse }) => {
           expectCashOperationalEnvelope(body);
-          expect(body.data).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                employeeName: 'Ana Torres',
-                assignedOrderCount: 1,
-                payableTotal: 620000,
-                paidTotal: 620000,
-                actualCosts: 182000,
-                grossUtility: 438000,
-                unknownPayableCount: 0,
-              }),
-            ]),
+          const anaTorresRow = body.data.find(
+            (row) => row.employeeId === 'seed-employee-ana-torres',
           );
+
+          expect(anaTorresRow).toMatchObject({
+            employeeId: 'seed-employee-ana-torres',
+            employeeName: 'Ana Torres',
+            assignedOrderCount: 3,
+            payableTotal: 870000,
+            paidTotal: 750000,
+            actualCosts: 362000,
+            grossUtility: 508000,
+            unknownPayableCount: 1,
+          });
         });
 
       await request(app.getHttpServer())

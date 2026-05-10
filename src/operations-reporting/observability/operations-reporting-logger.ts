@@ -4,6 +4,7 @@ type LoggerRange = {
 };
 
 type SafeLoggerValue = string | number | boolean | null | undefined | Date;
+type SafeLoggerFilters = Record<string, ReturnType<typeof serializeSafeFilterValue>>;
 
 const blockedFilterKeys = new Set([
   'cookie',
@@ -17,16 +18,20 @@ const blockedFilterKeys = new Set([
 
 export function buildSafeReportLoggerContext(
   reportName: string,
-  filters: Record<string, unknown>,
+  filters: object,
   range: LoggerRange,
 ) {
+  const safeFilters: SafeLoggerFilters = {};
+
+  for (const [key, value] of Object.entries(filters)) {
+    if (isSafeFilterEntry(key, value)) {
+      safeFilters[key] = serializeSafeFilterValue(value);
+    }
+  }
+
   return {
     reportName,
-    filters: Object.fromEntries(
-      Object.entries(filters)
-        .filter(([key, value]) => isSafeFilterEntry(key, value))
-        .map(([key, value]) => [key, serializeSafeFilterValue(value)]),
-    ),
+    filters: safeFilters,
     window: {
       dateFrom: range.dateFrom?.toISOString() ?? null,
       dateTo: range.dateTo?.toISOString() ?? null,
