@@ -157,6 +157,7 @@ describe('WorkOrderLifecycleService', () => {
     expect(repository.update).toHaveBeenCalledWith(
       'wo-1',
       expect.objectContaining({ status: WorkOrderStatus.COMPLETED }),
+      WorkOrderType.SALE,
     );
   });
 

@@ -2,6 +2,186 @@ import { PaymentStatus, WorkOrderStatus, WorkOrderType } from '../../../generate
 import { WorkOrdersRepository } from './work-orders.repository';
 
 describe('WorkOrdersRepository', () => {
+  it('creates one workshop detail transactionally for workshop work orders', async () => {
+    type CreateArgs = {
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+    type WorkshopDetailCreateArgs = {
+      data: Record<string, unknown>;
+    };
+
+    let receivedCreateArgs: CreateArgs | undefined;
+    let receivedWorkshopDetailCreateArgs: WorkshopDetailCreateArgs | undefined;
+
+    const tx = {
+      workOrder: {
+        create: jest.fn((args: CreateArgs) => {
+          receivedCreateArgs = args;
+
+          return Promise.resolve({
+            id: 'wo-workshop-1',
+            number: 1002,
+            type: WorkOrderType.WORKSHOP,
+            status: WorkOrderStatus.IN_PROGRESS,
+            paymentStatus: PaymentStatus.PENDING,
+            customerId: 'customer-1',
+            vehicleId: 'vehicle-1',
+            componentId: 'component-1',
+            assignedEmployeeId: null,
+            summary: 'Diagnóstico de alternador',
+            externalLink: null,
+            notes: null,
+            estimatedCompletionAt: null,
+            estimatedCollectionAt: null,
+            completedAt: null,
+            createdAt: new Date('2026-05-10T20:00:00.000Z'),
+            updatedAt: new Date('2026-05-10T20:00:00.000Z'),
+            Customer: {
+              id: 'customer-1',
+              name: 'Cliente Uno',
+              phone: '3000000000',
+              documentType: 'CEDULA',
+              documentNumber: '123',
+              email: 'cliente@example.com',
+            },
+            Vehicle: {
+              id: 'vehicle-1',
+              customerId: 'customer-1',
+              brand: 'Mazda',
+              modelReference: 'BT-50',
+              plate: 'ABC123',
+            },
+            Component: {
+              id: 'component-1',
+              customerId: 'customer-1',
+              vehicleId: 'vehicle-1',
+              brand: 'Bosch',
+              reference: 'ALT-90A',
+              identifier: 'SER-100',
+            },
+            Employee: null,
+            WorkshopWorkOrderDetails: null,
+            WorkOrderEstimate: [],
+            WorkOrderActualCost: [],
+            WorkOrderPayment: [],
+          });
+        }),
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            id: 'wo-workshop-1',
+            number: 1002,
+            type: WorkOrderType.WORKSHOP,
+            status: WorkOrderStatus.IN_PROGRESS,
+            paymentStatus: PaymentStatus.PENDING,
+            customerId: 'customer-1',
+            vehicleId: 'vehicle-1',
+            componentId: 'component-1',
+            assignedEmployeeId: null,
+            summary: 'Diagnóstico de alternador',
+            externalLink: null,
+            notes: null,
+            estimatedCompletionAt: null,
+            estimatedCollectionAt: null,
+            completedAt: null,
+            createdAt: new Date('2026-05-10T20:00:00.000Z'),
+            updatedAt: new Date('2026-05-10T20:00:00.000Z'),
+            Customer: {
+              id: 'customer-1',
+              name: 'Cliente Uno',
+              phone: '3000000000',
+              documentType: 'CEDULA',
+              documentNumber: '123',
+              email: 'cliente@example.com',
+            },
+            Vehicle: {
+              id: 'vehicle-1',
+              customerId: 'customer-1',
+              brand: 'Mazda',
+              modelReference: 'BT-50',
+              plate: 'ABC123',
+            },
+            Component: {
+              id: 'component-1',
+              customerId: 'customer-1',
+              vehicleId: 'vehicle-1',
+              brand: 'Bosch',
+              reference: 'ALT-90A',
+              identifier: 'SER-100',
+            },
+            Employee: null,
+            WorkshopWorkOrderDetails: {
+              id: 'workshop-detail-1',
+              customerReportedIssue: 'No enciende',
+              diagnosisRequired: true,
+              diagnosisSummary: 'Revisar alternador primero',
+            },
+            WorkOrderEstimate: [],
+            WorkOrderActualCost: [],
+            WorkOrderPayment: [],
+          }),
+        ),
+      },
+      workshopWorkOrderDetails: {
+        create: jest.fn((args: WorkshopDetailCreateArgs) => {
+          receivedWorkshopDetailCreateArgs = args;
+          return Promise.resolve({
+            id: 'workshop-detail-1',
+            workOrderId: 'wo-workshop-1',
+            customerReportedIssue: 'No enciende',
+            diagnosisRequired: true,
+            diagnosisSummary: 'Revisar alternador primero',
+          });
+        }),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.create({
+        type: WorkOrderType.WORKSHOP,
+        customerId: ' customer-1 ',
+        vehicleId: ' vehicle-1 ',
+        componentId: ' component-1 ',
+        summary: ' Diagnóstico de alternador ',
+        customerReportedIssue: ' No enciende ',
+        diagnosisRequired: true,
+        diagnosisSummary: ' Revisar alternador primero ',
+      }),
+    ).resolves.toMatchObject({
+      id: 'wo-workshop-1',
+      workshopDetails: {
+        id: 'workshop-detail-1',
+        customerReportedIssue: 'No enciende',
+        diagnosisRequired: true,
+        diagnosisSummary: 'Revisar alternador primero',
+      },
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(receivedCreateArgs?.data).toMatchObject({
+      type: WorkOrderType.WORKSHOP,
+      customerId: 'customer-1',
+      vehicleId: 'vehicle-1',
+      componentId: 'component-1',
+      summary: 'Diagnóstico de alternador',
+    });
+    expect(receivedWorkshopDetailCreateArgs?.data).toMatchObject({
+      id: expect.any(String),
+      workOrderId: 'wo-workshop-1',
+      customerReportedIssue: 'No enciende',
+      diagnosisRequired: true,
+      diagnosisSummary: 'Revisar alternador primero',
+    });
+  });
+
   it('creates work orders with trimmed optional values and included read-model relations', async () => {
     type CreateArgs = {
       data: Record<string, unknown>;
@@ -291,6 +471,213 @@ describe('WorkOrdersRepository', () => {
       status: WorkOrderStatus.COMPLETED,
       completedAt: new Date('2026-05-12T18:00:00.000Z'),
       updatedAt: expect.any(Date),
+    });
+  });
+
+  it('updates workshop details exactly once for workshop orders and clears them for sale orders', async () => {
+    type UpdateArgs = {
+      where: { id: string };
+      data: Record<string, unknown>;
+      include: Record<string, unknown>;
+    };
+    type WorkshopDetailUpsertArgs = {
+      where: { workOrderId: string };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    };
+    type WorkshopDetailDeleteManyArgs = {
+      where: { workOrderId: string };
+    };
+
+    let receivedWorkshopDetailUpsertArgs: WorkshopDetailUpsertArgs | undefined;
+    let receivedWorkshopDetailDeleteManyArgs: WorkshopDetailDeleteManyArgs | undefined;
+
+    const tx = {
+      workOrder: {
+        update: jest.fn((args: UpdateArgs) =>
+          Promise.resolve({
+            id: args.where.id,
+            number: 1002,
+            type: args.data.type ?? WorkOrderType.WORKSHOP,
+            status: WorkOrderStatus.IN_PROGRESS,
+            paymentStatus: PaymentStatus.PENDING,
+            customerId: 'customer-1',
+            vehicleId: 'vehicle-1',
+            componentId: 'component-1',
+            assignedEmployeeId: null,
+            summary: 'Diagnóstico actualizado',
+            externalLink: null,
+            notes: null,
+            estimatedCompletionAt: null,
+            estimatedCollectionAt: null,
+            completedAt: null,
+            createdAt: new Date('2026-05-10T20:00:00.000Z'),
+            updatedAt: new Date('2026-05-11T20:00:00.000Z'),
+            Customer: {
+              id: 'customer-1',
+              name: 'Cliente Uno',
+              phone: '3000000000',
+              documentType: 'CEDULA',
+              documentNumber: '123',
+              email: 'cliente@example.com',
+            },
+            Vehicle: {
+              id: 'vehicle-1',
+              customerId: 'customer-1',
+              brand: 'Mazda',
+              modelReference: 'BT-50',
+              plate: 'ABC123',
+            },
+            Component: {
+              id: 'component-1',
+              customerId: 'customer-1',
+              vehicleId: 'vehicle-1',
+              brand: 'Bosch',
+              reference: 'ALT-90A',
+              identifier: 'SER-100',
+            },
+            Employee: null,
+            WorkshopWorkOrderDetails: null,
+            WorkOrderEstimate: [],
+            WorkOrderActualCost: [],
+            WorkOrderPayment: [],
+          }),
+        ),
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({
+            id: 'wo-workshop-1',
+            number: 1002,
+            type: WorkOrderType.WORKSHOP,
+            status: WorkOrderStatus.IN_PROGRESS,
+            paymentStatus: PaymentStatus.PENDING,
+            customerId: 'customer-1',
+            vehicleId: 'vehicle-1',
+            componentId: 'component-1',
+            assignedEmployeeId: null,
+            summary: 'Diagnóstico actualizado',
+            externalLink: null,
+            notes: null,
+            estimatedCompletionAt: null,
+            estimatedCollectionAt: null,
+            completedAt: null,
+            createdAt: new Date('2026-05-10T20:00:00.000Z'),
+            updatedAt: new Date('2026-05-11T20:00:00.000Z'),
+            Customer: { id: 'customer-1', name: 'Cliente Uno', phone: '3000000000', documentType: 'CEDULA', documentNumber: '123', email: 'cliente@example.com' },
+            Vehicle: { id: 'vehicle-1', customerId: 'customer-1', brand: 'Mazda', modelReference: 'BT-50', plate: 'ABC123' },
+            Component: { id: 'component-1', customerId: 'customer-1', vehicleId: 'vehicle-1', brand: 'Bosch', reference: 'ALT-90A', identifier: 'SER-100' },
+            Employee: null,
+            WorkshopWorkOrderDetails: {
+              id: 'workshop-detail-1',
+              customerReportedIssue: 'No enciende',
+              diagnosisRequired: false,
+              diagnosisSummary: 'Alternador revisado',
+            },
+            WorkOrderEstimate: [],
+            WorkOrderActualCost: [],
+            WorkOrderPayment: [],
+          })
+          .mockResolvedValueOnce({
+            id: 'wo-sale-1',
+            number: 1003,
+            type: WorkOrderType.SALE,
+            status: WorkOrderStatus.IN_PROGRESS,
+            paymentStatus: PaymentStatus.PENDING,
+            customerId: 'customer-1',
+            vehicleId: null,
+            componentId: null,
+            assignedEmployeeId: null,
+            summary: 'Venta de repuesto',
+            externalLink: null,
+            notes: null,
+            estimatedCompletionAt: null,
+            estimatedCollectionAt: null,
+            completedAt: null,
+            createdAt: new Date('2026-05-10T20:00:00.000Z'),
+            updatedAt: new Date('2026-05-11T20:00:00.000Z'),
+            Customer: { id: 'customer-1', name: 'Cliente Uno', phone: '3000000000', documentType: 'CEDULA', documentNumber: '123', email: 'cliente@example.com' },
+            Vehicle: null,
+            Component: null,
+            Employee: null,
+            WorkshopWorkOrderDetails: null,
+            WorkOrderEstimate: [],
+            WorkOrderActualCost: [],
+            WorkOrderPayment: [],
+          }),
+      },
+      workshopWorkOrderDetails: {
+        upsert: jest.fn((args: WorkshopDetailUpsertArgs) => {
+          receivedWorkshopDetailUpsertArgs = args;
+          return Promise.resolve({
+            id: 'workshop-detail-1',
+            workOrderId: 'wo-workshop-1',
+            customerReportedIssue: 'No enciende',
+            diagnosisRequired: false,
+            diagnosisSummary: 'Alternador revisado',
+          });
+        }),
+        deleteMany: jest.fn((args: WorkshopDetailDeleteManyArgs) => {
+          receivedWorkshopDetailDeleteManyArgs = args;
+          return Promise.resolve({ count: 1 });
+        }),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.update('wo-workshop-1', {
+        summary: ' Diagnóstico actualizado ',
+        customerReportedIssue: ' No enciende ',
+        diagnosisRequired: false,
+        diagnosisSummary: ' Alternador revisado ',
+      }, WorkOrderType.WORKSHOP),
+    ).resolves.toMatchObject({
+      id: 'wo-workshop-1',
+      workshopDetails: {
+        id: 'workshop-detail-1',
+        diagnosisRequired: false,
+        diagnosisSummary: 'Alternador revisado',
+      },
+    });
+
+    await expect(
+      repository.update('wo-sale-1', {
+        type: WorkOrderType.SALE,
+        customerReportedIssue: ' No debería persistir ',
+        diagnosisRequired: true,
+        diagnosisSummary: ' Ignorar para venta ',
+      }),
+    ).resolves.toMatchObject({
+      id: 'wo-sale-1',
+      type: WorkOrderType.SALE,
+      workshopDetails: null,
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(receivedWorkshopDetailUpsertArgs).toMatchObject({
+      where: { workOrderId: 'wo-workshop-1' },
+      create: {
+        id: expect.any(String),
+        workOrderId: 'wo-workshop-1',
+        customerReportedIssue: 'No enciende',
+        diagnosisRequired: false,
+        diagnosisSummary: 'Alternador revisado',
+      },
+      update: {
+        customerReportedIssue: 'No enciende',
+        diagnosisRequired: false,
+        diagnosisSummary: 'Alternador revisado',
+      },
+    });
+    expect(receivedWorkshopDetailDeleteManyArgs).toEqual({
+      where: { workOrderId: 'wo-sale-1' },
     });
   });
 });

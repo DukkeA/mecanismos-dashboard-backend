@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsDate, IsIn, IsOptional, IsString } from 'class-validator';
 import {
   PaymentStatus,
@@ -14,6 +14,34 @@ import {
 const workOrderTypes = Object.values(WorkOrderType);
 const workOrderStatuses = Object.values(WorkOrderStatus);
 const paymentStatuses = Object.values(PaymentStatus);
+
+function OptionalBooleanField() {
+  return Transform(({ value }: { value: unknown }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const normalized = value.trim().toLowerCase();
+
+    if (normalized === 'true') {
+      return true;
+    }
+
+    if (normalized === 'false') {
+      return false;
+    }
+
+    return value;
+  });
+}
 
 export class CreateWorkOrderDto {
   @ApiProperty({ enum: workOrderTypes, example: 'SALE' })
@@ -96,6 +124,7 @@ export class CreateWorkOrderDto {
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @OptionalBooleanField()
   @IsBoolean()
   diagnosisRequired?: boolean;
 

@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { PaymentStatus, WorkOrderStatus } from '../../../generated/prisma/enums';
+import {
+  PaymentStatus,
+  WorkOrderStatus,
+  WorkOrderType,
+} from '../../../generated/prisma/enums';
 import type { Prisma } from '../../../generated/prisma/client';
 import type { CreateWorkOrderDto } from '../dto/create-work-order.dto';
 import type { ListWorkOrdersQueryDto } from '../dto/list-work-orders-query.dto';
@@ -110,6 +114,9 @@ export type WorkOrdersListResult = {
 type WorkOrderWhereInput = Prisma.WorkOrderWhereInput;
 
 type WorkOrdersPrismaClient = {
+  $transaction?<T>(
+    callback: (transaction: WorkOrdersPrismaTransactionClient) => Promise<T>,
+  ): Promise<T>;
   customer: {
     findUnique(args: {
       where: { id: string };
@@ -154,7 +161,21 @@ type WorkOrdersPrismaClient = {
       include: typeof workOrderDetailInclude;
     }): Promise<WorkOrderRecord>;
   };
+  workshopWorkOrderDetails?: {
+    create(args: { data: Record<string, unknown> }): Promise<unknown>;
+    upsert(args: {
+      where: { workOrderId: string };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }): Promise<unknown>;
+    deleteMany(args: { where: { workOrderId: string } }): Promise<unknown>;
+  };
 };
+
+type WorkOrdersPrismaTransactionClient = Pick<
+  WorkOrdersPrismaClient,
+  'workOrder' | 'workshopWorkOrderDetails'
+>;
 
 type WorkOrderRecord = {
   id: string;
@@ -234,27 +255,39 @@ export class WorkOrdersRepository {
   ) {}
 
   create(input: CreateWorkOrderDto) {
-    const now = new Date();
+    const workshopDetails = buildWorkshopDetailsPayload(input);
+
+    if (
+      input.type === WorkOrderType.WORKSHOP &&
+      workshopDetails !== null &&
+      this.prisma.$transaction
+    ) {
+      return this.prisma.$transaction(async (tx) => {
+        const workOrder = await tx.workOrder.create({
+          data: buildWorkOrderCreateData(input),
+          include: workOrderDetailInclude,
+        });
+
+        await tx.workshopWorkOrderDetails!.create({
+          data: {
+            id: randomUUID(),
+            workOrderId: workOrder.id,
+            ...workshopDetails,
+          },
+        });
+
+        const persisted = await tx.workOrder.findUnique({
+          where: { id: workOrder.id },
+          include: workOrderDetailInclude,
+        });
+
+        return mapWorkOrderRecord(persisted ?? workOrder);
+      });
+    }
 
     return this.prisma.workOrder
       .create({
-        data: {
-          id: randomUUID(),
-          type: input.type,
-          customerId: input.customerId.trim(),
-          vehicleId: normalizeOptionalForeignKey(input.vehicleId),
-          componentId: normalizeOptionalForeignKey(input.componentId),
-          assignedEmployeeId: normalizeOptionalForeignKey(input.assignedEmployeeId),
-          summary: input.summary.trim(),
-          externalLink: normalizeOptionalString(input.externalLink),
-          notes: normalizeOptionalString(input.notes),
-          estimatedCompletionAt: input.estimatedCompletionAt ?? null,
-          estimatedCollectionAt: input.estimatedCollectionAt ?? null,
-          completedAt: input.completedAt ?? null,
-          status: input.status ?? WorkOrderStatus.IN_PROGRESS,
-          paymentStatus: input.paymentStatus ?? PaymentStatus.PENDING,
-          updatedAt: now,
-        },
+        data: buildWorkOrderCreateData(input),
         include: workOrderDetailInclude,
       })
       .then(mapWorkOrderRecord);
@@ -291,52 +324,51 @@ export class WorkOrdersRepository {
     return workOrder ? mapWorkOrderRecord(workOrder) : null;
   }
 
-  update(id: string, input: UpdateWorkOrderDto) {
-    const now = new Date();
+  update(id: string, input: UpdateWorkOrderDto, currentType?: string) {
+    const resolvedType = input.type ?? currentType;
+    const workshopDetails = buildWorkshopDetailsPayload(input);
+
+    if (
+      this.prisma.$transaction &&
+      (resolvedType === WorkOrderType.SALE ||
+        (resolvedType === WorkOrderType.WORKSHOP && workshopDetails !== null))
+    ) {
+      return this.prisma.$transaction(async (tx) => {
+        const workOrder = await tx.workOrder.update({
+          where: { id },
+          data: buildWorkOrderUpdateData(input),
+          include: workOrderDetailInclude,
+        });
+
+        if (resolvedType === WorkOrderType.SALE) {
+          await tx.workshopWorkOrderDetails!.deleteMany({
+            where: { workOrderId: id },
+          });
+        } else if (workshopDetails !== null) {
+          await tx.workshopWorkOrderDetails!.upsert({
+            where: { workOrderId: id },
+            create: {
+              id: randomUUID(),
+              workOrderId: id,
+              ...workshopDetails,
+            },
+            update: workshopDetails,
+          });
+        }
+
+        const persisted = await tx.workOrder.findUnique({
+          where: { id },
+          include: workOrderDetailInclude,
+        });
+
+        return mapWorkOrderRecord(persisted ?? workOrder);
+      });
+    }
 
     return this.prisma.workOrder
       .update({
         where: { id },
-        data: {
-          ...(input.type !== undefined ? { type: input.type } : {}),
-          ...(input.customerId !== undefined
-            ? { customerId: input.customerId.trim() }
-            : {}),
-          ...(input.vehicleId !== undefined
-            ? { vehicleId: normalizeOptionalForeignKey(input.vehicleId) }
-            : {}),
-          ...(input.componentId !== undefined
-            ? { componentId: normalizeOptionalForeignKey(input.componentId) }
-            : {}),
-          ...(input.assignedEmployeeId !== undefined
-            ? {
-                assignedEmployeeId: normalizeOptionalForeignKey(
-                  input.assignedEmployeeId,
-                ),
-              }
-            : {}),
-          ...(input.summary !== undefined ? { summary: input.summary.trim() } : {}),
-          ...(input.externalLink !== undefined
-            ? { externalLink: normalizeOptionalString(input.externalLink) }
-            : {}),
-          ...(input.notes !== undefined
-            ? { notes: normalizeOptionalString(input.notes) }
-            : {}),
-          ...(input.estimatedCompletionAt !== undefined
-            ? { estimatedCompletionAt: input.estimatedCompletionAt }
-            : {}),
-          ...(input.estimatedCollectionAt !== undefined
-            ? { estimatedCollectionAt: input.estimatedCollectionAt }
-            : {}),
-          ...(input.completedAt !== undefined
-            ? { completedAt: input.completedAt }
-            : {}),
-          ...(input.status !== undefined ? { status: input.status } : {}),
-          ...(input.paymentStatus !== undefined
-            ? { paymentStatus: input.paymentStatus }
-            : {}),
-          updatedAt: now,
-        },
+        data: buildWorkOrderUpdateData(input),
         include: workOrderDetailInclude,
       })
       .then(mapWorkOrderRecord);
@@ -423,6 +455,91 @@ function buildWorkOrderWhere(query: ListWorkOrdersQueryDto): WorkOrderWhereInput
           ],
         }
       : {}),
+  };
+}
+
+function buildWorkOrderCreateData(input: CreateWorkOrderDto) {
+  return {
+    id: randomUUID(),
+    type: input.type,
+    customerId: input.customerId.trim(),
+    vehicleId: normalizeOptionalForeignKey(input.vehicleId),
+    componentId: normalizeOptionalForeignKey(input.componentId),
+    assignedEmployeeId: normalizeOptionalForeignKey(input.assignedEmployeeId),
+    summary: input.summary.trim(),
+    externalLink: normalizeOptionalString(input.externalLink),
+    notes: normalizeOptionalString(input.notes),
+    estimatedCompletionAt: input.estimatedCompletionAt ?? null,
+    estimatedCollectionAt: input.estimatedCollectionAt ?? null,
+    completedAt: input.completedAt ?? null,
+    status: input.status ?? WorkOrderStatus.IN_PROGRESS,
+    paymentStatus: input.paymentStatus ?? PaymentStatus.PENDING,
+    updatedAt: new Date(),
+  };
+}
+
+function buildWorkOrderUpdateData(input: UpdateWorkOrderDto) {
+  return {
+    ...(input.type !== undefined ? { type: input.type } : {}),
+    ...(input.customerId !== undefined ? { customerId: input.customerId.trim() } : {}),
+    ...(input.vehicleId !== undefined
+      ? { vehicleId: normalizeOptionalForeignKey(input.vehicleId) }
+      : {}),
+    ...(input.componentId !== undefined
+      ? { componentId: normalizeOptionalForeignKey(input.componentId) }
+      : {}),
+    ...(input.assignedEmployeeId !== undefined
+      ? {
+          assignedEmployeeId: normalizeOptionalForeignKey(
+            input.assignedEmployeeId,
+          ),
+        }
+      : {}),
+    ...(input.summary !== undefined ? { summary: input.summary.trim() } : {}),
+    ...(input.externalLink !== undefined
+      ? { externalLink: normalizeOptionalString(input.externalLink) }
+      : {}),
+    ...(input.notes !== undefined
+      ? { notes: normalizeOptionalString(input.notes) }
+      : {}),
+    ...(input.estimatedCompletionAt !== undefined
+      ? { estimatedCompletionAt: input.estimatedCompletionAt }
+      : {}),
+    ...(input.estimatedCollectionAt !== undefined
+      ? { estimatedCollectionAt: input.estimatedCollectionAt }
+      : {}),
+    ...(input.completedAt !== undefined ? { completedAt: input.completedAt } : {}),
+    ...(input.status !== undefined ? { status: input.status } : {}),
+    ...(input.paymentStatus !== undefined
+      ? { paymentStatus: input.paymentStatus }
+      : {}),
+    updatedAt: new Date(),
+  };
+}
+
+function buildWorkshopDetailsPayload(
+  input: Pick<
+    CreateWorkOrderDto,
+    'customerReportedIssue' | 'diagnosisRequired' | 'diagnosisSummary'
+  >,
+) {
+  const customerReportedIssue = normalizeOptionalString(
+    input.customerReportedIssue,
+  );
+  const diagnosisSummary = normalizeOptionalString(input.diagnosisSummary);
+
+  if (
+    customerReportedIssue === null &&
+    diagnosisSummary === null &&
+    input.diagnosisRequired === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    customerReportedIssue,
+    diagnosisRequired: input.diagnosisRequired ?? false,
+    diagnosisSummary,
   };
 }
 

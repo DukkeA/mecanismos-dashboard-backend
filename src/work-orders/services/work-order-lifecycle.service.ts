@@ -36,6 +36,10 @@ export class WorkOrderLifecycleService {
       updateWorkOrderDto,
     );
 
-    return this.workOrdersRepository.update(id, updateWorkOrderDto);
+    return this.workOrdersRepository.update(
+      id,
+      updateWorkOrderDto,
+      currentWorkOrder.type,
+    );
   }
 }
