@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -145,6 +146,7 @@ export class WorkOrdersController {
   }
 
   @Delete(':id/actual-costs/:costId')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Remove an actual-cost child without deleting the work order' })
   @ApiNoContentResponse({ description: 'Actual cost removed.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
@@ -192,6 +194,7 @@ export class WorkOrdersController {
   }
 
   @Delete(':id/payments/:paymentId')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Remove a payment child without deleting the work order' })
   @ApiNoContentResponse({ description: 'Payment removed.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })

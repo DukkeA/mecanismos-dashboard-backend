@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateWorkOrderPaymentDto } from '../dto/create-work-order-payment.dto';
 import { UpdateWorkOrderPaymentDto } from '../dto/update-work-order-payment.dto';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
@@ -6,6 +6,8 @@ import { WorkOrderReadModelService } from './work-order-read-model.service';
 
 @Injectable()
 export class WorkOrderPaymentsService {
+  private readonly logger = new Logger(WorkOrderPaymentsService.name);
+
   constructor(
     private readonly workOrdersRepository: WorkOrdersRepository,
     private readonly workOrderReadModelService: WorkOrderReadModelService,
@@ -14,7 +16,17 @@ export class WorkOrderPaymentsService {
   async createPayment(id: string, dto: CreateWorkOrderPaymentDto) {
     const workOrder = await this.workOrderReadModelService.findOne(id);
 
-    return this.workOrdersRepository.createPayment(id, dto, workOrder);
+    const updatedWorkOrder = await this.workOrdersRepository.createPayment(
+      id,
+      dto,
+      workOrder,
+    );
+
+    this.logger.log(
+      `Created payment workOrderId=${updatedWorkOrder.id} amount=${dto.amount} paymentStatus=${updatedWorkOrder.paymentStatus}`,
+    );
+
+    return updatedWorkOrder;
   }
 
   async findPayments(id: string) {
@@ -31,14 +43,35 @@ export class WorkOrderPaymentsService {
     const workOrder = await this.workOrderReadModelService.findOne(id);
     assertPaymentExists(workOrder.payments, paymentId);
 
-    return this.workOrdersRepository.updatePayment(id, paymentId, dto, workOrder);
+    const updatedWorkOrder = await this.workOrdersRepository.updatePayment(
+      id,
+      paymentId,
+      dto,
+      workOrder,
+    );
+
+    this.logger.log(
+      `Updated payment workOrderId=${updatedWorkOrder.id} paymentId=${paymentId} amount=${dto.amount ?? 'unchanged'} paymentStatus=${updatedWorkOrder.paymentStatus}`,
+    );
+
+    return updatedWorkOrder;
   }
 
   async removePayment(id: string, paymentId: string) {
     const workOrder = await this.workOrderReadModelService.findOne(id);
     assertPaymentExists(workOrder.payments, paymentId);
 
-    return this.workOrdersRepository.removePayment(id, paymentId, workOrder);
+    const updatedWorkOrder = await this.workOrdersRepository.removePayment(
+      id,
+      paymentId,
+      workOrder,
+    );
+
+    this.logger.log(
+      `Removed payment workOrderId=${updatedWorkOrder.id} paymentId=${paymentId} paymentStatus=${updatedWorkOrder.paymentStatus}`,
+    );
+
+    return updatedWorkOrder;
   }
 }
 

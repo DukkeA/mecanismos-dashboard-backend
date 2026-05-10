@@ -6,6 +6,10 @@ import { WorkOrderPaymentsService } from './work-order-payments.service';
 import { WorkOrderReadModelService } from './work-order-read-model.service';
 
 describe('WorkOrderPaymentsService', () => {
+  const logger = {
+    log: jest.fn(),
+  };
+
   const payment = {
     id: 'payment-1',
     amount: 50000,
@@ -65,6 +69,10 @@ describe('WorkOrderPaymentsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     service = new WorkOrderPaymentsService(repository, readModelService);
+    Object.defineProperty(service, 'logger', {
+      value: logger,
+      writable: true,
+    });
   });
 
   it('creates a payment and recalculates payment status from the current work-order totals', async () => {
@@ -87,6 +95,15 @@ describe('WorkOrderPaymentsService', () => {
 
     expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
     expect(repository.createPayment).toHaveBeenCalledWith('wo-1', dto, workOrder);
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('workOrderId=wo-1'),
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('amount=50000'),
+    );
+    expect(logger.log).not.toHaveBeenCalledWith(
+      expect.stringContaining('Abono inicial'),
+    );
   });
 
   it('lists payments from the current work-order read model', async () => {
@@ -127,6 +144,12 @@ describe('WorkOrderPaymentsService', () => {
       dto,
       workOrder,
     );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('paymentId=payment-1'),
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining(`paymentStatus=${PaymentStatus.PAID}`),
+    );
   });
 
   it('removes a payment and preserves manual payment status when no payable total exists', async () => {
@@ -152,6 +175,12 @@ describe('WorkOrderPaymentsService', () => {
       'wo-1',
       'payment-1',
       manualStatusWorkOrder,
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('paymentId=payment-1'),
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining(`paymentStatus=${PaymentStatus.PAID}`),
     );
   });
 });

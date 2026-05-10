@@ -5,6 +5,10 @@ import { WorkOrderReadModelService } from './work-order-read-model.service';
 import { WorkOrderRelationsService } from './work-order-relations.service';
 
 describe('WorkOrderLifecycleService', () => {
+  const logger = {
+    log: jest.fn(),
+  };
+
   const workOrder = {
     id: 'wo-1',
     number: 1001,
@@ -64,6 +68,10 @@ describe('WorkOrderLifecycleService', () => {
       relationsService,
       readModelService,
     );
+    Object.defineProperty(service, 'logger', {
+      value: logger,
+      writable: true,
+    });
   });
 
   it('creates a sale work order with default statuses and empty financial collections', async () => {
@@ -98,6 +106,15 @@ describe('WorkOrderLifecycleService', () => {
         type: WorkOrderType.SALE,
         customerId: 'customer-1',
       }),
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('workOrderId=wo-1'),
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining(`type=${WorkOrderType.SALE}`),
+    );
+    expect(logger.log).not.toHaveBeenCalledWith(
+      expect.stringContaining('Cliente espera hoy'),
     );
   });
 
@@ -158,6 +175,12 @@ describe('WorkOrderLifecycleService', () => {
       'wo-1',
       expect.objectContaining({ status: WorkOrderStatus.COMPLETED }),
       WorkOrderType.SALE,
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('status=COMPLETED'),
+    );
+    expect(logger.log).not.toHaveBeenCalledWith(
+      expect.stringContaining('Cliente espera hoy'),
     );
   });
 
