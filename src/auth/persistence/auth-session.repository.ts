@@ -11,6 +11,7 @@ type CredentialAccountRecord = {
     name: string;
     role: 'ADMIN' | 'SALES' | 'MECHANIC';
     isActive: boolean;
+    mustChangePassword: boolean;
   };
 };
 
@@ -26,14 +27,15 @@ type RefreshSessionLookupRecord = {
   expiresAt: Date;
   revokedAt: Date | null;
   replacedBySessionId: string | null;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: 'ADMIN' | 'SALES' | 'MECHANIC';
-    isActive: boolean;
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      role: 'ADMIN' | 'SALES' | 'MECHANIC';
+      isActive: boolean;
+      mustChangePassword: boolean;
+    };
   };
-};
 
 type ActiveUserRecord = {
   id: string;
@@ -41,14 +43,23 @@ type ActiveUserRecord = {
   name: string;
   role: 'ADMIN' | 'SALES' | 'MECHANIC';
   isActive: boolean;
+  mustChangePassword: boolean;
 };
 
 type AuthPrismaClient = {
   account: {
     findFirst(args: {
-      where: { user: { email: string; isActive: true } };
+      where: { user: { email?: string; id?: string; isActive: true } };
       include: { user: true };
     }): Promise<CredentialAccountRecord | null>;
+    update(args: {
+      where: { userId: string };
+      data: {
+        passwordHash: string;
+        passwordUpdatedAt: Date;
+        updatedAt: Date;
+      };
+    }): Promise<unknown>;
   };
   session: {
     create(args: {
@@ -85,13 +96,14 @@ type AuthPrismaClient = {
   user: {
     findFirst(args: {
       where: { id: string; isActive: true };
-      select: {
-        id: true;
-        email: true;
-        name: true;
-        role: true;
-        isActive: true;
-      };
+        select: {
+          id: true;
+          email: true;
+          name: true;
+          role: true;
+          isActive: true;
+          mustChangePassword: true;
+        };
     }): Promise<ActiveUserRecord | null>;
     update(args: {
       where: { id: string };
@@ -186,6 +198,47 @@ export class AuthSessionRepository {
         name: true,
         role: true,
         isActive: true,
+        mustChangePassword: true,
+      },
+    });
+  }
+
+  findActivePasswordCredentialByUserId(userId: string) {
+    return this.prisma.account.findFirst({
+      where: {
+        user: {
+          id: userId,
+          isActive: true,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  async updatePasswordCredential(
+    userId: string,
+    input: {
+      passwordHash: string;
+      passwordUpdatedAt: Date;
+      mustChangePassword: boolean;
+    },
+  ) {
+    await this.prisma.account.update({
+      where: { userId },
+      data: {
+        passwordHash: input.passwordHash,
+        passwordUpdatedAt: input.passwordUpdatedAt,
+        updatedAt: input.passwordUpdatedAt,
+      },
+    });
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        mustChangePassword: input.mustChangePassword,
+        updatedAt: input.passwordUpdatedAt,
       },
     });
   }

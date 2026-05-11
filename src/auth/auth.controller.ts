@@ -28,6 +28,7 @@ import type { AuthJwtPayload } from './auth.jwt';
 import { AUTH_RUNTIME_CONFIG } from './config/auth.config';
 import type { AuthRuntimeConfig } from './config/auth.config';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
@@ -142,5 +143,20 @@ export class AuthController {
       success: true,
       role: user.role,
     };
+  }
+
+  @Post('change-password')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('md_access')
+  @ApiOperation({ summary: 'Change the authenticated user password' })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiOkResponse({ description: 'Authenticated user password changed.' })
+  @ApiUnauthorizedResponse({ description: 'Access token missing, invalid, or current password incorrect.' })
+  changePassword(
+    @CurrentUser() user: AuthJwtPayload,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<AuthUserPayload> {
+    return this.authService.changePassword(user.sub, dto);
   }
 }

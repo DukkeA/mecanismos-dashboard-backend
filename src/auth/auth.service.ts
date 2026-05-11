@@ -1,8 +1,9 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { compare } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { LoginDto } from './dto/login.dto';
+import type { ChangePasswordDto } from './dto/change-password.dto';
 import { AUTH_RUNTIME_CONFIG } from './config/auth.config';
 import type { AuthRuntimeConfig } from './config/auth.config';
 import { AuthSessionRepository } from './persistence/auth-session.repository';
@@ -17,6 +18,7 @@ export type AuthUserPayload = {
   email: string;
   name: string;
   role: 'ADMIN' | 'SALES' | 'MECHANIC';
+  mustChangePassword: boolean;
 };
 
 export type AuthTokensResult = {
@@ -159,6 +161,40 @@ export class AuthService {
     return this.toAuthUserPayload(user);
   }
 
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+  ): Promise<AuthUserPayload> {
+    const account =
+      await this.authSessionRepository.findActivePasswordCredentialByUserId(
+        userId,
+      );
+
+    if (!account) {
+      throw new UnauthorizedException('Authenticated user is no longer active');
+    }
+
+    const passwordMatches = await compare(
+      dto.currentPassword,
+      account.passwordHash,
+    );
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const updatedUser = await this.authSessionRepository.updatePasswordCredential(
+      userId,
+      {
+        passwordHash: await hash(dto.newPassword, 12),
+        passwordUpdatedAt: new Date(),
+        mustChangePassword: false,
+      },
+    );
+
+    return this.toAuthUserPayload(updatedUser);
+  }
+
   private async buildTokensResult(
     user: AuthUserPayload,
     refreshToken: string,
@@ -182,6 +218,7 @@ export class AuthService {
       email: user.email,
       name: user.name,
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 

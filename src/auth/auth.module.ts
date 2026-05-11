@@ -38,5 +38,6 @@ import { RolesGuard } from './roles.guard';
       useFactory: () => authConfigFromEnv(process.env),
     },
   ],
+  exports: [AuthSessionRepository],
 })
 export class AuthModule {}

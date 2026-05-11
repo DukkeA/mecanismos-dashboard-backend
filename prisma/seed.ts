@@ -23,18 +23,21 @@ const BCRYPT_ROUNDS = 12;
 
 const SEED_USERS = [
   {
+    id: 'seed-user-admin',
     email: 'admin@mecanismos.test',
     name: 'Admin Mecanismos',
     password: 'Admin123!',
     role: 'ADMIN' as const,
   },
   {
+    id: 'seed-user-sales',
     email: 'ventas@mecanismos.test',
     name: 'Ventas Mecanismos',
     password: 'Ventas123!',
     role: 'SALES' as const,
   },
   {
+    id: 'seed-user-mechanic',
     email: 'mecanico@mecanismos.test',
     name: 'Mecanico Mecanismos',
     password: 'Mecanico123!',
@@ -400,18 +403,21 @@ async function main() {
       const user = await prisma.user.upsert({
         where: { email },
         create: {
-          id: randomUUID(),
+          id: seedUser.id,
           email,
           name: seedUser.name,
           role: seedUser.role,
           isActive: true,
+          mustChangePassword: false,
           createdAt: now,
           updatedAt: now,
         },
         update: {
+          id: seedUser.id,
           name: seedUser.name,
           role: seedUser.role,
           isActive: true,
+          mustChangePassword: false,
           updatedAt: now,
         },
       });

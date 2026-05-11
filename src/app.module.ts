@@ -20,6 +20,7 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
 import { OperationsReportingModule } from './operations-reporting/operations-reporting.module';
 import { CustomerAssetHistoryModule } from './customer-asset-history/customer-asset-history.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AppSettingsModule } from './app-settings/app-settings.module';
     OperationsReportingModule,
     CustomerAssetHistoryModule,
     AppSettingsModule,
+    AdminUsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

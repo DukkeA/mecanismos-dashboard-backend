@@ -2,10 +2,12 @@ import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
+import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { AuthRuntimeConfig } from './config/auth.config';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
+  hash: jest.fn(),
 }));
 
 describe('AuthService', () => {
@@ -26,12 +28,14 @@ describe('AuthService', () => {
 
   let repository: {
     findActivePasswordCredentialByEmail: jest.Mock;
+    findActivePasswordCredentialByUserId: jest.Mock;
     findActiveUserById: jest.Mock;
     createRefreshSession: jest.Mock;
     findRefreshSessionByTokenDigest: jest.Mock;
     rotateRefreshSession: jest.Mock;
     revokeRefreshFamily: jest.Mock;
     revokeRefreshSession: jest.Mock;
+    updatePasswordCredential: jest.Mock;
     touchUserLastLoginAt: jest.Mock;
   };
   let jwtService: { signAsync: jest.Mock };
@@ -42,12 +46,14 @@ describe('AuthService', () => {
 
     repository = {
       findActivePasswordCredentialByEmail: jest.fn(),
+      findActivePasswordCredentialByUserId: jest.fn(),
       findActiveUserById: jest.fn(),
       createRefreshSession: jest.fn(),
       findRefreshSessionByTokenDigest: jest.fn(),
       rotateRefreshSession: jest.fn(),
       revokeRefreshFamily: jest.fn(),
       revokeRefreshSession: jest.fn(),
+      updatePasswordCredential: jest.fn(),
       touchUserLastLoginAt: jest.fn(),
     };
 
@@ -76,6 +82,7 @@ describe('AuthService', () => {
         email: 'admin@mecanismos.test',
         name: 'Admin User',
         role: 'ADMIN',
+        mustChangePassword: true,
         isActive: true,
       },
     });
@@ -102,6 +109,7 @@ describe('AuthService', () => {
       email: 'admin@mecanismos.test',
       name: 'Admin User',
       role: 'ADMIN',
+      mustChangePassword: true,
     });
     expect(result.accessToken).toBe('signed-access-token');
     expect(result.refreshToken).toEqual(expect.any(String));
@@ -146,6 +154,7 @@ describe('AuthService', () => {
         email: 'admin@mecanismos.test',
         name: 'Admin User',
         role: 'ADMIN',
+        mustChangePassword: false,
         isActive: true,
       },
     });
@@ -181,6 +190,7 @@ describe('AuthService', () => {
         email: 'admin@mecanismos.test',
         name: 'Admin User',
         role: 'ADMIN',
+        mustChangePassword: false,
         isActive: true,
       },
     });
@@ -203,6 +213,7 @@ describe('AuthService', () => {
       email: 'admin@mecanismos.test',
       name: 'Admin User',
       role: 'ADMIN',
+      mustChangePassword: false,
     });
     expect(result.accessToken).toBe('signed-access-token');
     expect(result.refreshToken).toEqual(expect.any(String));
@@ -249,6 +260,7 @@ describe('AuthService', () => {
         email: 'admin@mecanismos.test',
         name: 'Admin User',
         role: 'ADMIN',
+        mustChangePassword: false,
         isActive: true,
       },
     });
@@ -280,6 +292,7 @@ describe('AuthService', () => {
         email: 'admin@mecanismos.test',
         name: 'Admin User',
         role: 'ADMIN',
+        mustChangePassword: false,
         isActive: true,
       },
     });
@@ -305,6 +318,7 @@ describe('AuthService', () => {
       email: 'admin@mecanismos.test',
       name: 'Admin User',
       role: 'ADMIN',
+      mustChangePassword: true,
       isActive: true,
     });
 
@@ -313,6 +327,7 @@ describe('AuthService', () => {
       email: 'admin@mecanismos.test',
       name: 'Admin User',
       role: 'ADMIN',
+      mustChangePassword: true,
     });
   });
 
@@ -322,5 +337,76 @@ describe('AuthService', () => {
     await expect(service.getCurrentUser('missing-user')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+  });
+
+  it('changes the current password, clears mustChangePassword, and persists the new hash', async () => {
+    repository.findActivePasswordCredentialByUserId.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'stored-hash',
+      user: {
+        id: 'user-1',
+        email: 'admin@mecanismos.test',
+        name: 'Admin User',
+        role: 'ADMIN',
+        mustChangePassword: true,
+        isActive: true,
+      },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
+    repository.updatePasswordCredential.mockResolvedValue({
+      id: 'user-1',
+      email: 'admin@mecanismos.test',
+      name: 'Admin User',
+      role: 'ADMIN',
+      mustChangePassword: false,
+      isActive: true,
+    });
+
+    await expect(
+      service.changePassword('user-1', {
+        currentPassword: 'Temp1234!',
+        newPassword: 'NewSecure123!',
+      } as ChangePasswordDto),
+    ).resolves.toEqual({
+      id: 'user-1',
+      email: 'admin@mecanismos.test',
+      name: 'Admin User',
+      role: 'ADMIN',
+      mustChangePassword: false,
+    });
+
+    expect(repository.updatePasswordCredential).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        passwordHash: 'new-hash',
+        mustChangePassword: false,
+      }),
+    );
+  });
+
+  it('rejects change-password when the current password is wrong', async () => {
+    repository.findActivePasswordCredentialByUserId.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'stored-hash',
+      user: {
+        id: 'user-1',
+        email: 'admin@mecanismos.test',
+        name: 'Admin User',
+        role: 'ADMIN',
+        mustChangePassword: true,
+        isActive: true,
+      },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+    await expect(
+      service.changePassword('user-1', {
+        currentPassword: 'Wrong123!',
+        newPassword: 'NewSecure123!',
+      } as ChangePasswordDto),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(repository.updatePasswordCredential).not.toHaveBeenCalled();
   });
 });

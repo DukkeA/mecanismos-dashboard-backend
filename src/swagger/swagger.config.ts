@@ -2,6 +2,7 @@ import { DocumentBuilder, type OpenAPIObject } from '@nestjs/swagger';
 
 export const SWAGGER_TAGS = [
   'auth',
+  'admin-users',
   'component-types',
   'customers',
   'vehicles',
