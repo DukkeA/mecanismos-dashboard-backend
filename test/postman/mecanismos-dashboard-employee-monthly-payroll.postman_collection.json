@@ -1,0 +1,122 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Employee Monthly Payroll",
+    "_postman_id": "f8136052-b7f4-4a09-9bf3-4b8363841e5a",
+    "description": "Runner-ready supplemental verification for employee monthly payroll draft generation, review, finalization, and role protection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "salesEmail", "value": "ventas@mecanismos.test" },
+    { "key": "salesPassword", "value": "Ventas123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "payrollId", "value": "" },
+    { "key": "payrollYear", "value": "2026" },
+    { "key": "payrollMonth", "value": "5" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('admin login returns 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "Login as Sales",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{salesEmail}}\",\n  \"password\": \"{{salesPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Generate Monthly Payroll",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"year\": {{payrollYear}},\n  \"month\": {{payrollMonth}}\n}" },
+            "url": { "raw": "{{baseUrl}}/employee-monthly-payroll/generate", "host": ["{{baseUrl}}"], "path": ["employee-monthly-payroll", "generate"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('generate payroll returns 201', function () { pm.response.to.have.status(201); });", "const body = pm.response.json();", "pm.collectionVariables.set('payrollId', body.id);", "pm.test('generate captures payroll id', function () { pm.expect(body.id).to.be.a('string').and.not.empty; });"] } }]
+        },
+        {
+          "name": "Regenerate Monthly Payroll",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"year\": {{payrollYear}},\n  \"month\": {{payrollMonth}}\n}" },
+            "url": { "raw": "{{baseUrl}}/employee-monthly-payroll/generate", "host": ["{{baseUrl}}"], "path": ["employee-monthly-payroll", "generate"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('regenerate payroll returns 201', function () { pm.response.to.have.status(201); });", "const body = pm.response.json();", "pm.test('regenerate keeps same payroll id', function () { pm.expect(body.id).to.eql(pm.collectionVariables.get('payrollId')); });"] } }]
+        },
+        {
+          "name": "List Monthly Payroll",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/employee-monthly-payroll?page=1&limit=10&year={{payrollYear}}", "host": ["{{baseUrl}}"], "path": ["employee-monthly-payroll"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }, { "key": "year", "value": "{{payrollYear}}" }] }
+          }
+        },
+        {
+          "name": "Get Monthly Payroll Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/employee-monthly-payroll/{{payrollId}}", "host": ["{{baseUrl}}"], "path": ["employee-monthly-payroll", "{{payrollId}}"] }
+          }
+        },
+        {
+          "name": "Finalize Monthly Payroll",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/employee-monthly-payroll/{{payrollId}}/finalize", "host": ["{{baseUrl}}"], "path": ["employee-monthly-payroll", "{{payrollId}}", "finalize"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('finalize payroll returns 200', function () { pm.response.to.have.status(200); });", "const body = pm.response.json();", "pm.test('finalize returns FINALIZED status', function () { pm.expect(body.status).to.eql('FINALIZED'); });"] } }]
+        },
+        {
+          "name": "Regenerate Finalized Monthly Payroll is Rejected",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"year\": {{payrollYear}},\n  \"month\": {{payrollMonth}}\n}" },
+            "url": { "raw": "{{baseUrl}}/employee-monthly-payroll/generate", "host": ["{{baseUrl}}"], "path": ["employee-monthly-payroll", "generate"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('regenerate finalized payroll returns 409', function () { pm.response.to.have.status(409); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Protected Route Errors",
+      "item": [
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Generate Monthly Payroll as Mechanic is Forbidden",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"year\": {{payrollYear}},\n  \"month\": {{payrollMonth}}\n}" },
+            "url": { "raw": "{{baseUrl}}/employee-monthly-payroll/generate", "host": ["{{baseUrl}}"], "path": ["employee-monthly-payroll", "generate"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('mechanic generate payroll returns 403', function () { pm.response.to.have.status(403); });"] } }]
+        }
+      ]
+    }
+  ]
+}

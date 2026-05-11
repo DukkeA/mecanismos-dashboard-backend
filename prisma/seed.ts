@@ -14,6 +14,7 @@ import {
   SupplierType,
 } from '../generated/prisma/client';
 import { seedEmployeesAndBonuses } from './seed-employees';
+import { seedEmployeeMonthlyPayroll } from './seed-employee-monthly-payroll';
 import { seedExpenses } from './seed-expenses';
 import { seedDefaultCostCenters } from './seed-cost-centers';
 import { seedPricingLaborSettings } from './seed-app-settings';
@@ -585,6 +586,10 @@ async function main() {
     await seedEmployeesAndBonuses(prisma, now);
 
     console.log('Seeded employees and manual bonuses');
+
+    await seedEmployeeMonthlyPayroll(prisma, now);
+
+    console.log('Seeded employee monthly payroll samples');
 
     await seedPricingLaborSettings(prisma, now);
 
