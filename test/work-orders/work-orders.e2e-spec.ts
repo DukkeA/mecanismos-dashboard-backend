@@ -69,8 +69,14 @@ type EstimateResponse = {
   id: string;
   phase: string;
   estimatedLaborHours: number | null;
+  laborHourlyCostSnapshot: number | null;
+  baseCostAmount: number;
+  contingencyPct: number | null;
   totalCostAmount: number;
   totalPriceAmount: number;
+  recommendedMinimumPrice: number | null;
+  recommendedPrice: number | null;
+  recommendedHighPrice: number | null;
   lines: Array<{
     id: string;
     lineType: string;
@@ -297,6 +303,144 @@ describe('WorkOrdersController (real db e2e)', () => {
         expect(body.data[0].phase).toBe('INITIAL');
         expect(body.data[0].lines).toHaveLength(1);
         expect(body.data[0].lines[0].supplierQuoteHistoryId).toBeNull();
+      });
+  });
+
+  it('applies current pricing settings to future estimates and keeps prior snapshots unchanged after later edits', async () => {
+    const cookies = await loginAsRole(app, 'ADMIN');
+
+    await request(app.getHttpServer())
+      .patch('/app-settings/pricing-labor')
+      .set('Cookie', cookies)
+      .send({
+        defaultLaborHourlyRate: 60000,
+        saleContingencyPct: 10,
+        workshopContingencyPct: 15,
+        diagnosticContingencyPct: 25,
+        minimumMarkupPct: 20,
+        recommendedMarkupPct: 30,
+        highMarkupPct: 40,
+      })
+      .expect(200);
+
+    const firstWorkOrderId = await createSaleWorkOrder(
+      app,
+      cookies,
+      `settings-old-${Date.now()}`,
+    );
+
+    await request(app.getHttpServer())
+      .put(`/work-orders/${firstWorkOrderId}/estimates/INITIAL`)
+      .set('Cookie', cookies)
+      .send({
+        estimatedLaborHours: 2,
+        lines: [
+          {
+            lineType: 'PART',
+            description: 'Inyector snapshot',
+            quantity: 1,
+            unitCost: 100000,
+          },
+        ],
+      })
+      .expect(200)
+      .expect(({ body }: { body: EstimateResponse }) => {
+        expect(body.laborHourlyCostSnapshot).toBe(60000);
+        expect(body.baseCostAmount).toBe(220000);
+        expect(body.contingencyPct).toBe(10);
+        expect(body.totalCostAmount).toBe(242000);
+        expect(body.recommendedMinimumPrice).toBe(290400);
+        expect(body.recommendedPrice).toBe(314600);
+        expect(body.recommendedHighPrice).toBe(338800);
+        expect(body.totalPriceAmount).toBe(314600);
+      });
+
+    await request(app.getHttpServer())
+      .patch('/app-settings/pricing-labor')
+      .set('Cookie', cookies)
+      .send({
+        defaultLaborHourlyRate: 90000,
+        saleContingencyPct: 20,
+        recommendedMarkupPct: 45,
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/work-orders/${firstWorkOrderId}/estimates`)
+      .set('Cookie', cookies)
+      .expect(200)
+      .expect(({ body }: { body: EstimateListResponse }) => {
+        expect(body.data[0]).toMatchObject({
+          laborHourlyCostSnapshot: 60000,
+          baseCostAmount: 220000,
+          contingencyPct: 10,
+          totalCostAmount: 242000,
+          recommendedPrice: 314600,
+        });
+      });
+
+    const secondWorkOrderId = await createSaleWorkOrder(
+      app,
+      cookies,
+      `settings-new-${Date.now()}`,
+    );
+
+    await request(app.getHttpServer())
+      .put(`/work-orders/${secondWorkOrderId}/estimates/INITIAL`)
+      .set('Cookie', cookies)
+      .send({ estimatedLaborHours: 1, lines: [] })
+      .expect(200)
+      .expect(({ body }: { body: EstimateResponse }) => {
+        expect(body.laborHourlyCostSnapshot).toBe(90000);
+        expect(body.baseCostAmount).toBe(90000);
+        expect(body.contingencyPct).toBe(20);
+        expect(body.totalCostAmount).toBe(108000);
+        expect(body.recommendedPrice).toBe(156600);
+      });
+  });
+
+  it('respects explicit snapshot overrides even when singleton settings define different defaults', async () => {
+    const cookies = await loginAsRole(app, 'ADMIN');
+
+    await request(app.getHttpServer())
+      .patch('/app-settings/pricing-labor')
+      .set('Cookie', cookies)
+      .send({
+        defaultLaborHourlyRate: 50000,
+        diagnosticContingencyPct: 25,
+        recommendedMarkupPct: 35,
+      })
+      .expect(200);
+
+    const workOrderId = await createWorkshopWorkOrder(
+      app,
+      cookies,
+      `override-${Date.now()}`,
+    );
+
+    await request(app.getHttpServer())
+      .put(`/work-orders/${workOrderId}/estimates/FINAL`)
+      .set('Cookie', cookies)
+      .send({
+        estimatedLaborHours: 1,
+        laborHourlyCostSnapshot: 70000,
+        baseCostAmount: 90000,
+        contingencyPct: 3,
+        totalCostAmount: 93000,
+        recommendedMinimumPrice: 110000,
+        recommendedPrice: 120000,
+        recommendedHighPrice: 135000,
+        totalPriceAmount: 120000,
+        lines: [],
+      })
+      .expect(200)
+      .expect(({ body }: { body: EstimateResponse }) => {
+        expect(body.laborHourlyCostSnapshot).toBe(70000);
+        expect(body.contingencyPct).toBe(3);
+        expect(body.recommendedMinimumPrice).toBe(110000);
+        expect(body.recommendedPrice).toBe(120000);
+        expect(body.recommendedHighPrice).toBe(135000);
+        expect(body.totalPriceAmount).toBe(120000);
       });
   });
 
@@ -603,6 +747,29 @@ async function createSaleWorkOrder(
       customerId: 'seed-customer-ana-gomez',
       summary: `  Orden ${runId}  `,
       assignedEmployeeId: 'seed-employee-mario-rincon',
+    })
+    .expect(201);
+
+  return readBody<WorkOrderResponse>(response).id;
+}
+
+async function createWorkshopWorkOrder(
+  app: INestApplication<App>,
+  cookies: string[],
+  runId: string,
+) {
+  const response = await request(app.getHttpServer())
+    .post('/work-orders')
+    .set('Cookie', cookies)
+    .send({
+      type: WorkOrderType.WORKSHOP,
+      customerId: 'seed-customer-acme-industrial',
+      vehicleId: 'seed-vehicle-acme-foton-aumark',
+      componentId: 'seed-component-acme-inyector',
+      assignedEmployeeId: 'seed-employee-mario-rincon',
+      summary: `  Orden taller ${runId}  `,
+      diagnosisRequired: true,
+      customerReportedIssue: 'Ruido en banco',
     })
     .expect(201);
 

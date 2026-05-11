@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { EstimateLineType } from '../../../generated/prisma/enums';
@@ -100,7 +101,15 @@ export class UpsertWorkOrderEstimateDto {
   @Type(() => Number)
   @IsInt()
   @Min(0)
+  @Max(100)
   contingencyPct?: number;
+
+  @ApiPropertyOptional({ example: 50000, minimum: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  laborHourlyCostSnapshot?: number;
 
   @ApiPropertyOptional({ example: 330000 })
   @IsOptional()
@@ -115,6 +124,27 @@ export class UpsertWorkOrderEstimateDto {
   @IsInt()
   @Min(0)
   totalPriceAmount?: number;
+
+  @ApiPropertyOptional({ example: 390000, minimum: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  recommendedMinimumPrice?: number;
+
+  @ApiPropertyOptional({ example: 450000, minimum: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  recommendedPrice?: number;
+
+  @ApiPropertyOptional({ example: 520000, minimum: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  recommendedHighPrice?: number;
 
   @ApiPropertyOptional({ example: 'Estimación inicial' })
   @IsOptional()

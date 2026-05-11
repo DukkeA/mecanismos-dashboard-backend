@@ -4,6 +4,7 @@ import {
   EstimatePhase,
 } from '../../../generated/prisma/enums';
 import { UpsertWorkOrderEstimateDto } from '../dto/upsert-work-order-estimate.dto';
+import { AppSettingsService } from '../../app-settings/app-settings.service';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
 import { WorkOrderReadModelService } from './work-order-read-model.service';
 import { WorkOrderRelationsService } from './work-order-relations.service';
@@ -27,6 +28,11 @@ describe('WorkOrderEstimatesService', () => {
     findOne: readModelFindOneMock,
   } as unknown as jest.Mocked<WorkOrderReadModelService>;
 
+  const getCurrentPricingLaborSettingsMock = jest.fn();
+  const appSettingsService = {
+    getCurrentPricingLaborSettings: getCurrentPricingLaborSettingsMock,
+  } as unknown as jest.Mocked<AppSettingsService>;
+
   let service: WorkOrderEstimatesService;
 
   beforeEach(() => {
@@ -35,6 +41,7 @@ describe('WorkOrderEstimatesService', () => {
       repository,
       relationsService,
       readModelService,
+      appSettingsService,
     );
   });
 
@@ -59,8 +66,23 @@ describe('WorkOrderEstimatesService', () => {
       ],
     };
 
-    readModelFindOneMock.mockResolvedValue({ id: 'wo-1' });
+    readModelFindOneMock.mockResolvedValue({
+      id: 'wo-1',
+      type: 'SALE',
+      workshopDetails: null,
+    });
     assertEstimateLineRelationsMock.mockResolvedValue(undefined);
+    getCurrentPricingLaborSettingsMock.mockResolvedValue({
+      currencyCode: 'COP',
+      monthlyWorkingHours: 176,
+      defaultLaborHourlyRate: 50000,
+      saleContingencyPct: 5,
+      workshopContingencyPct: 10,
+      diagnosticContingencyPct: 20,
+      minimumMarkupPct: 20,
+      recommendedMarkupPct: 35,
+      highMarkupPct: 50,
+    });
     upsertEstimateMock.mockResolvedValue({
       id: 'estimate-1',
       workOrderId: 'wo-1',
@@ -90,7 +112,12 @@ describe('WorkOrderEstimatesService', () => {
     expect(upsertEstimateMock).toHaveBeenCalledWith(
       'wo-1',
       EstimatePhase.INITIAL,
-      dto,
+      expect.objectContaining({
+        ...dto,
+        laborHourlyCostSnapshot: 50000,
+        contingencyPct: 5,
+        recommendedPrice: 202500,
+      }),
     );
   });
 
@@ -104,6 +131,114 @@ describe('WorkOrderEstimatesService', () => {
     expect(readModelFindOneMock).not.toHaveBeenCalled();
     expect(assertEstimateLineRelationsMock).not.toHaveBeenCalled();
     expect(upsertEstimateMock).not.toHaveBeenCalled();
+    expect(getCurrentPricingLaborSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it('applies pricing/labor defaults from current settings when the request omits snapshot fields', async () => {
+    const dto: UpsertWorkOrderEstimateDto = {
+      estimatedLaborHours: 2,
+      lines: [
+        {
+          lineType: EstimateLineType.PART,
+          description: 'Inyector Bosch',
+          quantity: 1,
+          unitCost: 100000,
+        },
+        {
+          lineType: EstimateLineType.SERVICE,
+          description: 'Diagnóstico',
+          quantity: 2,
+          unitCost: 25000,
+        },
+      ],
+    };
+
+    readModelFindOneMock.mockResolvedValue({
+      id: 'wo-1',
+      type: 'SALE',
+      workshopDetails: null,
+    });
+    assertEstimateLineRelationsMock.mockResolvedValue(undefined);
+    getCurrentPricingLaborSettingsMock.mockResolvedValue({
+      currencyCode: 'COP',
+      monthlyWorkingHours: 176,
+      defaultLaborHourlyRate: 50000,
+      saleContingencyPct: 5,
+      workshopContingencyPct: 10,
+      diagnosticContingencyPct: 20,
+      minimumMarkupPct: 20,
+      recommendedMarkupPct: 35,
+      highMarkupPct: 50,
+    });
+    upsertEstimateMock.mockResolvedValue({ id: 'estimate-2' });
+
+    await service.upsertEstimate('wo-1', 'initial', dto);
+
+    expect(upsertEstimateMock).toHaveBeenCalledWith(
+      'wo-1',
+      EstimatePhase.INITIAL,
+      expect.objectContaining({
+        laborHourlyCostSnapshot: 50000,
+        baseCostAmount: 250000,
+        contingencyPct: 5,
+        totalCostAmount: 262500,
+        recommendedMinimumPrice: 315000,
+        recommendedPrice: 354375,
+        recommendedHighPrice: 393750,
+        totalPriceAmount: 354375,
+      }),
+    );
+  });
+
+  it('preserves explicit estimate snapshot overrides instead of replacing them with settings defaults', async () => {
+    const dto: UpsertWorkOrderEstimateDto = {
+      estimatedLaborHours: 1,
+      laborHourlyCostSnapshot: 70000,
+      baseCostAmount: 90000,
+      contingencyPct: 3,
+      totalCostAmount: 93000,
+      recommendedMinimumPrice: 110000,
+      recommendedPrice: 120000,
+      recommendedHighPrice: 135000,
+      totalPriceAmount: 120000,
+      lines: [],
+    };
+
+    readModelFindOneMock.mockResolvedValue({
+      id: 'wo-1',
+      type: 'WORKSHOP',
+      workshopDetails: { diagnosisRequired: true },
+    });
+    assertEstimateLineRelationsMock.mockResolvedValue(undefined);
+    getCurrentPricingLaborSettingsMock.mockResolvedValue({
+      currencyCode: 'COP',
+      monthlyWorkingHours: 176,
+      defaultLaborHourlyRate: 50000,
+      saleContingencyPct: 5,
+      workshopContingencyPct: 10,
+      diagnosticContingencyPct: 20,
+      minimumMarkupPct: 20,
+      recommendedMarkupPct: 35,
+      highMarkupPct: 50,
+    });
+    upsertEstimateMock.mockResolvedValue({ id: 'estimate-3' });
+
+    await service.upsertEstimate('wo-1', 'final', dto);
+
+    expect(upsertEstimateMock).toHaveBeenCalledWith(
+      'wo-1',
+      EstimatePhase.FINAL,
+      expect.objectContaining({
+        laborHourlyCostSnapshot: 70000,
+        baseCostAmount: 90000,
+        contingencyPct: 3,
+        totalCostAmount: 93000,
+        recommendedMinimumPrice: 110000,
+        recommendedPrice: 120000,
+        recommendedHighPrice: 135000,
+        totalPriceAmount: 120000,
+      }),
+    );
   });
 
   it('lists INITIAL and FINAL estimates once the work order exists', async () => {

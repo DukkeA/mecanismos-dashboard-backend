@@ -16,6 +16,7 @@ import {
 import { seedEmployeesAndBonuses } from './seed-employees';
 import { seedExpenses } from './seed-expenses';
 import { seedDefaultCostCenters } from './seed-cost-centers';
+import { seedPricingLaborSettings } from './seed-app-settings';
 import { seedWorkOrders } from './seed-work-orders';
 
 const BCRYPT_ROUNDS = 12;
@@ -578,6 +579,10 @@ async function main() {
     await seedEmployeesAndBonuses(prisma, now);
 
     console.log('Seeded employees and manual bonuses');
+
+    await seedPricingLaborSettings(prisma, now);
+
+    console.log('Seeded pricing/labor app settings singleton');
 
     for (const seedSupplier of SEED_SUPPLIERS) {
       await prisma.supplier.upsert({

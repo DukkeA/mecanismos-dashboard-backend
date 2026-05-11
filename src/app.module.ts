@@ -19,6 +19,7 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
 import { OperationsReportingModule } from './operations-reporting/operations-reporting.module';
 import { CustomerAssetHistoryModule } from './customer-asset-history/customer-asset-history.module';
+import { AppSettingsModule } from './app-settings/app-settings.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { CustomerAssetHistoryModule } from './customer-asset-history/customer-as
     WorkOrdersModule,
     OperationsReportingModule,
     CustomerAssetHistoryModule,
+    AppSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

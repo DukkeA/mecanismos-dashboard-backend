@@ -1183,9 +1183,13 @@ describe('WorkOrdersRepository', () => {
     await expect(
       repository.upsertEstimate('wo-1', EstimatePhase.INITIAL, {
         estimatedLaborHours: 1.5,
+        laborHourlyCostSnapshot: 50000,
         baseCostAmount: 120000,
         contingencyPct: 10,
         totalCostAmount: 150000,
+        recommendedMinimumPrice: 180000,
+        recommendedPrice: 220000,
+        recommendedHighPrice: 260000,
         totalPriceAmount: 220000,
         notes: ' Estimación inicial ',
         lines: [
@@ -1236,11 +1240,15 @@ describe('WorkOrdersRepository', () => {
         workOrderId: 'wo-1',
         phase: EstimatePhase.INITIAL,
         estimatedLaborHours: 1.5,
+        laborHourlyCostSnapshot: 50000,
         baseCostAmount: 120000,
         contingencyPct: 10,
         contingencyAmount: 30000,
         totalCostAmount: 150000,
         totalPriceAmount: 220000,
+        recommendedMinimumPrice: 180000,
+        recommendedPrice: 220000,
+        recommendedHighPrice: 260000,
         notes: 'Estimación inicial',
       },
     });

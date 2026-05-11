@@ -8,7 +8,11 @@ describe('upsert work-order estimate DTO contracts', () => {
     const dto = plainToInstance(UpsertWorkOrderEstimateDto, {
       estimatedLaborHours: '1.5',
       baseCostAmount: '120000',
+      laborHourlyCostSnapshot: '50000',
       totalCostAmount: '150000',
+      recommendedMinimumPrice: '180000',
+      recommendedPrice: '220000',
+      recommendedHighPrice: '250000',
       totalPriceAmount: '220000',
       notes: ' Estimación inicial ',
       lines: [
@@ -26,6 +30,10 @@ describe('upsert work-order estimate DTO contracts', () => {
     });
 
     expect(dto.estimatedLaborHours).toBe(1.5);
+    expect(dto.laborHourlyCostSnapshot).toBe(50000);
+    expect(dto.recommendedMinimumPrice).toBe(180000);
+    expect(dto.recommendedPrice).toBe(220000);
+    expect(dto.recommendedHighPrice).toBe(250000);
     expect(dto.notes).toBe('Estimación inicial');
     expect(dto.lines?.[0]).toMatchObject({
       description: 'Rodamiento delantero',
@@ -48,6 +56,24 @@ describe('upsert work-order estimate DTO contracts', () => {
 
     expect(errors.map((error) => error.property)).toEqual(
       expect.arrayContaining(['estimatedLaborHours']),
+    );
+  });
+
+  it('rejects contingency percentages above 100 and negative snapshot pricing fields', async () => {
+    const dto = plainToInstance(UpsertWorkOrderEstimateDto, {
+      contingencyPct: 101,
+      laborHourlyCostSnapshot: -1,
+      recommendedPrice: -10,
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors.map((error) => error.property)).toEqual(
+      expect.arrayContaining([
+        'contingencyPct',
+        'laborHourlyCostSnapshot',
+        'recommendedPrice',
+      ]),
     );
   });
 });

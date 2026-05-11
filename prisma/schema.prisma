@@ -13,6 +13,7 @@ model AppSettings {
   companyName              String   @default("Mecanismos Tecnicos")
   currencyCode             String   @default("COP")
   monthlyWorkingHours      Int      @default(176)
+  defaultLaborHourlyRate   Int      @default(50000)
   saleContingencyPct       Int      @default(5)
   workshopContingencyPct   Int      @default(10)
   diagnosticContingencyPct Int      @default(20)

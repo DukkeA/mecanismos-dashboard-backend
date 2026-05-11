@@ -1,0 +1,2 @@
+ALTER TABLE "AppSettings"
+ADD COLUMN "defaultLaborHourlyRate" INTEGER NOT NULL DEFAULT 50000;

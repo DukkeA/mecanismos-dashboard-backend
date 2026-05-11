@@ -125,11 +125,15 @@ export type WorkOrderEstimateDetail = {
   workOrderId: string;
   phase: string;
   estimatedLaborHours: number | null;
+  laborHourlyCostSnapshot: number | null;
   baseCostAmount: number;
   contingencyPct: number | null;
   contingencyAmount: number;
   totalCostAmount: number;
   totalPriceAmount: number;
+  recommendedMinimumPrice: number | null;
+  recommendedPrice: number | null;
+  recommendedHighPrice: number | null;
   notes: string | null;
   lines: WorkOrderEstimateLineDetail[];
 };
@@ -997,11 +1001,15 @@ export class WorkOrdersRepository {
           workOrderId,
           phase,
           estimatedLaborHours: input.estimatedLaborHours ?? null,
+          laborHourlyCostSnapshot: input.laborHourlyCostSnapshot ?? null,
           baseCostAmount: input.baseCostAmount ?? 0,
           contingencyPct: input.contingencyPct ?? null,
           contingencyAmount: deriveContingencyAmount(input),
           totalCostAmount: input.totalCostAmount ?? 0,
           totalPriceAmount: input.totalPriceAmount ?? 0,
+          recommendedMinimumPrice: input.recommendedMinimumPrice ?? null,
+          recommendedPrice: input.recommendedPrice ?? null,
+          recommendedHighPrice: input.recommendedHighPrice ?? null,
           notes: normalizeOptionalString(input.notes),
           WorkOrderEstimateLine: [],
         },
@@ -1647,11 +1655,15 @@ function buildEstimateCreatePayload(
     workOrderId,
     phase,
     estimatedLaborHours: input.estimatedLaborHours ?? null,
+    laborHourlyCostSnapshot: input.laborHourlyCostSnapshot ?? null,
     baseCostAmount: input.baseCostAmount ?? 0,
     contingencyPct: input.contingencyPct ?? null,
     contingencyAmount: deriveContingencyAmount(input),
     totalCostAmount: input.totalCostAmount ?? 0,
     totalPriceAmount: input.totalPriceAmount ?? 0,
+    recommendedMinimumPrice: input.recommendedMinimumPrice ?? null,
+    recommendedPrice: input.recommendedPrice ?? null,
+    recommendedHighPrice: input.recommendedHighPrice ?? null,
     notes: normalizeOptionalString(input.notes),
     updatedAt: new Date(),
   };
@@ -1920,11 +1932,15 @@ function mapEstimateRecord(
     workOrderId: record.workOrderId,
     phase: record.phase,
     estimatedLaborHours: normalizeDecimalNumber(record.estimatedLaborHours),
+    laborHourlyCostSnapshot: record.laborHourlyCostSnapshot,
     baseCostAmount: record.baseCostAmount,
     contingencyPct: record.contingencyPct,
     contingencyAmount: record.contingencyAmount,
     totalCostAmount: record.totalCostAmount,
     totalPriceAmount: record.totalPriceAmount,
+    recommendedMinimumPrice: record.recommendedMinimumPrice,
+    recommendedPrice: record.recommendedPrice,
+    recommendedHighPrice: record.recommendedHighPrice,
     notes: record.notes,
     lines: record.WorkOrderEstimateLine.map((line) => ({
       id: line.id,

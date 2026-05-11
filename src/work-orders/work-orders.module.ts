@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AppSettingsModule } from '../app-settings/app-settings.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma.service';
 import { WorkOrdersController } from './work-orders.controller';
@@ -16,7 +17,7 @@ import { WorkOrderRelationsService } from './services/work-order-relations.servi
 import { WorkOrdersService } from './work-orders.service';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AppSettingsModule],
   controllers: [WorkOrdersController],
   providers: [
     WorkOrdersService,
