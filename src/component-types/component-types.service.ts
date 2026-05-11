@@ -54,7 +54,10 @@ export class ComponentTypesService {
   async findOptions(query: ComponentTypeOptionsQueryDto) {
     const options = await this.componentTypesRepository.findOptions(query);
 
-    return buildOptionsResponse(options.map(mapComponentTypeOption), query.limit);
+    return buildOptionsResponse(
+      options.map(mapComponentTypeOption),
+      query.limit,
+    );
   }
 
   async findOne(id: string) {

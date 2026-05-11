@@ -8,9 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ReferenceOptionsResponseDto,
-} from '../common/reference-data';
+import { ReferenceOptionsResponseDto } from '../common/reference-data';
 import {
   ApiCookieAuth,
   ApiCreatedResponse,

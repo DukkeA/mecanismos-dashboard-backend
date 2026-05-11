@@ -133,7 +133,9 @@ function mapComponentOption(component: {
 }): ReferenceOption {
   return {
     id: component.id,
-    label: component.identifier ?? `${component.componentType.name} ${component.reference}`,
+    label:
+      component.identifier ??
+      `${component.componentType.name} ${component.reference}`,
     description: `${component.brand} · ${component.reference}`,
     context: {
       customerId: component.customerId,

@@ -1,9 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import {
-  ActiveOptionsQueryDto,
-  OptionsQueryDto,
-} from './options-query.dto';
+import { ActiveOptionsQueryDto, OptionsQueryDto } from './options-query.dto';
 import {
   buildOptionsResponse,
   buildQuickCreateResponse,
@@ -42,10 +39,7 @@ describe('reference-data DTO contracts', () => {
 
   it('builds standard options and quick-create response shapes', () => {
     expect(
-      buildOptionsResponse(
-        [{ id: 'service-1', label: 'Diagnóstico' }],
-        10,
-      ),
+      buildOptionsResponse([{ id: 'service-1', label: 'Diagnóstico' }], 10),
     ).toEqual({
       data: [{ id: 'service-1', label: 'Diagnóstico' }],
       meta: { limit: 10 },

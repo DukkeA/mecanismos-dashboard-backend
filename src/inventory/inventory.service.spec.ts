@@ -31,13 +31,15 @@ describe('InventoryService', () => {
     updatedAt: new Date('2026-05-06T10:00:00.000Z'),
   };
 
+  const createMovementMock = jest.fn();
+
   const repository = {
     createItem: jest.fn(),
     findItemOptions: jest.fn(),
     findManyItems: jest.fn(),
     calculateCurrentStocks: jest.fn(),
     findItemById: jest.fn(),
-    createMovement: jest.fn(),
+    createMovement: createMovementMock,
     listMovementsByItem: jest.fn(),
     findMovementById: jest.fn(),
   } as unknown as jest.Mocked<InventoryRepository>;
@@ -224,6 +226,6 @@ describe('InventoryService', () => {
       entity: itemRecord,
     });
 
-    expect(repository.createMovement).not.toHaveBeenCalled();
+    expect(createMovementMock).not.toHaveBeenCalled();
   });
 });

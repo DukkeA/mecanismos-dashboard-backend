@@ -131,7 +131,10 @@ export class CostCentersRepository {
     };
 
     return prisma.costCenter.findMany({
-      where: buildCostCenterWhere({ ...query, isActive: query.isActive ?? true }),
+      where: buildCostCenterWhere({
+        ...query,
+        isActive: query.isActive ?? true,
+      }),
       orderBy: { name: 'asc' },
       take: query.limit,
       select: {

@@ -88,7 +88,7 @@ export class EmployeesService {
     const employee = await this.create({
       ...createEmployeeDto,
       baseSalaryMonthly: createEmployeeDto.baseSalaryMonthly ?? 0,
-    } as CreateEmployeeDto);
+    });
 
     return buildQuickCreateResponse(mapEmployeeOption(employee), employee, {
       incompleteProfile: createEmployeeDto.baseSalaryMonthly === undefined,
@@ -201,7 +201,9 @@ function mapEmployeeOption(employee: {
   };
 }
 
-function mapCostCenterOption(costCenter: CostCenterOptionRecord): ReferenceOption {
+function mapCostCenterOption(
+  costCenter: CostCenterOptionRecord,
+): ReferenceOption {
   return {
     id: costCenter.id,
     label: `${costCenter.code} · ${costCenter.name}`,

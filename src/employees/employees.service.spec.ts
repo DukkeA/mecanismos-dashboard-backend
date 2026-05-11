@@ -229,20 +229,22 @@ describe('EmployeesService', () => {
       costCenterOptionRecord,
     ] as never);
 
-    await expect(service.listCostCenterOptions()).resolves.toEqual([
-      {
-        data: [
-          {
-            id: 'cost-center-1',
-            label: 'TALLER · Taller',
-            description: 'Taller',
-            isActive: true,
-            context: { code: 'TALLER' },
-          },
-        ],
-        meta: { limit: 10 },
-      },
-    ][0]);
+    await expect(service.listCostCenterOptions()).resolves.toEqual(
+      [
+        {
+          data: [
+            {
+              id: 'cost-center-1',
+              label: 'TALLER · Taller',
+              description: 'Taller',
+              isActive: true,
+              context: { code: 'TALLER' },
+            },
+          ],
+          meta: { limit: 10 },
+        },
+      ][0],
+    );
   });
 
   it('creates employee bonuses only for existing employees and trims optional fields', async () => {

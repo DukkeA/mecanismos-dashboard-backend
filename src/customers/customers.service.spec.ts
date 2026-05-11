@@ -97,7 +97,9 @@ describe('CustomersService', () => {
       },
     ] as never);
 
-    await expect(service.findOptions({ limit: 10, search: 'ana' })).resolves.toEqual({
+    await expect(
+      service.findOptions({ limit: 10, search: 'ana' }),
+    ).resolves.toEqual({
       data: [
         {
           id: 'customer-1',

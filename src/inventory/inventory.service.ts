@@ -33,7 +33,10 @@ export class InventoryService {
   async findItemOptions(query: InventoryItemOptionsQueryDto) {
     const options = await this.inventoryRepository.findItemOptions(query);
 
-    return buildOptionsResponse(options.map(mapInventoryItemOption), query.limit);
+    return buildOptionsResponse(
+      options.map(mapInventoryItemOption),
+      query.limit,
+    );
   }
 
   async findAll(query: ListInventoryItemsQueryDto) {
@@ -151,7 +154,8 @@ function mapInventoryItemOption(item: {
   return {
     id: item.id,
     label: item.name,
-    description: [item.brand, item.reference].filter(Boolean).join(' · ') || undefined,
+    description:
+      [item.brand, item.reference].filter(Boolean).join(' · ') || undefined,
     isActive: item.isActive,
     context: {
       itemType: item.itemType,

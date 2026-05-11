@@ -58,7 +58,8 @@ export class ComponentsController {
 
   @Get('options')
   @ApiOperation({
-    summary: 'List lightweight component options with customer and vehicle filters',
+    summary:
+      'List lightweight component options with customer and vehicle filters',
   })
   @ApiOkResponse({
     description: 'Component options returned.',

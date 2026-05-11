@@ -79,7 +79,8 @@ export class CostCentersController {
 
   @Post('quick-create')
   @ApiOperation({
-    summary: 'Quick-create a cost center and return an option-compatible result',
+    summary:
+      'Quick-create a cost center and return an option-compatible result',
   })
   @ApiCreatedResponse({
     description: 'Cost center quick-created.',
