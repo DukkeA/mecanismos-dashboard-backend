@@ -12,7 +12,7 @@ The auth schema was SIMPLIFIED IN PLACE: keep the existing `user`, `account`, an
 
 | Model | v1 auth role | Fields that matter now | Why it exists |
 |---|---|---|---|
-| `user` | Identity and authorization | `id`, `email`, `name`, `role`, `isActive`, `lastLoginAt` | Drives login eligibility and protected-route identity |
+| `user` | Identity and authorization | `id`, `email`, `name`, `role`, `isActive`, `mustChangePassword`, `lastLoginAt` | Drives login eligibility, forced password change, and protected-route identity |
 | `account` | Password credential storage | `userId`, `passwordHash`, `passwordUpdatedAt` | Keeps the email/password credential explicit |
 | `session` | Refresh-session storage | `id`, `userId`, `familyId`, `tokenDigest`, `expiresAt`, `revokedAt`, `replacedBySessionId`, `lastUsedAt`, `ipAddress`, `userAgent` | Tracks rotation, reuse detection, and logout revocation |
 
@@ -39,10 +39,12 @@ The auth schema was SIMPLIFIED IN PLACE: keep the existing `user`, `account`, an
 - `findActivePasswordCredentialByEmail(email)` returns an active user plus the password hash.
 - `findActiveUserById(userId)` powers `/auth/me` after JWT validation.
 - `findRefreshSessionByTokenDigest(digest)` powers refresh, reuse detection, and logout.
+- `updatePasswordCredential(userId, input)` updates the bcrypt hash and clears `mustChangePassword` after a valid self-service change.
 
 ## Reviewer checklist
 
 - [ ] Password auth depends on `passwordHash`, not OAuth leftovers.
+- [ ] `mustChangePassword` starts true for admin-created or reset users and clears only after a valid password change.
 - [ ] Role checks come from `user.role`.
 - [ ] Refresh-session reuse can revoke the full `familyId` chain.
 - [ ] Raw refresh tokens are never persisted directly.

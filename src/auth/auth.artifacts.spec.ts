@@ -36,19 +36,36 @@ describe('auth reviewer artifacts', () => {
         '# Auth v1 overview',
         'POST /auth/login',
         'GET /auth/me',
+        'POST /auth/change-password',
+        'GET /admin/users',
       ],
     },
     {
       fileName: 'schema.md',
-      expectedContent: ['# Auth schema quick map', 'session', 'familyId'],
+      expectedContent: [
+        '# Auth schema quick map',
+        'session',
+        'familyId',
+        'mustChangePassword',
+      ],
     },
     {
       fileName: 'security.md',
-      expectedContent: ['# Auth security posture', 'CSRF posture', 'Origin'],
+      expectedContent: [
+        '# Auth security posture',
+        'CSRF posture',
+        'Origin',
+        'forced password change',
+      ],
     },
     {
       fileName: 'testing.md',
-      expectedContent: ['# Auth testing guide', 'AUTOMATED TESTS', 'Postman'],
+      expectedContent: [
+        '# Auth testing guide',
+        'AUTOMATED TESTS',
+        'Postman',
+        'admin user management',
+      ],
     },
   ])(
     'ships $fileName with auth-specific reviewer guidance',
@@ -72,12 +89,16 @@ describe('auth reviewer artifacts', () => {
       'Supplemental manual verification',
     );
     expect(listRequestNames(collection)).toEqual(
-      expect.arrayContaining([
-        'Login as Admin',
-        'Refresh Admin Session',
-        'Logout Admin Session',
-      ]),
-    );
+        expect.arrayContaining([
+          'Login as Admin',
+          'Refresh Admin Session',
+          'Logout Admin Session',
+          'Admin List Users',
+          'Admin Create User',
+          'Admin Reset User Password',
+          'Change Own Password',
+        ]),
+      );
     expect(findRequest(collection, 'Login as Admin')).toMatchObject({
       method: 'POST',
       rawUrl: '{{baseUrl}}/auth/login',
@@ -101,6 +122,10 @@ describe('auth reviewer artifacts', () => {
         'Admin Smoke as Admin',
         'Admin Smoke forbidden for Sales',
         'Admin Smoke forbidden for Mechanic',
+        'Admin List Users',
+        'Admin Create User',
+        'Admin Reset User Password',
+        'Change Own Password',
       ]),
     );
     expect(findRequest(collection, 'Me as Admin')).toMatchObject({
@@ -110,6 +135,22 @@ describe('auth reviewer artifacts', () => {
     expect(findRequest(collection, 'Admin Smoke as Admin')).toMatchObject({
       method: 'GET',
       rawUrl: '{{baseUrl}}/auth/admin/smoke',
+    });
+    expect(findRequest(collection, 'Admin List Users')).toMatchObject({
+      method: 'GET',
+      rawUrl: '{{baseUrl}}/admin/users',
+    });
+    expect(findRequest(collection, 'Admin Create User')).toMatchObject({
+      method: 'POST',
+      rawUrl: '{{baseUrl}}/admin/users',
+    });
+    expect(findRequest(collection, 'Admin Reset User Password')).toMatchObject({
+      method: 'POST',
+      rawUrl: '{{baseUrl}}/admin/users/{{managedUserId}}/reset-password',
+    });
+    expect(findRequest(collection, 'Change Own Password')).toMatchObject({
+      method: 'POST',
+      rawUrl: '{{baseUrl}}/auth/change-password',
     });
   });
 });

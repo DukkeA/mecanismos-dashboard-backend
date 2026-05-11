@@ -37,6 +37,26 @@
     {
       "key": "invalidPassword",
       "value": "Admin123!wrong"
+    },
+    {
+      "key": "managedUserId",
+      "value": ""
+    },
+    {
+      "key": "managedUserEmail",
+      "value": "postman-admin-user@mecanismos.test"
+    },
+    {
+      "key": "managedUserTemporaryPassword",
+      "value": "Temp1234!"
+    },
+    {
+      "key": "managedUserResetPassword",
+      "value": "Reset1234!"
+    },
+    {
+      "key": "managedUserNewPassword",
+      "value": "NewSecure123!"
     }
   ],
   "item": [
@@ -272,6 +292,243 @@
                 "exec": [
                   "pm.test('me is unauthorized after logout', function () {",
                   "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin User Management",
+      "item": [
+        {
+          "name": "Admin Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{managedUserEmail}}\",\n  \"name\": \"Postman Managed User\",\n  \"role\": \"SALES\",\n  \"temporaryPassword\": \"{{managedUserTemporaryPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin create user returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('managedUserId', body.id);",
+                  "pm.test('admin create user returns one-time temporary password', function () {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('managedUserEmail'));",
+                  "  pm.expect(body.mustChangePassword).to.eql(true);",
+                  "  pm.expect(body.temporaryPassword).to.eql(pm.collectionVariables.get('managedUserTemporaryPassword'));",
+                  "  pm.expect(body.passwordHash).to.eql(undefined);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "{{managedUserEmail}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin list users returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('admin list users includes the managed user without secrets', function () {",
+                  "  pm.expect(Array.isArray(body.data)).to.eql(true);",
+                  "  pm.expect(body.data.some((user) => user.id === pm.collectionVariables.get('managedUserId'))).to.eql(true);",
+                  "  pm.expect(JSON.stringify(body)).to.not.include('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Reset User Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temporaryPassword\": \"{{managedUserResetPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{managedUserId}}/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{managedUserId}}",
+                "reset-password"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin reset password returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('admin reset password returns only the one-time reset secret', function () {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('managedUserId'));",
+                  "  pm.expect(body.mustChangePassword).to.eql(true);",
+                  "  pm.expect(body.temporaryPassword).to.eql(pm.collectionVariables.get('managedUserResetPassword'));",
+                  "  pm.expect(body.passwordHash).to.eql(undefined);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Managed User Login With Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{managedUserEmail}}\",\n  \"password\": \"{{managedUserResetPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('managed user login after reset returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('managed user login still requires password change', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('managedUserEmail'));",
+                  "  pm.expect(body.mustChangePassword).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change Own Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{managedUserResetPassword}}\",\n  \"newPassword\": \"{{managedUserNewPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('change own password returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('change own password clears forced password change without leaking secrets', function () {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('managedUserEmail'));",
+                  "  pm.expect(body.mustChangePassword).to.eql(false);",
+                  "  pm.expect(body.passwordHash).to.eql(undefined);",
                   "});"
                 ]
               }

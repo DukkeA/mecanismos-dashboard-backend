@@ -1,14 +1,15 @@
 # Auth security posture
 
-The current security posture is COOKIE-FIRST: access and refresh tokens stay in HttpOnly cookies, refresh tokens rotate, and admin-only routes enforce explicit role checks.
+The current security posture is COOKIE-FIRST: access and refresh tokens stay in HttpOnly cookies, refresh tokens rotate, forced password change is explicit in the user state, and admin-only routes enforce explicit role checks.
 
 ## Quick path
 
 1. Keep both auth tokens in HttpOnly cookies.
 2. Treat `md_access` as short-lived and `md_refresh` as rotatable.
 3. Revoke the refresh-session family on reuse.
-4. Allow admin-only access only for `ADMIN`.
-5. Keep root `.env` as the current local source of truth until real deployment environments exist.
+4. Force password rotation after admin-created or admin-reset credentials.
+5. Allow admin-only access only for `ADMIN`.
+6. Keep root `.env` as the current local source of truth until real deployment environments exist.
 
 ## Cookie contract
 
@@ -45,17 +46,20 @@ Answer first: current v1 assumes SAME-SITE SUBDOMAIN DEPLOYMENT, so `SameSite=La
 | JWT auth guard | Block requests without a valid access token |
 | Roles guard | Reject authenticated non-admin users on admin-only routes |
 | `AuthService.getCurrentUser()` | Re-load active user identity for `/auth/me` |
+| `AuthService.changePassword()` | Verify the current password before replacing the hash and clearing forced password change |
 
 ## Operational gotchas
 
 - Swagger metadata documents cookie auth, but Swagger UI is NOT the primary verification path for HttpOnly-cookie flows.
 - Root `.env` is shared by Nest runtime, Prisma CLI, and local auth tests for now.
 - Non-admin roles are valid authenticated users, but they are intentionally forbidden from admin-only routes in v1.
+- Forced password change relies on `mustChangePassword`; admin resets revoke refresh sessions but existing access JWTs can still live until expiry.
 
 ## Reviewer checklist
 
 - [ ] Access tokens are extracted from cookies, not request bodies.
 - [ ] Refresh-token reuse revokes the family.
+- [ ] Forced password change is visible through `/auth/login` and `/auth/me`, then cleared only by a valid `POST /auth/change-password`.
 - [ ] Unsafe auth writes reject disallowed `Origin`/`Referer` values with `403`.
 - [ ] Admin-only access fails with `403` for `SALES` and `MECHANIC`.
 - [ ] Local root `.env` usage is documented as a temporary stage decision, not a forever architecture.
