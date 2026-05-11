@@ -1,0 +1,271 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Reference Data",
+    "_postman_id": "abf79d3f-2315-4a44-a64b-98d2f02f0a31",
+    "description": "Runner-ready frontend reference-data and quick-create verification across module-owned options and inline creation routes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "runId", "value": "" },
+    { "key": "customerId", "value": "" },
+    { "key": "vehicleId", "value": "" },
+    { "key": "costCenterId", "value": "" },
+    { "key": "customerDocumentNumber", "value": "" },
+    { "key": "customerName", "value": "" },
+    { "key": "vehiclePlate", "value": "" },
+    { "key": "serviceName", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now().toString();",
+                  "pm.collectionVariables.set('runId', now.slice(-8));",
+                  "pm.collectionVariables.set('customerId', '');",
+                  "pm.collectionVariables.set('vehicleId', '');",
+                  "pm.collectionVariables.set('costCenterId', '');",
+                  "pm.collectionVariables.set('customerDocumentNumber', `9${now.slice(-8)}`);",
+                  "pm.collectionVariables.set('customerName', `Cliente Runner ${now.slice(-6)}`);",
+                  "pm.collectionVariables.set('vehiclePlate', `RD${now.slice(-4)}`);",
+                  "pm.collectionVariables.set('serviceName', `Servicio Runner ${now.slice(-6)}`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Options",
+      "item": [
+        {
+          "name": "List Service Options",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/services/options?search=diag&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["services", "options"],
+              "query": [
+                { "key": "search", "value": "diag" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Cost Center Options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const item = body.data && body.data[0];",
+                  "if (item && item.id) { pm.collectionVariables.set('costCenterId', item.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/cost-centers/options?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["cost-centers", "options"],
+              "query": [{ "key": "limit", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "List Vehicle Options",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/options?customerId={{customerId}}&search={{vehiclePlate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["vehicles", "options"],
+              "query": [
+                { "key": "customerId", "value": "{{customerId}}" },
+                { "key": "search", "value": "{{vehiclePlate}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quick Create",
+      "item": [
+        {
+          "name": "Quick Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('customerId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{customerName}}\",\n  \"phone\": \"3001234567\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"{{customerDocumentNumber}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/quick-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "quick-create"]
+            }
+          }
+        },
+        {
+          "name": "Quick Create Vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('vehicleId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"CX5\",\n  \"plate\": \"{{vehiclePlate}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/quick-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["vehicles", "quick-create"]
+            }
+          }
+        },
+        {
+          "name": "Quick Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Empleado {{runId}}\",\n  \"type\": \"MECHANIC\",\n  \"costCenterId\": \"{{costCenterId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees/quick-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "quick-create"]
+            }
+          }
+        },
+        {
+          "name": "Quick Create Service",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{serviceName}}\",\n  \"description\": \"Alta rápida para combobox\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/services/quick-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["services", "quick-create"]
+            }
+          }
+        },
+        {
+          "name": "Duplicate Customer Quick Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{customerName}}\",\n  \"phone\": \"3001234567\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"{{customerDocumentNumber}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/quick-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "quick-create"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protection Checks",
+      "item": [
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Employee Quick Create forbidden for Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bloqueado {{runId}}\",\n  \"type\": \"MECHANIC\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees/quick-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "quick-create"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
