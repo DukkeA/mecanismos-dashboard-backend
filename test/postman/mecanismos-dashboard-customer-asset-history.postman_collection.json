@@ -1,0 +1,179 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard Customer Asset History",
+    "description": "Runner-ready supplemental verification for the read-only customer asset history endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "seedCustomerId", "value": "seed-customer-acme-industrial" },
+    { "key": "seedVehicleId", "value": "seed-vehicle-acme-foton-aumark" },
+    { "key": "seedComponentId", "value": "seed-component-acme-inyector" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@mecanismos.test\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('login returns 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Customer Asset History",
+      "item": [
+        {
+          "name": "Get Customer History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer-asset-history/customers/{{seedCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer-asset-history", "customers", "{{seedCustomerId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('customer history returns 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('customer history returns scoped totals', function () { const body = pm.response.json(); pm.expect(body.summary.totalWorkOrders).to.eql(2); pm.expect(body.summary.unknownPayableCount).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Vehicle History Page 1",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer-asset-history/vehicles/{{seedVehicleId}}?page=1&limit=1&dateField=estimatedCollectionAt&dateFrom=2026-05-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.000Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer-asset-history", "vehicles", "{{seedVehicleId}}"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "1" },
+                { "key": "dateField", "value": "estimatedCollectionAt" },
+                { "key": "dateFrom", "value": "2026-05-01T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-31T23:59:59.000Z" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('vehicle history returns 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('vehicle history keeps stable page metadata', function () { const body = pm.response.json(); pm.expect(body.meta.total).to.eql(2); pm.expect(body.meta.totalPages).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Completed Component History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer-asset-history/components/{{seedComponentId}}?dateField=completedAt&dateFrom=2026-05-09T00:00:00.000Z&dateTo=2026-05-09T23:59:59.999Z&status=COMPLETED",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer-asset-history", "components", "{{seedComponentId}}"],
+              "query": [
+                { "key": "dateField", "value": "completedAt" },
+                { "key": "dateFrom", "value": "2026-05-09T00:00:00.000Z" },
+                { "key": "dateTo", "value": "2026-05-09T23:59:59.999Z" },
+                { "key": "status", "value": "COMPLETED" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('component history returns 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('component history returns one completed row', function () { const body = pm.response.json(); pm.expect(body.summary.totalWorkOrders).to.eql(1); pm.expect(body.data[0].workOrderId).to.eql('seed-work-order-workshop-injector-repair'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Invalid History Query",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer-asset-history/customers/{{seedCustomerId}}?page=0&limit=101&dateField=paidAt",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer-asset-history", "customers", "{{seedCustomerId}}"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "limit", "value": "101" },
+                { "key": "dateField", "value": "paidAt" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('invalid history query returns 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer Asset History forbidden for Mechanic",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer-asset-history/customers/{{seedCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer-asset-history", "customers", "{{seedCustomerId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('mechanic access is rejected', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
