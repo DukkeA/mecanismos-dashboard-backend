@@ -3,9 +3,7 @@ import {
   WorkOrderStatus,
   WorkOrderType,
 } from '../../../generated/prisma/enums';
-import {
-  CustomerAssetHistoryDateField,
-} from '../dto/customer-asset-history-query.dto';
+import { CustomerAssetHistoryDateField } from '../dto/customer-asset-history-query.dto';
 import {
   CustomerAssetHistoryRepository,
   type CustomerAssetHistoryScopeQuery,
@@ -27,7 +25,7 @@ describe('CustomerAssetHistoryRepository', () => {
         findMany: componentFindMany,
       },
       workOrder: { count: jest.fn(), findMany: jest.fn() },
-    } as never);
+    });
 
     await repository.findCustomerSubject('customer-1');
     await repository.findVehicleSubject('vehicle-1');
@@ -114,7 +112,7 @@ describe('CustomerAssetHistoryRepository', () => {
       vehicle: { findUnique: jest.fn(), findMany: jest.fn() },
       component: { findUnique: jest.fn(), findMany: jest.fn() },
       workOrder: { count, findMany },
-    } as never);
+    });
 
     const query: CustomerAssetHistoryScopeQuery = {
       scope: 'customer',
@@ -147,13 +145,10 @@ describe('CustomerAssetHistoryRepository', () => {
     expect(count).toHaveBeenCalledWith({ where: expectedWhere });
     expect(findMany).toHaveBeenNthCalledWith(1, {
       where: expectedWhere,
-      orderBy: [
-        { estimatedCollectionAt: 'desc' },
-        { number: 'desc' },
-      ],
+      orderBy: [{ estimatedCollectionAt: 'desc' }, { number: 'desc' }],
       skip: 10,
       take: 10,
-      select: expect.objectContaining({
+      select: {
         id: true,
         number: true,
         type: true,
@@ -173,7 +168,9 @@ describe('CustomerAssetHistoryRepository', () => {
         Component: {
           select: { id: true, brand: true, reference: true, identifier: true },
         },
-        Employee: { select: { id: true, name: true, type: true, isActive: true } },
+        Employee: {
+          select: { id: true, name: true, type: true, isActive: true },
+        },
         WorkshopWorkOrderDetails: {
           select: { customerReportedIssue: true, diagnosisSummary: true },
         },
@@ -187,15 +184,48 @@ describe('CustomerAssetHistoryRepository', () => {
         WorkOrderActualCost: {
           select: { id: true, amount: true },
         },
-      }),
+      },
     });
     expect(findMany).toHaveBeenNthCalledWith(2, {
       where: expectedWhere,
-      orderBy: [
-        { estimatedCollectionAt: 'desc' },
-        { number: 'desc' },
-      ],
-      select: expect.any(Object),
+      orderBy: [{ estimatedCollectionAt: 'desc' }, { number: 'desc' }],
+      select: {
+        id: true,
+        number: true,
+        type: true,
+        status: true,
+        paymentStatus: true,
+        customerId: true,
+        vehicleId: true,
+        componentId: true,
+        summary: true,
+        createdAt: true,
+        completedAt: true,
+        estimatedCollectionAt: true,
+        Customer: { select: { id: true, name: true } },
+        Vehicle: {
+          select: { id: true, brand: true, modelReference: true, plate: true },
+        },
+        Component: {
+          select: { id: true, brand: true, reference: true, identifier: true },
+        },
+        Employee: {
+          select: { id: true, name: true, type: true, isActive: true },
+        },
+        WorkshopWorkOrderDetails: {
+          select: { customerReportedIssue: true, diagnosisSummary: true },
+        },
+        WorkOrderEstimate: {
+          select: { phase: true, totalPriceAmount: true },
+          orderBy: { createdAt: 'asc' },
+        },
+        WorkOrderPayment: {
+          select: { id: true, amount: true },
+        },
+        WorkOrderActualCost: {
+          select: { id: true, amount: true },
+        },
+      },
     });
   });
 
@@ -207,7 +237,7 @@ describe('CustomerAssetHistoryRepository', () => {
       vehicle: { findUnique: jest.fn(), findMany: jest.fn() },
       component: { findUnique: jest.fn(), findMany: jest.fn() },
       workOrder: { count, findMany: jest.fn().mockResolvedValue([]) },
-    } as never);
+    });
 
     await repository.countScopedHistory({
       scope: 'vehicle',

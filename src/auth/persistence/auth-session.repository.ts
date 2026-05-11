@@ -27,15 +27,15 @@ type RefreshSessionLookupRecord = {
   expiresAt: Date;
   revokedAt: Date | null;
   replacedBySessionId: string | null;
-    user: {
-      id: string;
-      email: string;
-      name: string;
-      role: 'ADMIN' | 'SALES' | 'MECHANIC';
-      isActive: boolean;
-      mustChangePassword: boolean;
-    };
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: 'ADMIN' | 'SALES' | 'MECHANIC';
+    isActive: boolean;
+    mustChangePassword: boolean;
   };
+};
 
 type ActiveUserRecord = {
   id: string;
@@ -96,19 +96,23 @@ type AuthPrismaClient = {
   user: {
     findFirst(args: {
       where: { id: string; isActive: true };
-        select: {
-          id: true;
-          email: true;
-          name: true;
-          role: true;
-          isActive: true;
-          mustChangePassword: true;
-        };
+      select: {
+        id: true;
+        email: true;
+        name: true;
+        role: true;
+        isActive: true;
+        mustChangePassword: true;
+      };
     }): Promise<ActiveUserRecord | null>;
     update(args: {
       where: { id: string };
-      data: { lastLoginAt: Date };
-    }): Promise<unknown>;
+      data: {
+        lastLoginAt?: Date;
+        mustChangePassword?: boolean;
+        updatedAt?: Date;
+      };
+    }): Promise<ActiveUserRecord>;
   };
   $transaction?<T>(
     callback: (tx: AuthPrismaTransaction) => Promise<T>,

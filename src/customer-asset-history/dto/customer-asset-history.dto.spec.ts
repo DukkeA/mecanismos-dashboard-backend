@@ -67,9 +67,10 @@ describe('customer asset history DTO contracts', () => {
         'type',
       ]),
     );
-    expect(errors.find((error) => error.property === 'dateTo')?.constraints).toMatchObject({
-      isDateRangeOrderValid:
-        'dateTo must be greater than or equal to dateFrom',
+    expect(
+      errors.find((error) => error.property === 'dateTo')?.constraints,
+    ).toMatchObject({
+      isDateRangeOrderValid: 'dateTo must be greater than or equal to dateFrom',
     });
   });
 });

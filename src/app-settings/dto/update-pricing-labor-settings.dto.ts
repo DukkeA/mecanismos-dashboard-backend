@@ -1,12 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import {
-  IsInt,
-  IsOptional,
-  Matches,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 
 export class UpdatePricingLaborSettingsDto {
   @ApiPropertyOptional({ example: 'COP', pattern: '^[A-Z]{3}$' })

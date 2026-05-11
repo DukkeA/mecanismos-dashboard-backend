@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma/client';
-import type { PaymentStatus, WorkOrderStatus, WorkOrderType } from '../../../generated/prisma/enums';
+import type {
+  EstimatePhase,
+  PaymentStatus,
+  WorkOrderStatus,
+  WorkOrderType,
+} from '../../../generated/prisma/enums';
 import { CUSTOMER_ASSET_HISTORY_PRISMA_CLIENT } from '../customer-asset-history.tokens';
 import { type CustomerAssetHistoryDateField } from '../dto/customer-asset-history-query.dto';
 
@@ -86,7 +91,7 @@ export type ComponentHistoryRelatedAssetsReadModel = {
 };
 
 export type HistoryEstimateReadModel = {
-  phase: string;
+  phase: EstimatePhase;
   totalPriceAmount: number;
 };
 
@@ -111,7 +116,12 @@ export type CustomerAssetHistoryRowReadModel = {
   Customer: { id: string; name: string } | null;
   Vehicle: VehicleRelatedAssetReadModel | null;
   Component: ComponentRelatedAssetReadModel | null;
-  Employee: { id: string; name: string; type: string | null; isActive: boolean | null } | null;
+  Employee: {
+    id: string;
+    name: string;
+    type: string | null;
+    isActive: boolean | null;
+  } | null;
   WorkshopWorkOrderDetails: {
     customerReportedIssue: string | null;
     diagnosisSummary: string | null;
@@ -123,15 +133,44 @@ export type CustomerAssetHistoryRowReadModel = {
 
 type CustomerAssetHistoryPrismaClient = {
   customer: {
-    findUnique(args: { where: { id: string }; select: Record<string, unknown> }): Promise<CustomerHistorySubjectReadModel | null>;
+    findUnique(args: {
+      where: { id: string };
+      select: Record<string, unknown>;
+    }): Promise<CustomerHistorySubjectReadModel | null>;
   };
   vehicle: {
-    findUnique(args: { where: { id: string }; select: Record<string, unknown> }): Promise<VehicleHistorySubjectReadModel | null>;
-    findMany(args: { where: Record<string, unknown>; orderBy?: Array<Record<string, 'asc'>>; select: Record<string, unknown> }): Promise<VehicleRelatedAssetReadModel[] | Array<{ Customer: { id: string; name: string } | null; Component: ComponentRelatedAssetReadModel[] }>>;
+    findUnique(args: {
+      where: { id: string };
+      select: Record<string, unknown>;
+    }): Promise<VehicleHistorySubjectReadModel | null>;
+    findMany(args: {
+      where: Record<string, unknown>;
+      orderBy?: Array<Record<string, 'asc'>>;
+      select: Record<string, unknown>;
+    }): Promise<
+      | VehicleRelatedAssetReadModel[]
+      | Array<{
+          Customer: { id: string; name: string } | null;
+          Component: ComponentRelatedAssetReadModel[];
+        }>
+    >;
   };
   component: {
-    findUnique(args: { where: { id: string }; select: Record<string, unknown> }): Promise<ComponentHistorySubjectReadModel | null>;
-    findMany(args: { where: Record<string, unknown>; orderBy?: Array<Record<string, 'asc'>>; select: Record<string, unknown> }): Promise<ComponentRelatedAssetReadModel[] | Array<{ Customer: { id: string; name: string } | null; Vehicle: VehicleRelatedAssetReadModel | null }>>;
+    findUnique(args: {
+      where: { id: string };
+      select: Record<string, unknown>;
+    }): Promise<ComponentHistorySubjectReadModel | null>;
+    findMany(args: {
+      where: Record<string, unknown>;
+      orderBy?: Array<Record<string, 'asc'>>;
+      select: Record<string, unknown>;
+    }): Promise<
+      | ComponentRelatedAssetReadModel[]
+      | Array<{
+          Customer: { id: string; name: string } | null;
+          Vehicle: VehicleRelatedAssetReadModel | null;
+        }>
+    >;
   };
   workOrder: {
     count(args: { where: WorkOrderWhereInput }): Promise<number>;
@@ -334,7 +373,10 @@ function buildScopedHistoryWhere(
   };
 }
 
-function resolveScopeWhere(scope: CustomerAssetHistoryScope, subjectId: string) {
+function resolveScopeWhere(
+  scope: CustomerAssetHistoryScope,
+  subjectId: string,
+) {
   if (scope === 'vehicle') {
     return { vehicleId: subjectId };
   }

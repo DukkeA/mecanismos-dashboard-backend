@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { PaymentMethod } from '../../../generated/prisma/enums';
 import {
   WorkOrderInventoryReservationConflictError,
@@ -32,7 +29,9 @@ describe('WorkOrderInventoryService', () => {
       workOrderReadModelService,
       workOrderRelationsService,
     );
-    workOrderReadModelService.findOne.mockResolvedValue({ id: 'wo-1' } as never);
+    workOrderReadModelService.findOne.mockResolvedValue({
+      id: 'wo-1',
+    } as never);
   });
 
   it('rejects reserve/release/consume/sell for demand-purchased items before touching the ledger', async () => {
@@ -57,7 +56,7 @@ describe('WorkOrderInventoryService', () => {
       ),
     );
 
-    expect(repository.createInventoryAction).not.toHaveBeenCalled();
+    expect(repository.createInventoryAction.mock.calls).toHaveLength(0);
   });
 
   it('maps insufficient stock and partial-release conflicts to typed HTTP exceptions', async () => {
@@ -166,15 +165,19 @@ describe('WorkOrderInventoryService', () => {
 
   it('propagates quote mismatch and actual-cost rollback failures without extra writes', async () => {
     workOrderRelationsService.assertInventoryActionRelations.mockRejectedValueOnce(
-      new BadRequestException('Supplier quote quote-9 does not belong to work order wo-1'),
+      new BadRequestException(
+        'Supplier quote quote-9 does not belong to work order wo-1',
+      ),
     );
-    workOrderRelationsService.assertInventoryActionRelations.mockResolvedValueOnce({
-      inventoryItem: {
-        id: 'item-1',
-        name: 'Inyector Bosch',
-        itemType: 'STOCK_OWNED',
-      },
-    } as never);
+    workOrderRelationsService.assertInventoryActionRelations.mockResolvedValueOnce(
+      {
+        inventoryItem: {
+          id: 'item-1',
+          name: 'Inyector Bosch',
+          itemType: 'STOCK_OWNED',
+        },
+      } as never,
+    );
     repository.createInventoryAction.mockRejectedValueOnce(
       new BadRequestException('Actual cost amount must be greater than zero'),
     );
@@ -205,6 +208,6 @@ describe('WorkOrderInventoryService', () => {
       new BadRequestException('Actual cost amount must be greater than zero'),
     );
 
-    expect(repository.createInventoryAction).toHaveBeenCalledTimes(1);
+    expect(repository.createInventoryAction.mock.calls).toHaveLength(1);
   });
 });

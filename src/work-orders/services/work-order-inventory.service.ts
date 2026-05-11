@@ -77,25 +77,32 @@ export class WorkOrderInventoryService {
         dto,
       );
 
-    if (!itemSupportsPhysicalStockLedger(relations.inventoryItem?.itemType as never)) {
+    if (
+      !itemSupportsPhysicalStockLedger(
+        relations.inventoryItem?.itemType as never,
+      )
+    ) {
       throw new BadRequestException(
         'Demand-purchased items do not allow physical stock movements',
       );
     }
 
     try {
-      return await this.workOrdersRepository.createInventoryAction(workOrderId, {
-        inventoryItemId: dto.inventoryItemId,
-        movementType: input.movementType,
-        movementReason: dto.reason,
-        quantity: dto.quantity,
-        occurredAt: dto.occurredAt,
-        supplierId: dto.supplierId,
-        unitCost: 'unitCost' in dto ? dto.unitCost : undefined,
-        notes: dto.notes,
-        isReservedForWorkOrder: input.isReservedForWorkOrder,
-        actualCost: input.actualCost,
-      });
+      return await this.workOrdersRepository.createInventoryAction(
+        workOrderId,
+        {
+          inventoryItemId: dto.inventoryItemId,
+          movementType: input.movementType,
+          movementReason: dto.reason,
+          quantity: dto.quantity,
+          occurredAt: dto.occurredAt,
+          supplierId: dto.supplierId,
+          unitCost: 'unitCost' in dto ? dto.unitCost : undefined,
+          notes: dto.notes,
+          isReservedForWorkOrder: input.isReservedForWorkOrder,
+          actualCost: input.actualCost,
+        },
+      );
     } catch (error) {
       if (error instanceof WorkOrderInventoryStockConflictError) {
         throw new ConflictException(

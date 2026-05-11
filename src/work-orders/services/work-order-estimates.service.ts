@@ -63,7 +63,10 @@ function parseEstimatePhase(phase: string) {
 
 function prepareEstimateInput(
   dto: UpsertWorkOrderEstimateDto,
-  workOrder: { type: string; workshopDetails?: { diagnosisRequired: boolean } | null },
+  workOrder: {
+    type: string;
+    workshopDetails?: { diagnosisRequired: boolean } | null;
+  },
   settings: {
     defaultLaborHourlyRate: number;
     saleContingencyPct: number;
@@ -95,9 +98,11 @@ function prepareEstimateInput(
     dto.recommendedMinimumPrice ??
     applyMarkup(totalCostAmount, settings.minimumMarkupPct);
   const recommendedPrice =
-    dto.recommendedPrice ?? applyMarkup(totalCostAmount, settings.recommendedMarkupPct);
+    dto.recommendedPrice ??
+    applyMarkup(totalCostAmount, settings.recommendedMarkupPct);
   const recommendedHighPrice =
-    dto.recommendedHighPrice ?? applyMarkup(totalCostAmount, settings.highMarkupPct);
+    dto.recommendedHighPrice ??
+    applyMarkup(totalCostAmount, settings.highMarkupPct);
 
   return {
     ...dto,

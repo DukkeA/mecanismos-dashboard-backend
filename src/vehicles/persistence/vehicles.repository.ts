@@ -150,7 +150,7 @@ export class VehiclesRepository {
     };
 
     return prisma.vehicle.findMany({
-      where: buildVehicleWhere(query),
+      where: buildVehicleWhere({ ...query, page: 1 }),
       orderBy: { plate: 'asc' },
       take: query.limit,
       select: {

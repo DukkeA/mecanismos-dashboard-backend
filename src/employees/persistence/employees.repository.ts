@@ -189,7 +189,11 @@ export class EmployeesRepository {
     };
 
     return prisma.employee.findMany({
-      where: buildEmployeeWhere({ ...query, isActive: query.isActive ?? true }),
+      where: buildEmployeeWhere({
+        ...query,
+        page: 1,
+        isActive: query.isActive ?? true,
+      }),
       orderBy: { name: 'asc' },
       take: query.limit,
       include: {

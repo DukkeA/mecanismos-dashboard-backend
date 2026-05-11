@@ -141,7 +141,7 @@ export class CustomersRepository {
     };
 
     return prisma.customer.findMany({
-      where: buildCustomerWhere(query),
+      where: buildCustomerWhere({ ...query, page: 1 }),
       orderBy: { name: 'asc' },
       take: query.limit,
       select: {

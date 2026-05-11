@@ -191,7 +191,11 @@ export class SuppliersRepository {
     };
 
     return prisma.supplier.findMany({
-      where: buildSupplierWhere({ ...query, isActive: query.isActive ?? true }),
+      where: buildSupplierWhere({
+        ...query,
+        page: 1,
+        isActive: query.isActive ?? true,
+      }),
       orderBy: { name: 'asc' },
       take: query.limit,
       include: {

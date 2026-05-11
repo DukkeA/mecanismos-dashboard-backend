@@ -107,18 +107,18 @@ describe('app-settings reviewer artifacts', () => {
         'Re-read Pricing Labor Settings as Sales',
       ]),
     );
-    expect(findRequest(collection, 'Get Pricing Labor Settings as Sales')).toMatchObject(
-      {
-        method: 'GET',
-        rawUrl: '{{baseUrl}}/app-settings/pricing-labor',
-      },
-    );
-    expect(findRequest(collection, 'Patch Pricing Labor Settings as Admin')).toMatchObject(
-      {
-        method: 'PATCH',
-        rawUrl: '{{baseUrl}}/app-settings/pricing-labor',
-      },
-    );
+    expect(
+      findRequest(collection, 'Get Pricing Labor Settings as Sales'),
+    ).toMatchObject({
+      method: 'GET',
+      rawUrl: '{{baseUrl}}/app-settings/pricing-labor',
+    });
+    expect(
+      findRequest(collection, 'Patch Pricing Labor Settings as Admin'),
+    ).toMatchObject({
+      method: 'PATCH',
+      rawUrl: '{{baseUrl}}/app-settings/pricing-labor',
+    });
     expect(
       findRawBody(collection, 'Patch Pricing Labor Settings as Admin'),
     ).toContain('"defaultLaborHourlyRate": 65000');

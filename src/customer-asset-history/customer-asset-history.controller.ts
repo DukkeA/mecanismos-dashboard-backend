@@ -33,7 +33,10 @@ export class CustomerAssetHistoryController {
     @Param('customerId') customerId: string,
     @Query() query: CustomerAssetHistoryQueryDto,
   ) {
-    return this.customerAssetHistoryService.getCustomerHistory(customerId, query);
+    return this.customerAssetHistoryService.getCustomerHistory(
+      customerId,
+      query,
+    );
   }
 
   @Get('vehicles/:vehicleId')
@@ -57,6 +60,9 @@ export class CustomerAssetHistoryController {
     @Param('componentId') componentId: string,
     @Query() query: CustomerAssetHistoryQueryDto,
   ) {
-    return this.customerAssetHistoryService.getComponentHistory(componentId, query);
+    return this.customerAssetHistoryService.getComponentHistory(
+      componentId,
+      query,
+    );
   }
 }

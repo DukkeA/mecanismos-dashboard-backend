@@ -4,6 +4,11 @@ import { App } from 'supertest/types';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { createE2EApp } from '../support/create-e2e-app';
 
+type ChangePasswordUserBody = {
+  email: string;
+  mustChangePassword: boolean;
+};
+
 describe('Auth change-password (real db e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
@@ -37,7 +42,9 @@ describe('Auth change-password (real db e2e)', () => {
       .post('/auth/login')
       .send({ email: 'admin@mecanismos.test', password: 'Admin123!' })
       .expect(200);
-    const adminCookies = adminLogin.headers['set-cookie'] as string[];
+    const adminCookies = adminLogin.headers[
+      'set-cookie'
+    ] as unknown as string[];
 
     const createResponse = await request(app.getHttpServer())
       .post('/admin/users')
@@ -50,7 +57,9 @@ describe('Auth change-password (real db e2e)', () => {
       })
       .expect(201);
 
-    expect(createResponse.body.mustChangePassword).toBe(true);
+    const createBody = createResponse.body as ChangePasswordUserBody;
+
+    expect(createBody.mustChangePassword).toBe(true);
 
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
@@ -60,9 +69,13 @@ describe('Auth change-password (real db e2e)', () => {
       })
       .expect(200);
 
-    expect(loginResponse.body.mustChangePassword).toBe(true);
+    const loginBody = loginResponse.body as ChangePasswordUserBody;
 
-    const userCookies = loginResponse.headers['set-cookie'] as string[];
+    expect(loginBody.mustChangePassword).toBe(true);
+
+    const userCookies = loginResponse.headers[
+      'set-cookie'
+    ] as unknown as string[];
 
     const changeResponse = await request(app.getHttpServer())
       .post('/auth/change-password')
@@ -73,20 +86,22 @@ describe('Auth change-password (real db e2e)', () => {
       })
       .expect(200);
 
-    expect(changeResponse.body).toMatchObject({
+    const changeBody = changeResponse.body as ChangePasswordUserBody;
+
+    expect(changeBody).toMatchObject({
       email: 'forzar-cambio@mecanismos.test',
       mustChangePassword: false,
     });
-    expect(JSON.stringify(changeResponse.body)).not.toContain('Temp1234!');
-    expect(JSON.stringify(changeResponse.body)).not.toContain('passwordHash');
+    expect(JSON.stringify(changeBody)).not.toContain('Temp1234!');
+    expect(JSON.stringify(changeBody)).not.toContain('passwordHash');
 
-    await request(app.getHttpServer())
+    const meResponse = await request(app.getHttpServer())
       .get('/auth/me')
       .set('Cookie', userCookies)
-      .expect(200)
-      .expect(({ body }) => {
-        expect(body.mustChangePassword).toBe(false);
-      });
+      .expect(200);
+    expect((meResponse.body as ChangePasswordUserBody).mustChangePassword).toBe(
+      false,
+    );
   });
 
   it('rejects change-password when the current password is wrong', async () => {
@@ -94,7 +109,9 @@ describe('Auth change-password (real db e2e)', () => {
       .post('/auth/login')
       .send({ email: 'admin@mecanismos.test', password: 'Admin123!' })
       .expect(200);
-    const adminCookies = adminLogin.headers['set-cookie'] as string[];
+    const adminCookies = adminLogin.headers[
+      'set-cookie'
+    ] as unknown as string[];
 
     await request(app.getHttpServer())
       .post('/admin/users')
@@ -114,7 +131,9 @@ describe('Auth change-password (real db e2e)', () => {
         password: 'Temp1234!',
       })
       .expect(200);
-    const userCookies = loginResponse.headers['set-cookie'] as string[];
+    const userCookies = loginResponse.headers[
+      'set-cookie'
+    ] as unknown as string[];
 
     await request(app.getHttpServer())
       .post('/auth/change-password')

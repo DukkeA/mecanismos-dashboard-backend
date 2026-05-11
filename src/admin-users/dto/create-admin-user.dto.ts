@@ -1,7 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { UserRole } from '../../../generated/prisma/enums';
-import { LowercaseEmail, TrimmedString } from '../../common/transforms/string.transforms';
+import {
+  LowercaseEmail,
+  TrimmedString,
+} from '../../common/transforms/string.transforms';
 
 const userRoles = Object.values(UserRole);
 

@@ -31,7 +31,9 @@ describe('AppSettingsService', () => {
       updatedAt: new Date('2026-05-11T10:00:00.000Z'),
     });
 
-    await expect(service.getCurrentPricingLaborSettings()).resolves.toMatchObject({
+    await expect(
+      service.getCurrentPricingLaborSettings(),
+    ).resolves.toMatchObject({
       currencyCode: 'COP',
       defaultLaborHourlyRate: 50000,
     });
@@ -58,7 +60,9 @@ describe('AppSettingsService', () => {
       updatedAt: new Date('2026-05-11T11:00:00.000Z'),
     });
 
-    await expect(service.updateCurrentPricingLaborSettings(dto)).resolves.toMatchObject({
+    await expect(
+      service.updateCurrentPricingLaborSettings(dto),
+    ).resolves.toMatchObject({
       currencyCode: 'USD',
       defaultLaborHourlyRate: 75000,
     });

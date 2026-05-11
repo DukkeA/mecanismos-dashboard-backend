@@ -89,16 +89,16 @@ describe('auth reviewer artifacts', () => {
       'Supplemental manual verification',
     );
     expect(listRequestNames(collection)).toEqual(
-        expect.arrayContaining([
-          'Login as Admin',
-          'Refresh Admin Session',
-          'Logout Admin Session',
-          'Admin List Users',
-          'Admin Create User',
-          'Admin Reset User Password',
-          'Change Own Password',
-        ]),
-      );
+      expect.arrayContaining([
+        'Login as Admin',
+        'Refresh Admin Session',
+        'Logout Admin Session',
+        'Admin List Users',
+        'Admin Create User',
+        'Admin Reset User Password',
+        'Change Own Password',
+      ]),
+    );
     expect(findRequest(collection, 'Login as Admin')).toMatchObject({
       method: 'POST',
       rawUrl: '{{baseUrl}}/auth/login',

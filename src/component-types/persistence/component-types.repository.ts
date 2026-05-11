@@ -140,6 +140,7 @@ export class ComponentTypesRepository {
     return prisma.componentType.findMany({
       where: buildComponentTypeWhere({
         ...query,
+        page: 1,
         isActive: query.isActive ?? true,
       }),
       orderBy: { name: 'asc' },

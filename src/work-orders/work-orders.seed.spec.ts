@@ -203,21 +203,19 @@ describe('work-order seeds', () => {
       ]),
     );
     expect(estimateUpsert).toHaveBeenCalledTimes(3);
-    expect(estimateUpsert.mock.calls[0]?.[0]).toMatchObject({
-      create: expect.objectContaining({
-        laborHourlyCostSnapshot: 50000,
-        recommendedMinimumPrice: 91200,
-        recommendedPrice: 102600,
-        recommendedHighPrice: 114000,
-      }),
+    const firstEstimateUpsertArgs = estimateUpsert.mock.calls[0]?.[0];
+    const secondEstimateUpsertArgs = estimateUpsert.mock.calls[1]?.[0];
+    expect(firstEstimateUpsertArgs?.create).toMatchObject({
+      laborHourlyCostSnapshot: 50000,
+      recommendedMinimumPrice: 91200,
+      recommendedPrice: 102600,
+      recommendedHighPrice: 114000,
     });
-    expect(estimateUpsert.mock.calls[1]?.[0]).toMatchObject({
-      create: expect.objectContaining({
-        laborHourlyCostSnapshot: 50000,
-        recommendedMinimumPrice: 624000,
-        recommendedPrice: 702000,
-        recommendedHighPrice: 780000,
-      }),
+    expect(secondEstimateUpsertArgs?.create).toMatchObject({
+      laborHourlyCostSnapshot: 50000,
+      recommendedMinimumPrice: 624000,
+      recommendedPrice: 702000,
+      recommendedHighPrice: 780000,
     });
     const estimateLineCreateArgs = estimateLineCreateMany.mock.calls[0]?.[0];
     expect(estimateLineCreateArgs?.data).toEqual(

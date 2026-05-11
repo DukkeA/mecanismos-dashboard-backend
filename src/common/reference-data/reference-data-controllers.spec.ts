@@ -372,12 +372,13 @@ function expectRoute(
   method: RequestMethod,
   path: string,
 ) {
-  const handler = Object.getOwnPropertyDescriptor(
+  const descriptor = Object.getOwnPropertyDescriptor(
     controller.prototype,
     methodName,
-  )?.value as object | undefined;
+  );
 
-  expect(handler).toBeDefined();
+  expect(descriptor?.value).toBeDefined();
+  const handler = descriptor?.value as object;
   expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(method);
   expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
 }

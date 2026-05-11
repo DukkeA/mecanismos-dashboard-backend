@@ -17,9 +17,10 @@ describe('AdminUsersRepository', () => {
       createdAt: new Date('2026-05-11T08:00:00.000Z'),
       updatedAt: new Date('2026-05-11T09:00:00.000Z'),
     };
+    const findUnique = jest.fn().mockResolvedValue(user);
     const prisma = {
       user: {
-        findUnique: jest.fn().mockResolvedValue(user),
+        findUnique,
       },
     };
 
@@ -29,12 +30,19 @@ describe('AdminUsersRepository', () => {
       repository.findByEmail('  ADMIN@MECANISMOS.TEST  '),
     ).resolves.toEqual(user);
 
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+    expect(findUnique).toHaveBeenCalledWith({
       where: { email: 'admin@mecanismos.test' },
-      select: expect.objectContaining({
+      select: {
+        id: true,
         email: true,
+        name: true,
+        role: true,
+        isActive: true,
         mustChangePassword: true,
-      }),
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   });
 
@@ -59,9 +67,10 @@ describe('AdminUsersRepository', () => {
   });
 
   it('lists users with search, role, and active filters while hiding secrets', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
     const prisma = {
       user: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany,
         count: jest.fn().mockResolvedValue(0),
       },
     };
@@ -78,7 +87,7 @@ describe('AdminUsersRepository', () => {
       }),
     ).resolves.toEqual({ items: [], total: 0, page: 2, limit: 5 });
 
-    expect(prisma.user.findMany).toHaveBeenCalledWith({
+    expect(findMany).toHaveBeenCalledWith({
       where: {
         role: UserRole.ADMIN,
         isActive: true,
@@ -90,10 +99,17 @@ describe('AdminUsersRepository', () => {
       orderBy: [{ createdAt: 'desc' }],
       skip: 5,
       take: 5,
-      select: expect.not.objectContaining({
-        account: true,
-        session: true,
-      }),
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        mustChangePassword: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   });
 

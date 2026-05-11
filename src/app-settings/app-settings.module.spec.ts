@@ -34,7 +34,9 @@ describe('AppSettingsModule', () => {
     ) as unknown[];
 
     expect(imports).toEqual(expect.arrayContaining([PrismaModule]));
-    expect(controllers).toEqual(expect.arrayContaining([AppSettingsController]));
+    expect(controllers).toEqual(
+      expect.arrayContaining([AppSettingsController]),
+    );
     expect(providers).toEqual(
       expect.arrayContaining([
         AppSettingsService,

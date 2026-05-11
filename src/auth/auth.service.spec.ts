@@ -2,7 +2,6 @@ import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
-import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { AuthRuntimeConfig } from './config/auth.config';
 
 jest.mock('bcrypt', () => ({
@@ -367,7 +366,7 @@ describe('AuthService', () => {
       service.changePassword('user-1', {
         currentPassword: 'Temp1234!',
         newPassword: 'NewSecure123!',
-      } as ChangePasswordDto),
+      }),
     ).resolves.toEqual({
       id: 'user-1',
       email: 'admin@mecanismos.test',
@@ -404,7 +403,7 @@ describe('AuthService', () => {
       service.changePassword('user-1', {
         currentPassword: 'Wrong123!',
         newPassword: 'NewSecure123!',
-      } as ChangePasswordDto),
+      }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
 
     expect(repository.updatePasswordCredential).not.toHaveBeenCalled();

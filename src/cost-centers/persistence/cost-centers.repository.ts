@@ -133,6 +133,7 @@ export class CostCentersRepository {
     return prisma.costCenter.findMany({
       where: buildCostCenterWhere({
         ...query,
+        page: 1,
         isActive: query.isActive ?? true,
       }),
       orderBy: { name: 'asc' },

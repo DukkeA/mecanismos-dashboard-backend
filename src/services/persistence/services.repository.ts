@@ -131,7 +131,11 @@ export class ServicesRepository {
     };
 
     return prisma.serviceCatalog.findMany({
-      where: buildServiceWhere({ ...query, isActive: query.isActive ?? true }),
+      where: buildServiceWhere({
+        ...query,
+        page: 1,
+        isActive: query.isActive ?? true,
+      }),
       orderBy: { name: 'asc' },
       take: query.limit,
       select: {

@@ -225,6 +225,7 @@ export class InventoryRepository {
     return prisma.inventoryItem.findMany({
       where: buildInventoryItemWhere({
         ...query,
+        page: 1,
         isActive: query.isActive ?? true,
       }),
       orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],

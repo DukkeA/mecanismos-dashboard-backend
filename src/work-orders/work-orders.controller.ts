@@ -177,7 +177,9 @@ export class WorkOrdersController {
   }
 
   @Post(':id/inventory/releases')
-  @ApiOperation({ summary: 'Release reserved inventory stock from a work order' })
+  @ApiOperation({
+    summary: 'Release reserved inventory stock from a work order',
+  })
   @ApiCreatedResponse({ description: 'Inventory release created.' })
   releaseInventory(
     @Param('id') id: string,

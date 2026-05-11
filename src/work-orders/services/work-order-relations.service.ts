@@ -38,7 +38,9 @@ type ResolvedActualCostRelations = {
 };
 
 type ResolvedInventoryActionRelations = {
-  inventoryItem: Awaited<ReturnType<WorkOrdersRepository['findInventoryItemById']>>;
+  inventoryItem: Awaited<
+    ReturnType<WorkOrdersRepository['findInventoryItemById']>
+  >;
   supplier: Awaited<ReturnType<WorkOrdersRepository['findSupplierById']>>;
   supplierQuoteHistory: Awaited<
     ReturnType<WorkOrdersRepository['findSupplierQuoteHistoryById']>
@@ -222,12 +224,13 @@ export class WorkOrderRelationsService {
       input.supplierQuoteHistoryId,
     );
 
-    const inventoryItem = await this.workOrdersRepository.findInventoryItemById(
-      inventoryItemId,
-    );
+    const inventoryItem =
+      await this.workOrdersRepository.findInventoryItemById(inventoryItemId);
 
     if (!inventoryItem) {
-      throw new NotFoundException(`Inventory item ${inventoryItemId} not found`);
+      throw new NotFoundException(
+        `Inventory item ${inventoryItemId} not found`,
+      );
     }
 
     const supplier = supplierId

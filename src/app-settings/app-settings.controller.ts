@@ -23,7 +23,9 @@ export class AppSettingsController {
   constructor(private readonly appSettingsService: AppSettingsService) {}
 
   @Get('pricing-labor')
-  @ApiOperation({ summary: 'Read the current singleton pricing and labor settings' })
+  @ApiOperation({
+    summary: 'Read the current singleton pricing and labor settings',
+  })
   @ApiOkResponse({
     description: 'Current pricing/labor settings returned.',
     type: PricingLaborSettingsResponseDto,
@@ -36,7 +38,9 @@ export class AppSettingsController {
 
   @Patch('pricing-labor')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Update the current singleton pricing and labor settings' })
+  @ApiOperation({
+    summary: 'Update the current singleton pricing and labor settings',
+  })
   @ApiOkResponse({
     description: 'Pricing/labor settings updated.',
     type: PricingLaborSettingsResponseDto,

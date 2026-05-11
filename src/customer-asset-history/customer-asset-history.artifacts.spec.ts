@@ -127,7 +127,10 @@ describe('customer asset history reviewer artifacts', () => {
       ]),
     );
 
-    const vehicleRequest = findRequest(collection, 'Get Vehicle History Page 1');
+    const vehicleRequest = findRequest(
+      collection,
+      'Get Vehicle History Page 1',
+    );
     expect(vehicleRequest.method).toBe('GET');
     expect(vehicleRequest.rawUrl).toBe(
       '{{baseUrl}}/customer-asset-history/vehicles/{{seedVehicleId}}?page=1&limit=1&dateField=estimatedCollectionAt&dateFrom=2026-05-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.000Z',

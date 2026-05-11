@@ -2,6 +2,10 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import {
+  InventoryCondition,
+  InventoryItemType,
+  InventoryMovementReason,
+  InventoryMovementType,
   PaymentMethod,
   PaymentStatus,
   WorkOrderCostCategory,
@@ -10,6 +14,7 @@ import {
 } from '../../generated/prisma/enums';
 import { createE2EApp } from '../support/create-e2e-app';
 import { loginAsRole } from '../support/auth-e2e';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
 type WorkOrderResponse = {
   id: string;
@@ -104,12 +109,14 @@ type ActualCostListResponse = {
 
 describe('WorkOrdersController (real db e2e)', () => {
   let app: INestApplication<App>;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     process.env.AUTH_ACCESS_TOKEN_SECRET = 'access-secret';
     process.env.AUTH_REFRESH_TOKEN_SECRET = 'refresh-secret';
     process.env.AUTH_ALLOWED_ORIGINS = 'http://localhost:5173';
     app = await createE2EApp();
+    prisma = app.get(PrismaService);
   });
 
   afterAll(async () => {
@@ -551,12 +558,42 @@ describe('WorkOrdersController (real db e2e)', () => {
       cookies,
       `inventory-${Date.now()}`,
     );
+    const inventoryItemId = `test-inventory-item-${Date.now()}`;
+
+    await prisma.inventoryItem.create({
+      data: {
+        id: inventoryItemId,
+        name: 'Inyector Bosch e2e aislado',
+        itemType: InventoryItemType.STOCK_OWNED,
+        condition: InventoryCondition.NEW,
+        brand: 'Bosch',
+        reference: `E2E-${Date.now()}`,
+        identifier: inventoryItemId,
+        minimumStock: 0,
+        defaultSalePrice: 250000,
+        isActive: true,
+        updatedAt: new Date('2026-05-11T09:50:00.000Z'),
+      },
+    });
+    await prisma.inventoryMovement.create({
+      data: {
+        id: `test-inventory-movement-${Date.now()}`,
+        inventoryItemId,
+        movementType: InventoryMovementType.IN,
+        reason: InventoryMovementReason.PURCHASE,
+        quantity: 4,
+        unitCost: 182000,
+        supplierId: 'seed-supplier-repuestos-central-main',
+        occurredAt: new Date('2026-05-11T09:50:00.000Z'),
+        notes: 'Isolated stock for work-order inventory e2e.',
+      },
+    });
 
     const reserveResponse = await request(app.getHttpServer())
       .post(`/work-orders/${workOrderId}/inventory/reservations`)
       .set('Cookie', cookies)
       .send({
-        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        inventoryItemId,
         quantity: 2,
         occurredAt: '2026-05-11T10:00:00.000Z',
         reason: 'WORK_ORDER_PURCHASE',
@@ -564,13 +601,16 @@ describe('WorkOrdersController (real db e2e)', () => {
       })
       .expect(201);
 
-    expect(readBody<{ currentStockAfter: number }>(reserveResponse).currentStockAfter).toBe(2);
+    expect(
+      readBody<{ currentStockAfter: number }>(reserveResponse)
+        .currentStockAfter,
+    ).toBe(4);
 
     await request(app.getHttpServer())
       .post(`/work-orders/${workOrderId}/inventory/releases`)
       .set('Cookie', cookies)
       .send({
-        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        inventoryItemId,
         quantity: 1,
         occurredAt: '2026-05-11T10:10:00.000Z',
         reason: 'RETURN',
@@ -581,7 +621,7 @@ describe('WorkOrdersController (real db e2e)', () => {
       .post(`/work-orders/${workOrderId}/inventory/consumptions`)
       .set('Cookie', cookies)
       .send({
-        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        inventoryItemId,
         quantity: 1,
         occurredAt: '2026-05-11T10:20:00.000Z',
         reason: 'WORK_ORDER_CONSUMPTION',
@@ -598,7 +638,7 @@ describe('WorkOrdersController (real db e2e)', () => {
       .post(`/work-orders/${workOrderId}/inventory/sales`)
       .set('Cookie', cookies)
       .send({
-        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        inventoryItemId,
         quantity: 1,
         occurredAt: '2026-05-11T10:30:00.000Z',
         reason: 'SALE',
@@ -627,7 +667,7 @@ describe('WorkOrdersController (real db e2e)', () => {
       .post(`/work-orders/${workOrderId}/inventory/consumptions`)
       .set('Cookie', cookies)
       .send({
-        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        inventoryItemId,
         quantity: 1,
         occurredAt: '2026-05-11T10:50:00.000Z',
         reason: 'WORK_ORDER_CONSUMPTION',
@@ -641,7 +681,7 @@ describe('WorkOrdersController (real db e2e)', () => {
       .expect(200)
       .expect(({ body }: { body: WorkOrderResponse }) => {
         const inventoryActivity = body.inventoryActivity.find(
-          (item) => item.inventoryItemId === 'seed-inventory-item-bosch-inyector',
+          (item) => item.inventoryItemId === inventoryItemId,
         );
 
         expect(inventoryActivity).toBeDefined();
@@ -651,7 +691,9 @@ describe('WorkOrdersController (real db e2e)', () => {
           soldQuantity: 1,
         });
         expect(inventoryActivity?.actualCostIds).toHaveLength(2);
-        expect(inventoryActivity?.movements.map((movement) => movement.reason)).toEqual(
+        expect(
+          inventoryActivity?.movements.map((movement) => movement.reason),
+        ).toEqual(
           expect.arrayContaining([
             'WORK_ORDER_PURCHASE',
             'RETURN',

@@ -95,10 +95,18 @@ describe('WorkOrdersController', () => {
     service.findActualCosts.mockResolvedValue({ data: [] });
     service.updateActualCost.mockResolvedValue({ id: 'cost-1' } as never);
     service.removeActualCost.mockResolvedValue(undefined);
-    service.reserveInventory.mockResolvedValue({ movement: { id: 'movement-1' } });
-    service.releaseInventory.mockResolvedValue({ movement: { id: 'movement-2' } });
-    service.consumeInventory.mockResolvedValue({ movement: { id: 'movement-3' } });
-    service.sellInventory.mockResolvedValue({ movement: { id: 'movement-4' } });
+    service.reserveInventory.mockResolvedValue({
+      movement: { id: 'movement-1' },
+    } as never);
+    service.releaseInventory.mockResolvedValue({
+      movement: { id: 'movement-2' },
+    } as never);
+    service.consumeInventory.mockResolvedValue({
+      movement: { id: 'movement-3' },
+    } as never);
+    service.sellInventory.mockResolvedValue({
+      movement: { id: 'movement-4' },
+    } as never);
     service.createPayment.mockResolvedValue({ id: 'payment-1' } as never);
     service.findPayments.mockResolvedValue({ data: [] } as never);
     service.updatePayment.mockResolvedValue({ id: 'payment-1' } as never);

@@ -26,7 +26,10 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AdminUsersService } from './admin-users.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
-import { AdminUserResponseDto, AdminUserWithTemporaryPasswordDto } from './dto/admin-user-response.dto';
+import {
+  AdminUserResponseDto,
+  AdminUserWithTemporaryPasswordDto,
+} from './dto/admin-user-response.dto';
 import { ListAdminUsersQueryDto } from './dto/list-admin-users-query.dto';
 import { ResetAdminUserPasswordDto } from './dto/reset-admin-user-password.dto';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
@@ -49,21 +52,28 @@ export class AdminUsersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create an admin-managed login user with a temporary password' })
-  @ApiCreatedResponse({ description: 'Managed user created.' , type: AdminUserWithTemporaryPasswordDto})
+  @ApiOperation({
+    summary: 'Create an admin-managed login user with a temporary password',
+  })
+  @ApiCreatedResponse({
+    description: 'Managed user created.',
+    type: AdminUserWithTemporaryPasswordDto,
+  })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN' })
   @ApiConflictResponse({ description: 'User email already exists.' })
-  create(
-    @CurrentUser() user: AuthJwtPayload,
-    @Body() dto: CreateAdminUserDto,
-  ) {
+  create(@CurrentUser() user: AuthJwtPayload, @Body() dto: CreateAdminUserDto) {
     return this.adminUsersService.create(user.sub, dto);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a managed user name, role, or active state' })
-  @ApiOkResponse({ description: 'Managed user updated.', type: AdminUserResponseDto })
+  @ApiOperation({
+    summary: 'Update a managed user name, role, or active state',
+  })
+  @ApiOkResponse({
+    description: 'Managed user updated.',
+    type: AdminUserResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN' })
   update(
@@ -76,8 +86,13 @@ export class AdminUsersController {
 
   @Post(':id/reset-password')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Reset a managed user password and force a change on next login' })
-  @ApiOkResponse({ description: 'Managed user password reset.', type: AdminUserWithTemporaryPasswordDto })
+  @ApiOperation({
+    summary: 'Reset a managed user password and force a change on next login',
+  })
+  @ApiOkResponse({
+    description: 'Managed user password reset.',
+    type: AdminUserWithTemporaryPasswordDto,
+  })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN' })
   resetPassword(

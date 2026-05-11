@@ -152,7 +152,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Change the authenticated user password' })
   @ApiBody({ type: ChangePasswordDto })
   @ApiOkResponse({ description: 'Authenticated user password changed.' })
-  @ApiUnauthorizedResponse({ description: 'Access token missing, invalid, or current password incorrect.' })
+  @ApiUnauthorizedResponse({
+    description:
+      'Access token missing, invalid, or current password incorrect.',
+  })
   changePassword(
     @CurrentUser() user: AuthJwtPayload,
     @Body() dto: ChangePasswordDto,

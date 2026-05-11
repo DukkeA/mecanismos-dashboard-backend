@@ -48,7 +48,10 @@ describe('CustomerAssetHistoryService', () => {
         createdAt: new Date('2026-05-20T10:00:00.000Z'),
         completedAt: null,
         estimatedCollectionAt: new Date('2026-05-21T18:00:00.000Z'),
-        Customer: { id: 'seed-customer-acme-industrial', name: 'Acme Industrial SAS' },
+        Customer: {
+          id: 'seed-customer-acme-industrial',
+          name: 'Acme Industrial SAS',
+        },
         Vehicle: {
           id: 'seed-vehicle-acme-foton-aumark',
           brand: 'Foton',
@@ -88,7 +91,10 @@ describe('CustomerAssetHistoryService', () => {
         createdAt: new Date('2026-05-08T09:00:00.000Z'),
         completedAt: new Date('2026-05-09T13:30:00.000Z'),
         estimatedCollectionAt: new Date('2026-05-09T15:00:00.000Z'),
-        Customer: { id: 'seed-customer-acme-industrial', name: 'Acme Industrial SAS' },
+        Customer: {
+          id: 'seed-customer-acme-industrial',
+          name: 'Acme Industrial SAS',
+        },
         Vehicle: {
           id: 'seed-vehicle-acme-foton-aumark',
           brand: 'Foton',
@@ -238,8 +244,10 @@ describe('CustomerAssetHistoryService', () => {
 
     await expect(
       service.getCustomerHistory('missing-customer', baseQuery),
-    ).rejects.toThrow(new NotFoundException('Customer missing-customer not found'));
-    expect(repository.countScopedHistory).not.toHaveBeenCalled();
+    ).rejects.toThrow(
+      new NotFoundException('Customer missing-customer not found'),
+    );
+    expect(repository.countScopedHistory.mock.calls).toHaveLength(0);
   });
 
   it('builds vehicle and component responses with scoped related assets and the same contract', async () => {
@@ -367,7 +375,10 @@ describe('CustomerAssetHistoryService', () => {
       },
     ]);
 
-    const vehicleResponse = await service.getVehicleHistory('vehicle-1', baseQuery);
+    const vehicleResponse = await service.getVehicleHistory(
+      'vehicle-1',
+      baseQuery,
+    );
     const componentResponse = await service.getComponentHistory(
       'component-1',
       baseQuery,
@@ -395,12 +406,12 @@ describe('CustomerAssetHistoryService', () => {
       id: 'vehicle-1',
       label: 'Toyota Hilux 2.8 · XYZ987',
     });
-    expect(repository.countScopedHistory).toHaveBeenNthCalledWith(1, {
+    expect(repository.countScopedHistory.mock.calls[0]?.[0]).toEqual({
       ...baseQuery,
       scope: 'vehicle',
       subjectId: 'vehicle-1',
     });
-    expect(repository.countScopedHistory).toHaveBeenNthCalledWith(2, {
+    expect(repository.countScopedHistory.mock.calls[1]?.[0]).toEqual({
       ...baseQuery,
       scope: 'component',
       subjectId: 'component-1',

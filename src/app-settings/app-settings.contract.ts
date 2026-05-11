@@ -15,7 +15,17 @@ export const DEFAULT_PRICING_LABOR_SETTINGS = {
   highMarkupPct: 50,
 } as const;
 
-export type PricingLaborSettings = typeof DEFAULT_PRICING_LABOR_SETTINGS & {
+export type PricingLaborSettings = {
+  companyName: string;
+  currencyCode: string;
+  monthlyWorkingHours: number;
+  defaultLaborHourlyRate: number;
+  saleContingencyPct: number;
+  workshopContingencyPct: number;
+  diagnosticContingencyPct: number;
+  minimumMarkupPct: number;
+  recommendedMarkupPct: number;
+  highMarkupPct: number;
   updatedAt: Date;
 };
 
@@ -33,9 +43,7 @@ export function resolveDefaultContingencyPct(
   diagnosisRequired: boolean,
   settings: Pick<
     PricingLaborSettings,
-    | 'saleContingencyPct'
-    | 'workshopContingencyPct'
-    | 'diagnosticContingencyPct'
+    'saleContingencyPct' | 'workshopContingencyPct' | 'diagnosticContingencyPct'
   >,
 ) {
   if (workOrderType === WorkOrderType.SALE) {

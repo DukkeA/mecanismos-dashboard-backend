@@ -183,14 +183,12 @@ export class AuthService {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
-    const updatedUser = await this.authSessionRepository.updatePasswordCredential(
-      userId,
-      {
+    const updatedUser =
+      await this.authSessionRepository.updatePasswordCredential(userId, {
         passwordHash: await hash(dto.newPassword, 12),
         passwordUpdatedAt: new Date(),
         mustChangePassword: false,
-      },
-    );
+      });
 
     return this.toAuthUserPayload(updatedUser);
   }

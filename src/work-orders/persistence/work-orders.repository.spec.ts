@@ -508,7 +508,9 @@ describe('WorkOrdersRepository', () => {
       workOrderActualCost: {
         create: jest.fn(() =>
           Promise.reject(
-            new BadRequestException('Actual cost amount must be greater than zero'),
+            new BadRequestException(
+              'Actual cost amount must be greater than zero',
+            ),
           ),
         ),
       },
@@ -518,8 +520,9 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn((callback: (transaction: typeof tx) => Promise<unknown>) =>
-        Promise.resolve(callback(tx)),
+      $transaction: jest.fn(
+        (callback: (transaction: typeof tx) => Promise<unknown>) =>
+          Promise.resolve(callback(tx)),
       ),
     };
 
@@ -562,7 +565,9 @@ describe('WorkOrdersRepository', () => {
       })
       .catch((error: unknown) => {
         expect(error).toEqual(
-          new BadRequestException('Actual cost amount must be greater than zero'),
+          new BadRequestException(
+            'Actual cost amount must be greater than zero',
+          ),
         );
       });
   });

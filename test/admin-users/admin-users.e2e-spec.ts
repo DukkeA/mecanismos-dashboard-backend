@@ -5,6 +5,18 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 import { createE2EApp } from '../support/create-e2e-app';
 import { loginAsRole } from '../support/auth-e2e';
 
+type AdminUserResponseBody = {
+  id: string;
+  email: string;
+  role: string;
+  mustChangePassword: boolean;
+  temporaryPassword?: string;
+};
+
+type AdminUsersListResponseBody = {
+  data: Array<Pick<AdminUserResponseBody, 'email' | 'mustChangePassword'>>;
+};
+
 describe('AdminUsersController (real db e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
@@ -56,7 +68,9 @@ describe('AdminUsersController (real db e2e)', () => {
       })
       .expect(201);
 
-    expect(createResponse.body).toMatchObject({
+    const createBody = createResponse.body as AdminUserResponseBody;
+
+    expect(createBody).toMatchObject({
       email: 'nuevo-admin@mecanismos.test',
       role: 'SALES',
       mustChangePassword: true,
@@ -80,7 +94,9 @@ describe('AdminUsersController (real db e2e)', () => {
       .set('Cookie', adminCookies)
       .expect(200);
 
-    expect(listResponse.body.data).toEqual(
+    const listBody = listResponse.body as AdminUsersListResponseBody;
+
+    expect(listBody.data).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           email: 'nuevo-admin@mecanismos.test',
@@ -112,7 +128,7 @@ describe('AdminUsersController (real db e2e)', () => {
       })
       .expect(201);
 
-    const createdUserId = createResponse.body.id as string;
+    const createdUserId = (createResponse.body as AdminUserResponseBody).id;
     const userCookies = await loginWithTemporaryPassword(
       app,
       'desactivar@mecanismos.test',

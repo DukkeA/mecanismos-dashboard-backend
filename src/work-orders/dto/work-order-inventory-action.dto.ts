@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsDate,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import {
   InventoryMovementReason,
   PaymentMethod,
@@ -12,7 +19,9 @@ import {
 
 const reserveReasons = [InventoryMovementReason.WORK_ORDER_PURCHASE] as const;
 const releaseReasons = [InventoryMovementReason.RETURN] as const;
-const consumeReasons = [InventoryMovementReason.WORK_ORDER_CONSUMPTION] as const;
+const consumeReasons = [
+  InventoryMovementReason.WORK_ORDER_CONSUMPTION,
+] as const;
 const sellReasons = [InventoryMovementReason.SALE] as const;
 const paymentMethods = Object.values(PaymentMethod);
 
@@ -45,7 +54,9 @@ class BaseWorkOrderInventoryDto {
   @IsString()
   supplierQuoteHistoryId?: string;
 
-  @ApiPropertyOptional({ example: 'Movimiento creado desde la orden de trabajo' })
+  @ApiPropertyOptional({
+    example: 'Movimiento creado desde la orden de trabajo',
+  })
   @IsOptional()
   @OptionalTrimmedString()
   @IsString()
@@ -73,26 +84,38 @@ class CostAwareWorkOrderInventoryDto extends BaseWorkOrderInventoryDto {
   @IsString()
   actualCostDescription?: string;
 
-  @ApiPropertyOptional({ enum: paymentMethods, example: PaymentMethod.TRANSFER })
+  @ApiPropertyOptional({
+    enum: paymentMethods,
+    example: PaymentMethod.TRANSFER,
+  })
   @IsOptional()
   @IsIn(paymentMethods)
   actualCostPaymentMethod?: PaymentMethod;
 }
 
 export class ReserveWorkOrderInventoryDto extends BaseWorkOrderInventoryDto {
-  @ApiProperty({ enum: reserveReasons, example: InventoryMovementReason.WORK_ORDER_PURCHASE })
+  @ApiProperty({
+    enum: reserveReasons,
+    example: InventoryMovementReason.WORK_ORDER_PURCHASE,
+  })
   @IsIn(reserveReasons)
   reason!: InventoryMovementReason;
 }
 
 export class ReleaseWorkOrderInventoryDto extends BaseWorkOrderInventoryDto {
-  @ApiProperty({ enum: releaseReasons, example: InventoryMovementReason.RETURN })
+  @ApiProperty({
+    enum: releaseReasons,
+    example: InventoryMovementReason.RETURN,
+  })
   @IsIn(releaseReasons)
   reason!: InventoryMovementReason;
 }
 
 export class ConsumeWorkOrderInventoryDto extends CostAwareWorkOrderInventoryDto {
-  @ApiProperty({ enum: consumeReasons, example: InventoryMovementReason.WORK_ORDER_CONSUMPTION })
+  @ApiProperty({
+    enum: consumeReasons,
+    example: InventoryMovementReason.WORK_ORDER_CONSUMPTION,
+  })
   @IsIn(consumeReasons)
   reason!: InventoryMovementReason;
 }

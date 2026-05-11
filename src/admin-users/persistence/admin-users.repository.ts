@@ -94,7 +94,10 @@ type AdminUsersPrismaTransaction = {
   };
   account: {
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
-    update(args: { where: { userId: string }; data: Record<string, unknown> }): Promise<unknown>;
+    update(args: {
+      where: { userId: string };
+      data: Record<string, unknown>;
+    }): Promise<unknown>;
   };
 };
 

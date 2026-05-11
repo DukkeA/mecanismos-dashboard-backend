@@ -91,9 +91,7 @@ describe('AdminUsersService', () => {
         role: UserRole.SALES,
         temporaryPassword: 'Temp1234!',
       }),
-    ).rejects.toThrow(
-      new ConflictException('User email already exists'),
-    );
+    ).rejects.toThrow(new ConflictException('User email already exists'));
   });
 
   it('updates another user role and name', async () => {

@@ -53,9 +53,9 @@ describe('AuthController', () => {
     expect(Reflect.getMetadata(METHOD_METADATA, changePasswordHandler)).toBe(
       RequestMethod.POST,
     );
-    expect(Reflect.getMetadata(GUARDS_METADATA, changePasswordHandler)).toEqual([
-      JwtAuthGuard,
-    ]);
-    expect(service.changePassword).toHaveBeenCalledWith('user-1', dto);
+    expect(Reflect.getMetadata(GUARDS_METADATA, changePasswordHandler)).toEqual(
+      [JwtAuthGuard],
+    );
+    expect(service.changePassword.mock.calls[0]).toEqual(['user-1', dto]);
   });
 });

@@ -341,7 +341,7 @@ describe('WorkOrderRelationsService', () => {
       defaultSalePrice: 250000,
       isActive: true,
       itemType: 'STOCK_OWNED',
-    } as never);
+    });
     repository.findSupplierById.mockResolvedValue({
       id: 'supplier-1',
       name: 'Proveedor Uno',
@@ -392,7 +392,7 @@ describe('WorkOrderRelationsService', () => {
       defaultSalePrice: 250000,
       isActive: true,
       itemType: 'STOCK_OWNED',
-    } as never);
+    });
     repository.findSupplierQuoteHistoryById.mockResolvedValue({
       id: 'quote-1',
       supplierId: 'supplier-1',

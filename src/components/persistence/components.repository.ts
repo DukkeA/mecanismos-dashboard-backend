@@ -197,7 +197,7 @@ export class ComponentsRepository {
     };
 
     return prisma.component.findMany({
-      where: buildComponentWhere(query),
+      where: buildComponentWhere({ ...query, page: 1 }),
       orderBy: { createdAt: 'desc' },
       take: query.limit,
       select: {

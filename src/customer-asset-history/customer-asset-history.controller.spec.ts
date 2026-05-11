@@ -14,9 +14,7 @@ import { AppModule } from '../app.module';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ROLES_KEY } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
-import {
-  CustomerAssetHistoryQueryDto,
-} from './dto/customer-asset-history-query.dto';
+import { CustomerAssetHistoryQueryDto } from './dto/customer-asset-history-query.dto';
 import { CustomerAssetHistoryResponseDto } from './dto/customer-asset-history-response.dto';
 import { CustomerAssetHistoryController } from './customer-asset-history.controller';
 import { CustomerAssetHistoryModule } from './customer-asset-history.module';
@@ -113,9 +111,18 @@ describe('CustomerAssetHistoryController', () => {
       RequestMethod.GET,
     );
 
-    expect(service.getCustomerHistory).toHaveBeenCalledWith('customer-1', query);
-    expect(service.getVehicleHistory).toHaveBeenCalledWith('vehicle-1', query);
-    expect(service.getComponentHistory).toHaveBeenCalledWith('component-1', query);
+    expect(service.getCustomerHistory.mock.calls[0]).toEqual([
+      'customer-1',
+      query,
+    ]);
+    expect(service.getVehicleHistory.mock.calls[0]).toEqual([
+      'vehicle-1',
+      query,
+    ]);
+    expect(service.getComponentHistory.mock.calls[0]).toEqual([
+      'component-1',
+      query,
+    ]);
 
     const controllerMethodNames = Object.getOwnPropertyNames(
       CustomerAssetHistoryController.prototype,

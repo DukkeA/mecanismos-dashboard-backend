@@ -13,9 +13,7 @@ import { AppSettingsService } from './app-settings.service';
 import { PricingLaborSettingsResponseDto } from './dto/pricing-labor-settings.response.dto';
 import { UpdatePricingLaborSettingsDto } from './dto/update-pricing-labor-settings.dto';
 
-function getControllerMethod(
-  methodName: keyof AppSettingsController,
-): object {
+function getControllerMethod(methodName: keyof AppSettingsController): object {
   const descriptor = Object.getOwnPropertyDescriptor(
     AppSettingsController.prototype,
     methodName,
@@ -25,6 +23,8 @@ function getControllerMethod(
 
   return descriptor?.value as object;
 }
+
+type ApiResponseMetadata = Record<string, { type?: unknown }>;
 
 describe('AppSettingsController', () => {
   const service = {
@@ -63,15 +63,18 @@ describe('AppSettingsController', () => {
       'ADMIN',
       'SALES',
     ]);
-    expect(Reflect.getMetadata(GUARDS_METADATA, AppSettingsController)).toEqual([
-      JwtAuthGuard,
-      RolesGuard,
-    ]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, AppSettingsController)).toEqual(
+      [JwtAuthGuard, RolesGuard],
+    );
 
     const getHandler = getControllerMethod('getCurrentPricingLaborSettings');
-    const patchHandler = getControllerMethod('updateCurrentPricingLaborSettings');
+    const patchHandler = getControllerMethod(
+      'updateCurrentPricingLaborSettings',
+    );
 
-    expect(Reflect.getMetadata(PATH_METADATA, getHandler)).toBe('pricing-labor');
+    expect(Reflect.getMetadata(PATH_METADATA, getHandler)).toBe(
+      'pricing-labor',
+    );
     expect(Reflect.getMetadata(METHOD_METADATA, getHandler)).toBe(
       RequestMethod.GET,
     );
@@ -83,14 +86,21 @@ describe('AppSettingsController', () => {
     );
     expect(Reflect.getMetadata(ROLES_KEY, patchHandler)).toEqual(['ADMIN']);
 
-    expect(Reflect.getMetadata(DECORATORS.API_RESPONSE, getHandler)?.['200']).toEqual(
+    const getApiResponseMetadata = Reflect.getMetadata(
+      DECORATORS.API_RESPONSE,
+      getHandler,
+    ) as ApiResponseMetadata | undefined;
+    const patchApiResponseMetadata = Reflect.getMetadata(
+      DECORATORS.API_RESPONSE,
+      patchHandler,
+    ) as ApiResponseMetadata | undefined;
+
+    expect(getApiResponseMetadata?.['200']).toEqual(
       expect.objectContaining({
         type: PricingLaborSettingsResponseDto,
       }),
     );
-    expect(
-      Reflect.getMetadata(DECORATORS.API_RESPONSE, patchHandler)?.['200'],
-    ).toEqual(
+    expect(patchApiResponseMetadata?.['200']).toEqual(
       expect.objectContaining({
         type: PricingLaborSettingsResponseDto,
       }),

@@ -308,7 +308,7 @@ const SEED_INVENTORY_MOVEMENTS = [
     inventoryItemId: 'seed-inventory-item-bosch-inyector',
     movementType: InventoryMovementType.IN,
     reason: InventoryMovementReason.PURCHASE,
-    quantity: 5,
+    quantity: 6,
     unitCost: 180000,
     supplierId: 'seed-supplier-repuestos-central-main',
     occurredAt: new Date('2026-05-05T10:00:00.000Z'),

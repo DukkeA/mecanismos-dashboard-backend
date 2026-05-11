@@ -25,9 +25,7 @@ import {
 export class CustomerAssetHistoryService {
   private readonly logger = new Logger(CustomerAssetHistoryService.name);
 
-  constructor(
-    private readonly repository: CustomerAssetHistoryRepository,
-  ) {}
+  constructor(private readonly repository: CustomerAssetHistoryRepository) {}
 
   async getCustomerHistory(
     customerId: string,
@@ -126,7 +124,10 @@ export class CustomerAssetHistoryService {
     };
   }
 
-  private findRelatedAssets(scope: CustomerAssetHistoryScope, subjectId: string) {
+  private findRelatedAssets(
+    scope: CustomerAssetHistoryScope,
+    subjectId: string,
+  ) {
     if (scope === 'vehicle') {
       return this.repository.findVehicleRelatedAssets(subjectId);
     }
@@ -210,10 +211,14 @@ function mapRelatedAssets(
   }
 
   if (scope === 'component') {
-    const componentAssets = relatedAssets as ComponentHistoryRelatedAssetsReadModel;
+    const componentAssets =
+      relatedAssets as ComponentHistoryRelatedAssetsReadModel;
     return {
       customer: componentAssets.customer
-        ? { id: componentAssets.customer.id, label: componentAssets.customer.name }
+        ? {
+            id: componentAssets.customer.id,
+            label: componentAssets.customer.name,
+          }
         : null,
       vehicle: componentAssets.vehicle
         ? {

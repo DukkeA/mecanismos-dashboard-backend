@@ -4,17 +4,13 @@ import type { UpdatePricingLaborSettingsDto } from './dto/update-pricing-labor-s
 
 @Injectable()
 export class AppSettingsService {
-  constructor(
-    private readonly appSettingsRepository: AppSettingsRepository,
-  ) {}
+  constructor(private readonly appSettingsRepository: AppSettingsRepository) {}
 
   getCurrentPricingLaborSettings() {
     return this.appSettingsRepository.getOrCreateCurrent();
   }
 
-  async updateCurrentPricingLaborSettings(
-    dto: UpdatePricingLaborSettingsDto,
-  ) {
+  async updateCurrentPricingLaborSettings(dto: UpdatePricingLaborSettingsDto) {
     await this.appSettingsRepository.getOrCreateCurrent();
 
     return this.appSettingsRepository.updateCurrent(dto);

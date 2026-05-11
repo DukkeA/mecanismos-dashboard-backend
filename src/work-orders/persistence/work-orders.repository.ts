@@ -252,7 +252,7 @@ export type WorkOrderDetail = {
   estimates: WorkOrderEstimateSummary[];
   actualCosts: WorkOrderActualCostSummary[];
   payments: WorkOrderPaymentSummary[];
-  inventoryActivity: WorkOrderInventoryActivitySummary[];
+  inventoryActivity?: WorkOrderInventoryActivitySummary[];
 };
 
 export type CreateWorkOrderInventoryActionInput = {
@@ -534,7 +534,9 @@ type WorkOrdersPrismaClient = {
         };
       };
     }): Promise<InventoryMovementRecordWithItem[]>;
-    create(args: { data: Record<string, unknown> }): Promise<InventoryMovementRecord>;
+    create(args: {
+      data: Record<string, unknown>;
+    }): Promise<InventoryMovementRecord>;
   };
 };
 
@@ -557,11 +559,15 @@ type WorkOrderEstimateRecord = {
   workOrderId: string;
   phase: string;
   estimatedLaborHours: DecimalValue;
+  laborHourlyCostSnapshot: number | null;
   baseCostAmount: number;
   contingencyPct: number | null;
   contingencyAmount: number;
   totalCostAmount: number;
   totalPriceAmount: number;
+  recommendedMinimumPrice: number | null;
+  recommendedPrice: number | null;
+  recommendedHighPrice: number | null;
   notes: string | null;
   WorkOrderEstimateLine: WorkOrderEstimateLineRecord[];
 };
@@ -1162,130 +1168,140 @@ export class WorkOrdersRepository {
           );
         }
 
-      const inventoryItem = await tx.inventoryItem.findUnique({
-        where: { id: input.inventoryItemId },
-        select: {
-          id: true,
-          name: true,
-          itemType: true,
-          reference: true,
-          identifier: true,
-          defaultSalePrice: true,
-          isActive: true,
-        },
-      });
+        const inventoryItem = await tx.inventoryItem.findUnique({
+          where: { id: input.inventoryItemId },
+          select: {
+            id: true,
+            name: true,
+            itemType: true,
+            reference: true,
+            identifier: true,
+            defaultSalePrice: true,
+            isActive: true,
+          },
+        });
 
-      if (!inventoryItem) {
-        throw new Error(`Inventory item ${input.inventoryItemId} not found`);
-      }
+        if (!inventoryItem) {
+          throw new Error(`Inventory item ${input.inventoryItemId} not found`);
+        }
 
-      const itemMovements = await tx.inventoryMovement.findMany({
-        where: { inventoryItemId: input.inventoryItemId },
-        orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          InventoryItem: {
-            select: {
-              id: true,
-              name: true,
-              reference: true,
-              identifier: true,
-              defaultSalePrice: true,
-              isActive: true,
-              itemType: true,
+        const itemMovements = await tx.inventoryMovement.findMany({
+          where: { inventoryItemId: input.inventoryItemId },
+          orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
+          include: {
+            InventoryItem: {
+              select: {
+                id: true,
+                name: true,
+                reference: true,
+                identifier: true,
+                defaultSalePrice: true,
+                isActive: true,
+                itemType: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      if (input.movementType === 'IN') {
-        const currentReserved = Math.max(
-          calculateActiveReservationQuantity(itemMovements, workOrderId),
-          0,
-        );
-
-        if (input.quantity > currentReserved) {
-          throw new WorkOrderInventoryReservationConflictError(
-            currentReserved,
-            input.quantity,
+        if (input.movementType === 'IN') {
+          const currentReserved = Math.max(
+            calculateActiveReservationQuantity(itemMovements, workOrderId),
+            0,
           );
+
+          if (input.quantity > currentReserved) {
+            throw new WorkOrderInventoryReservationConflictError(
+              currentReserved,
+              input.quantity,
+            );
+          }
         }
-      }
 
-      if (input.movementType === 'OUT') {
-        const currentAvailable = calculateAvailableStockForWorkOrder(
-          itemMovements,
-          workOrderId,
-        );
-
-        if (input.quantity > currentAvailable) {
-          throw new WorkOrderInventoryStockConflictError(
-            currentAvailable,
-            input.quantity,
+        if (input.movementType === 'OUT') {
+          const currentAvailable = calculateAvailableStockForWorkOrder(
+            itemMovements,
+            workOrderId,
           );
+
+          if (input.quantity > currentAvailable) {
+            throw new WorkOrderInventoryStockConflictError(
+              currentAvailable,
+              input.quantity,
+            );
+          }
         }
-      }
 
-      const movement = await tx.inventoryMovement.create({
-        data: {
-          id: randomUUID(),
-          inventoryItemId: input.inventoryItemId,
-          movementType: input.movementType,
-          reason: input.movementReason,
-          quantity: input.quantity,
-          unitCost: input.unitCost ?? null,
-          supplierId: input.supplierId ?? null,
-          workOrderId,
-          isReservedForWorkOrder: input.isReservedForWorkOrder ?? false,
-          occurredAt: input.occurredAt,
-          notes: normalizeOptionalString(input.notes),
-        },
-      });
+        const movement = await tx.inventoryMovement.create({
+          data: {
+            id: randomUUID(),
+            inventoryItemId: input.inventoryItemId,
+            movementType: input.movementType,
+            reason: input.movementReason,
+            quantity: input.quantity,
+            unitCost: input.unitCost ?? null,
+            supplierId: input.supplierId ?? null,
+            workOrderId,
+            isReservedForWorkOrder: input.isReservedForWorkOrder ?? false,
+            occurredAt: input.occurredAt,
+            notes: normalizeOptionalString(input.notes),
+          },
+        });
 
-      const actualCost = input.actualCost
-        ? await (async () => {
-            if (input.actualCost.amount <= 0) {
-              throw new BadRequestException(
-                'Actual cost amount must be greater than zero',
-              );
-            }
+        const actualCostInput = input.actualCost;
+        const workOrderActualCostDelegate = tx.workOrderActualCost;
 
-            return tx.workOrderActualCost.create({
-            data: {
-              id: randomUUID(),
-              workOrderId,
-              category: input.actualCost.category,
-              description: input.actualCost.description.trim(),
-              amount: input.actualCost.amount,
-              supplierId:
-                normalizeOptionalForeignKey(input.actualCost.supplierId) ?? null,
-              inventoryItemId:
-                normalizeOptionalForeignKey(
-                  input.actualCost.inventoryItemId ?? input.inventoryItemId,
-                ) ?? null,
-              supplierQuoteHistoryId:
-                normalizeOptionalForeignKey(
-                  input.actualCost.supplierQuoteHistoryId,
-                ) ?? null,
-              paymentMethod: input.actualCost.paymentMethod ?? null,
-              incurredAt: input.actualCost.incurredAt,
-              notes: normalizeOptionalString(input.actualCost.notes),
-              updatedAt: new Date(),
-            },
-            include: actualCostInclude,
-            });
-          })()
-        : null;
+        const actualCost = actualCostInput
+          ? await (async () => {
+              if (actualCostInput.amount <= 0) {
+                throw new BadRequestException(
+                  'Actual cost amount must be greater than zero',
+                );
+              }
 
-      const persisted = await tx.workOrder.findUnique({
-        where: { id: workOrderId },
-        include: workOrderDetailInclude,
-      });
+              return workOrderActualCostDelegate.create({
+                data: {
+                  id: randomUUID(),
+                  workOrderId,
+                  category: actualCostInput.category,
+                  description: actualCostInput.description.trim(),
+                  amount: actualCostInput.amount,
+                  supplierId:
+                    normalizeOptionalForeignKey(actualCostInput.supplierId) ??
+                    null,
+                  inventoryItemId:
+                    normalizeOptionalForeignKey(
+                      actualCostInput.inventoryItemId ?? input.inventoryItemId,
+                    ) ?? null,
+                  supplierQuoteHistoryId:
+                    normalizeOptionalForeignKey(
+                      actualCostInput.supplierQuoteHistoryId,
+                    ) ?? null,
+                  paymentMethod: actualCostInput.paymentMethod ?? null,
+                  incurredAt: actualCostInput.incurredAt,
+                  notes: normalizeOptionalString(actualCostInput.notes),
+                  updatedAt: new Date(),
+                },
+                include: actualCostInclude,
+              });
+            })()
+          : null;
 
-      const refreshedMovements = [...itemMovements, { ...movement, InventoryItem: inventoryItem }];
-      const currentStockAfter =
-        input.movementType === 'OUT'
-          ? calculateAvailableStockForWorkOrder(refreshedMovements, workOrderId)
-          : calculatePhysicalStockFromMovements(refreshedMovements);
+        const persisted = await tx.workOrder.findUnique({
+          where: { id: workOrderId },
+          include: workOrderDetailInclude,
+        });
+
+        const refreshedMovements = [
+          ...itemMovements,
+          { ...movement, InventoryItem: inventoryItem },
+        ];
+        const currentStockAfter =
+          input.movementType === 'OUT'
+            ? calculateAvailableStockForWorkOrder(
+                refreshedMovements,
+                workOrderId,
+              )
+            : calculatePhysicalStockFromMovements(refreshedMovements);
 
         return {
           movement: {

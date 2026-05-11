@@ -109,13 +109,17 @@ describe('AdminUsersController', () => {
       RequestMethod.POST,
     );
 
-    expect(service.create).toHaveBeenCalledWith('admin-1', createDto);
-    expect(service.update).toHaveBeenCalledWith('admin-1', 'user-1', updateDto);
-    expect(service.resetPassword).toHaveBeenCalledWith(
+    expect(service.create.mock.calls[0]).toEqual(['admin-1', createDto]);
+    expect(service.update.mock.calls[0]).toEqual([
+      'admin-1',
+      'user-1',
+      updateDto,
+    ]);
+    expect(service.resetPassword.mock.calls[0]).toEqual([
       'admin-1',
       'user-1',
       resetDto,
-    );
+    ]);
 
     const appModuleImports = Reflect.getMetadata(
       MODULE_METADATA.IMPORTS,

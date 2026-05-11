@@ -35,7 +35,9 @@ export function isReservationMovement(movement: InventoryActivityMovement) {
   );
 }
 
-export function isReservationReleaseMovement(movement: InventoryActivityMovement) {
+export function isReservationReleaseMovement(
+  movement: InventoryActivityMovement,
+) {
   return (
     movement.movementType === 'IN' &&
     movement.reason === 'RETURN' &&
@@ -54,7 +56,12 @@ export function calculatePhysicalStockFromMovements(
       return total;
     }
 
-    return total + (movement.movementType === 'OUT' ? movement.quantity * -1 : movement.quantity);
+    return (
+      total +
+      (movement.movementType === 'OUT'
+        ? movement.quantity * -1
+        : movement.quantity)
+    );
   }, 0);
 }
 
@@ -74,7 +81,8 @@ export function calculateActiveReservationQuantity(
     if (
       isReservationReleaseMovement(movement) ||
       (movement.movementType === 'OUT' &&
-        (movement.reason === 'WORK_ORDER_CONSUMPTION' || movement.reason === 'SALE'))
+        (movement.reason === 'WORK_ORDER_CONSUMPTION' ||
+          movement.reason === 'SALE'))
     ) {
       return total - movement.quantity;
     }
@@ -132,11 +140,13 @@ export function buildWorkOrderInventoryActivity(
       actualCostIds: string[];
       movements: Array<{
         id: string;
+        inventoryItemId: string;
         movementType: string;
         reason: string;
         quantity: number;
         unitCost: number | null;
         supplierId: string | null;
+        workOrderId: string | null;
         isReservedForWorkOrder: boolean;
         occurredAt: Date;
         notes: string | null;
@@ -146,21 +156,22 @@ export function buildWorkOrderInventoryActivity(
   >();
 
   for (const movement of movements) {
-    const current =
-      activityByItem.get(movement.inventoryItemId) ?? {
-        inventoryItemId: movement.inventoryItemId,
-        itemName: movement.InventoryItem?.name ?? movement.inventoryItemId,
-        sku:
-          movement.InventoryItem?.reference ?? movement.InventoryItem?.identifier ?? null,
-        reference: movement.InventoryItem?.reference ?? null,
-        identifier: movement.InventoryItem?.identifier ?? null,
-        defaultSalePrice: movement.InventoryItem?.defaultSalePrice ?? null,
-        activeReservedQuantity: 0,
-        consumedQuantity: 0,
-        soldQuantity: 0,
-        actualCostIds: [],
-        movements: [],
-      };
+    const current = activityByItem.get(movement.inventoryItemId) ?? {
+      inventoryItemId: movement.inventoryItemId,
+      itemName: movement.InventoryItem?.name ?? movement.inventoryItemId,
+      sku:
+        movement.InventoryItem?.reference ??
+        movement.InventoryItem?.identifier ??
+        null,
+      reference: movement.InventoryItem?.reference ?? null,
+      identifier: movement.InventoryItem?.identifier ?? null,
+      defaultSalePrice: movement.InventoryItem?.defaultSalePrice ?? null,
+      activeReservedQuantity: 0,
+      consumedQuantity: 0,
+      soldQuantity: 0,
+      actualCostIds: [],
+      movements: [],
+    };
 
     if (isReservationMovement(movement)) {
       current.activeReservedQuantity += movement.quantity;
@@ -168,7 +179,10 @@ export function buildWorkOrderInventoryActivity(
     if (isReservationReleaseMovement(movement)) {
       current.activeReservedQuantity -= movement.quantity;
     }
-    if (movement.movementType === 'OUT' && movement.reason === 'WORK_ORDER_CONSUMPTION') {
+    if (
+      movement.movementType === 'OUT' &&
+      movement.reason === 'WORK_ORDER_CONSUMPTION'
+    ) {
       current.consumedQuantity += movement.quantity;
       current.activeReservedQuantity -= movement.quantity;
     }
@@ -179,11 +193,13 @@ export function buildWorkOrderInventoryActivity(
 
     current.movements.push({
       id: movement.id,
+      inventoryItemId: movement.inventoryItemId,
       movementType: movement.movementType,
       reason: movement.reason,
       quantity: movement.quantity,
       unitCost: movement.unitCost,
       supplierId: movement.supplierId,
+      workOrderId: movement.workOrderId,
       isReservedForWorkOrder: movement.isReservedForWorkOrder,
       occurredAt: movement.occurredAt,
       notes: movement.notes,

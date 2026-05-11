@@ -32,7 +32,8 @@ export class AdminUsersService {
   }
 
   async create(actorUserId: string, dto: CreateAdminUserDto) {
-    const password = dto.temporaryPassword.trim() || generateTemporaryPassword();
+    const password =
+      dto.temporaryPassword.trim() || generateTemporaryPassword();
     const now = new Date();
     const email = dto.email.trim().toLowerCase();
 
@@ -75,8 +76,15 @@ export class AdminUsersService {
       throw new BadRequestException('Admins cannot deactivate themselves');
     }
 
-    if (actorUserId === id && user.role === 'ADMIN' && dto.role && dto.role !== 'ADMIN') {
-      throw new BadRequestException('Admins cannot remove their own ADMIN role');
+    if (
+      actorUserId === id &&
+      user.role === 'ADMIN' &&
+      dto.role &&
+      dto.role !== 'ADMIN'
+    ) {
+      throw new BadRequestException(
+        'Admins cannot remove their own ADMIN role',
+      );
     }
 
     const updated = await this.adminUsersRepository.update(id, {
@@ -86,12 +94,17 @@ export class AdminUsersService {
     });
 
     if (dto.isActive === false && user.isActive) {
-      await this.adminUsersRepository.revokeRefreshSessionsForUser(id, new Date());
+      await this.adminUsersRepository.revokeRefreshSessionsForUser(
+        id,
+        new Date(),
+      );
       this.logger.log(`Admin user deactivated actor=${actorUserId} user=${id}`);
     }
 
     if (dto.role && dto.role !== user.role) {
-      this.logger.log(`Admin user role updated actor=${actorUserId} user=${id} role=${dto.role}`);
+      this.logger.log(
+        `Admin user role updated actor=${actorUserId} user=${id} role=${dto.role}`,
+      );
     }
 
     return updated;
@@ -108,7 +121,8 @@ export class AdminUsersService {
       throw new NotFoundException(`User ${id} not found`);
     }
 
-    const password = dto.temporaryPassword.trim() || generateTemporaryPassword();
+    const password =
+      dto.temporaryPassword.trim() || generateTemporaryPassword();
     const now = new Date();
     const updated = await this.adminUsersRepository.updatePassword(id, {
       passwordHash: await hash(password, 12),
@@ -117,7 +131,9 @@ export class AdminUsersService {
     });
 
     await this.adminUsersRepository.revokeRefreshSessionsForUser(id, now);
-    this.logger.log(`Admin user password reset actor=${actorUserId} user=${id}`);
+    this.logger.log(
+      `Admin user password reset actor=${actorUserId} user=${id}`,
+    );
 
     return {
       ...updated,

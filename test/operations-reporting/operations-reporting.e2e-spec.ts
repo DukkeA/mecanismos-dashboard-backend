@@ -205,12 +205,12 @@ describe('OperationsReportingController (real db e2e)', () => {
           expect(anaTorresRow).toMatchObject({
             employeeId: 'seed-employee-ana-torres',
             employeeName: 'Ana Torres',
-            assignedOrderCount: 3,
+            assignedOrderCount: 4,
             payableTotal: 870000,
             paidTotal: 750000,
             actualCosts: 362000,
             grossUtility: 508000,
-            unknownPayableCount: 1,
+            unknownPayableCount: 2,
           });
         });
 
