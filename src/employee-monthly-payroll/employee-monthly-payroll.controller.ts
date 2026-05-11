@@ -66,7 +66,9 @@ export class EmployeeMonthlyPayrollController {
 
   @Post('generate')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Generate or refresh a draft monthly payroll period' })
+  @ApiOperation({
+    summary: 'Generate or refresh a draft monthly payroll period',
+  })
   @ApiCreatedResponse({
     description: 'Monthly payroll draft generated.',
     type: EmployeeMonthlyPayrollDetailResponseDto,

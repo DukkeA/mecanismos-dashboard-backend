@@ -11,7 +11,10 @@ export class EmployeeMonthlyPayrollLineResponseDto {
   @ApiProperty({ example: 'Ana Torres' })
   employeeName!: string;
 
-  @ApiProperty({ enum: Object.values(EmployeeType), example: EmployeeType.MECHANIC })
+  @ApiProperty({
+    enum: Object.values(EmployeeType),
+    example: EmployeeType.MECHANIC,
+  })
   employeeType!: EmployeeType;
 
   @ApiProperty({ example: 'cost-center-general', nullable: true })

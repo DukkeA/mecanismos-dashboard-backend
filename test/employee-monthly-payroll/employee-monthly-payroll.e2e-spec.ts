@@ -4,6 +4,22 @@ import { App } from 'supertest/types';
 import { createE2EApp } from '../support/create-e2e-app';
 import { loginAsRole } from '../support/auth-e2e';
 
+type PayrollLineResponse = { id: string };
+
+type PayrollResponse = {
+  id: string;
+  year: number;
+  month: number;
+  status: 'DRAFT' | 'FINALIZED';
+  grandTotal: number;
+  finalizedAt: string | null;
+  lines: PayrollLineResponse[];
+};
+
+type PayrollListResponse = {
+  data: Array<{ id: string }>;
+};
+
 describe('EmployeeMonthlyPayrollController (real db e2e)', () => {
   let app: INestApplication<App>;
 
@@ -42,15 +58,17 @@ describe('EmployeeMonthlyPayrollController (real db e2e)', () => {
       .send({ year: 2026, month: 5 })
       .expect(201);
 
-    expect(generateResponse.body).toMatchObject({
+    const generatedPayroll = generateResponse.body as PayrollResponse;
+
+    expect(generatedPayroll).toMatchObject({
       year: 2026,
       month: 5,
       status: 'DRAFT',
     });
-    expect(generateResponse.body.lines.length).toBeGreaterThan(0);
+    expect(generatedPayroll.lines.length).toBeGreaterThan(0);
 
-    const payrollId = generateResponse.body.id as string;
-    const firstGrandTotal = generateResponse.body.grandTotal as number;
+    const payrollId = generatedPayroll.id;
+    const firstGrandTotal = generatedPayroll.grandTotal;
 
     const regenerateResponse = await request(app.getHttpServer())
       .post('/employee-monthly-payroll/generate')
@@ -58,15 +76,19 @@ describe('EmployeeMonthlyPayrollController (real db e2e)', () => {
       .send({ year: 2026, month: 5 })
       .expect(201);
 
-    expect(regenerateResponse.body.id).toBe(payrollId);
-    expect(regenerateResponse.body.grandTotal).toBe(firstGrandTotal);
+    const regeneratedPayroll = regenerateResponse.body as PayrollResponse;
+
+    expect(regeneratedPayroll.id).toBe(payrollId);
+    expect(regeneratedPayroll.grandTotal).toBe(firstGrandTotal);
 
     await request(app.getHttpServer())
       .get('/employee-monthly-payroll?page=1&limit=10&year=2026')
       .set('Cookie', salesCookies)
       .expect(200)
       .expect(({ body }) => {
-        expect(body.data.some((item: { id: string }) => item.id === payrollId)).toBe(
+        const responseBody = body as PayrollListResponse;
+
+        expect(responseBody.data.some((item) => item.id === payrollId)).toBe(
           true,
         );
       });
@@ -76,8 +98,10 @@ describe('EmployeeMonthlyPayrollController (real db e2e)', () => {
       .set('Cookie', salesCookies)
       .expect(200)
       .expect(({ body }) => {
-        expect(body.id).toBe(payrollId);
-        expect(body.lines.length).toBeGreaterThan(0);
+        const responseBody = body as PayrollResponse;
+
+        expect(responseBody.id).toBe(payrollId);
+        expect(responseBody.lines.length).toBeGreaterThan(0);
       });
 
     await request(app.getHttpServer())
@@ -85,8 +109,10 @@ describe('EmployeeMonthlyPayrollController (real db e2e)', () => {
       .set('Cookie', adminCookies)
       .expect(200)
       .expect(({ body }) => {
-        expect(body.status).toBe('FINALIZED');
-        expect(body.finalizedAt).toBeTruthy();
+        const responseBody = body as PayrollResponse;
+
+        expect(responseBody.status).toBe('FINALIZED');
+        expect(responseBody.finalizedAt).toBeTruthy();
       });
 
     await request(app.getHttpServer())

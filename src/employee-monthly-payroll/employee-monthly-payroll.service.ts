@@ -3,7 +3,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EmployeeMonthlyPayrollStatus } from '../../generated/prisma/enums';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
 import type { GenerateEmployeeMonthlyPayrollDto } from './dto/generate-employee-monthly-payroll.dto';
 import type { ListEmployeeMonthlyPayrollQueryDto } from './dto/list-employee-monthly-payroll-query.dto';
@@ -20,7 +19,7 @@ export class EmployeeMonthlyPayrollService {
       page: query.page,
       limit: query.limit,
       year: query.year,
-      status: query.status as EmployeeMonthlyPayrollStatus | undefined,
+      status: query.status,
     });
 
     return {
@@ -53,7 +52,8 @@ export class EmployeeMonthlyPayrollService {
 
   async finalize(id: string) {
     try {
-      const payroll = await this.employeeMonthlyPayrollRepository.finalizeDraft(id);
+      const payroll =
+        await this.employeeMonthlyPayrollRepository.finalizeDraft(id);
 
       if (!payroll) {
         throw new NotFoundException(`Employee monthly payroll ${id} not found`);

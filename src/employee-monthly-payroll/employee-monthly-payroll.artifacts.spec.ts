@@ -30,31 +30,50 @@ describe('employee-monthly-payroll reviewer artifacts', () => {
   it.each([
     {
       fileName: 'overview.md',
-      expectedContent: ['# Employee monthly payroll overview', 'DRAFT', 'FINALIZED'],
+      expectedContent: [
+        '# Employee monthly payroll overview',
+        'DRAFT',
+        'FINALIZED',
+      ],
     },
     {
       fileName: 'api.md',
-      expectedContent: ['# Employee monthly payroll API map', 'POST /employee-monthly-payroll/generate', 'POST /employee-monthly-payroll/:id/finalize'],
+      expectedContent: [
+        '# Employee monthly payroll API map',
+        'POST /employee-monthly-payroll/generate',
+        'POST /employee-monthly-payroll/:id/finalize',
+      ],
     },
     {
       fileName: 'rules.md',
-      expectedContent: ['# Employee monthly payroll rules', 'UTC month window', 'immutable finalized periods'],
+      expectedContent: [
+        '# Employee monthly payroll rules',
+        'UTC month window',
+        'immutable finalized periods',
+      ],
     },
     {
       fileName: 'testing.md',
-      expectedContent: ['# Employee monthly payroll testing guide', 'npm run test', 'npm run test:e2e'],
+      expectedContent: [
+        '# Employee monthly payroll testing guide',
+        'npm run test',
+        'npm run test:e2e',
+      ],
     },
-  ])('ships $fileName with payroll reviewer guidance', ({ fileName, expectedContent }) => {
-    const filePath = path.join(docsDir, fileName);
+  ])(
+    'ships $fileName with payroll reviewer guidance',
+    ({ fileName, expectedContent }) => {
+      const filePath = path.join(docsDir, fileName);
 
-    expect(fs.existsSync(filePath)).toBeTruthy();
+      expect(fs.existsSync(filePath)).toBeTruthy();
 
-    const fileContent = fs.readFileSync(filePath, 'utf8');
+      const fileContent = fs.readFileSync(filePath, 'utf8');
 
-    for (const expectedSnippet of expectedContent) {
-      expect(fileContent).toContain(expectedSnippet);
-    }
-  });
+      for (const expectedSnippet of expectedContent) {
+        expect(fileContent).toContain(expectedSnippet);
+      }
+    },
+  );
 
   it('ships a valid Postman collection for payroll reviewers', () => {
     const collection = readCollection(postmanCollectionPath);
@@ -96,7 +115,9 @@ describe('employee-monthly-payroll reviewer artifacts', () => {
 function readCollection(collectionPath: string): PostmanCollection {
   expect(fs.existsSync(collectionPath)).toBeTruthy();
 
-  return JSON.parse(fs.readFileSync(collectionPath, 'utf8')) as PostmanCollection;
+  return JSON.parse(
+    fs.readFileSync(collectionPath, 'utf8'),
+  ) as PostmanCollection;
 }
 
 function listRequestNames(collection: PostmanCollection): string[] {

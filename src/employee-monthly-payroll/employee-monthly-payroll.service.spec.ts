@@ -1,43 +1,15 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { EmployeeType } from '../../generated/prisma/enums';
 import {
   EmployeeMonthlyPayrollService,
   buildPayrollUtcMonthWindow,
   calculatePayrollTotals,
 } from './employee-monthly-payroll.service';
-import { EmployeeMonthlyPayrollRepository } from './employee-monthly-payroll.repository';
+import type {
+  EmployeeMonthlyPayrollDetailRecord,
+  EmployeeMonthlyPayrollRepository,
+} from './employee-monthly-payroll.repository';
 
-type PayrollLineRecord = {
-  id: string;
-  payrollId: string;
-  employeeId: string | null;
-  employeeName: string;
-  employeeType: EmployeeType;
-  costCenterId: string | null;
-  costCenterCode: string | null;
-  costCenterName: string | null;
-  baseSalaryMonthlySnapshot: number;
-  bonusTotal: number;
-  bonusCount: number;
-  totalPay: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type PayrollRecord = {
-  id: string;
-  year: number;
-  month: number;
-  status: 'DRAFT' | 'FINALIZED';
-  salaryTotal: number;
-  bonusTotal: number;
-  grandTotal: number;
-  generatedAt: Date;
-  finalizedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  lines?: PayrollLineRecord[];
-};
+type PayrollRecord = EmployeeMonthlyPayrollDetailRecord;
 
 describe('EmployeeMonthlyPayrollService', () => {
   const repository = {
@@ -107,7 +79,7 @@ describe('EmployeeMonthlyPayrollService', () => {
       generatedDraft,
     );
 
-    expect(repository.generateDraft).toHaveBeenCalledTimes(2);
+    expect(repository.generateDraft.mock.calls).toHaveLength(2);
     expect(repository.generateDraft.mock.calls[0]?.[0]).toEqual({
       year: 2026,
       month: 5,
@@ -140,12 +112,18 @@ describe('EmployeeMonthlyPayrollService', () => {
 
     repository.finalizeDraft.mockResolvedValueOnce(finalized);
     repository.finalizeDraft.mockRejectedValueOnce(
-      new NotFoundException('Employee monthly payroll missing-payroll not found'),
+      new NotFoundException(
+        'Employee monthly payroll missing-payroll not found',
+      ),
     );
 
-    await expect(service.finalize('payroll-2026-05')).resolves.toEqual(finalized);
+    await expect(service.finalize('payroll-2026-05')).resolves.toEqual(
+      finalized,
+    );
     await expect(service.finalize('missing-payroll')).rejects.toThrow(
-      new NotFoundException('Employee monthly payroll missing-payroll not found'),
+      new NotFoundException(
+        'Employee monthly payroll missing-payroll not found',
+      ),
     );
   });
 });

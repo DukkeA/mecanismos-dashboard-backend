@@ -1,3 +1,4 @@
+import type { Prisma } from '../../generated/prisma/client';
 import { EmployeeType } from '../../generated/prisma/enums';
 import {
   EMPLOYEE_MONTHLY_PAYROLL_PRISMA_CLIENT,
@@ -7,8 +8,9 @@ import {
 describe('EmployeeMonthlyPayrollRepository', () => {
   it('creates a new draft period transactionally from active employees and in-month bonuses', async () => {
     const transactionClient = buildTransactionClient();
-    const transaction = jest.fn((callback: (tx: typeof transactionClient) => unknown) =>
-      callback(transactionClient),
+    const transaction = jest.fn(
+      (callback: (tx: typeof transactionClient) => unknown) =>
+        callback(transactionClient),
     );
     const repository = new EmployeeMonthlyPayrollRepository({
       $transaction: transaction,
@@ -34,7 +36,9 @@ describe('EmployeeMonthlyPayrollRepository', () => {
     });
 
     expect(transaction).toHaveBeenCalledTimes(1);
-    expect(transactionClient.employeeMonthlyPayroll.upsert).toHaveBeenCalledWith(
+    expect(
+      transactionClient.employeeMonthlyPayroll.upsert,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
           year_month: { year: 2026, month: 5 },
@@ -69,8 +73,9 @@ describe('EmployeeMonthlyPayrollRepository', () => {
       },
     });
     const repository = new EmployeeMonthlyPayrollRepository({
-      $transaction: jest.fn((callback: (tx: typeof transactionClient) => unknown) =>
-        callback(transactionClient),
+      $transaction: jest.fn(
+        (callback: (tx: typeof transactionClient) => unknown) =>
+          callback(transactionClient),
       ),
     } as never);
 
@@ -90,33 +95,38 @@ describe('EmployeeMonthlyPayrollRepository', () => {
     });
     expect(
       transactionClient.employeeMonthlyPayrollLine.createMany,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.arrayContaining([
-          expect.objectContaining({
-            payrollId: 'payroll-2026-05',
-            employeeName: 'Ana Torres',
-            baseSalaryMonthlySnapshot: 2500000,
-            bonusTotal: 150000,
-            totalPay: 2650000,
-          }),
-          expect.objectContaining({
-            payrollId: 'payroll-2026-05',
-            employeeName: 'Mario Rincon',
-            baseSalaryMonthlySnapshot: 3200000,
-            bonusTotal: 90000,
-            totalPay: 3290000,
-          }),
-        ]),
-      }),
+    ).toHaveBeenCalled();
+
+    const regeneratedLines =
+      transactionClient.employeeMonthlyPayrollLine.createMany.mock.calls[0]?.[0]
+        ?.data ?? [];
+
+    expect(regeneratedLines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          payrollId: 'payroll-2026-05',
+          employeeName: 'Ana Torres',
+          baseSalaryMonthlySnapshot: 2500000,
+          bonusTotal: 150000,
+          totalPay: 2650000,
+        }),
+        expect.objectContaining({
+          payrollId: 'payroll-2026-05',
+          employeeName: 'Mario Rincon',
+          baseSalaryMonthlySnapshot: 3200000,
+          bonusTotal: 90000,
+          totalPay: 3290000,
+        }),
+      ]),
     );
   });
 
   it('snapshots active employees only with employee and cost-center identity copies', async () => {
     const transactionClient = buildTransactionClient();
     const repository = new EmployeeMonthlyPayrollRepository({
-      $transaction: jest.fn((callback: (tx: typeof transactionClient) => unknown) =>
-        callback(transactionClient),
+      $transaction: jest.fn(
+        (callback: (tx: typeof transactionClient) => unknown) =>
+          callback(transactionClient),
       ),
     } as never);
 
@@ -129,9 +139,10 @@ describe('EmployeeMonthlyPayrollRepository', () => {
       },
     });
 
-    const createdLines =
-      transactionClient.employeeMonthlyPayrollLine.createMany.mock.calls[0]?.[0]
-        ?.data ?? [];
+    const createManyArgs =
+      transactionClient.employeeMonthlyPayrollLine.createMany.mock
+        .calls[0]?.[0];
+    const createdLines = createManyArgs?.data ?? [];
 
     expect(createdLines).toHaveLength(2);
     expect(createdLines).toEqual(
@@ -163,8 +174,9 @@ describe('EmployeeMonthlyPayrollRepository', () => {
       ],
     });
     const repository = new EmployeeMonthlyPayrollRepository({
-      $transaction: jest.fn((callback: (tx: typeof transactionClient) => unknown) =>
-        callback(transactionClient),
+      $transaction: jest.fn(
+        (callback: (tx: typeof transactionClient) => unknown) =>
+          callback(transactionClient),
       ),
     } as never);
 
@@ -199,7 +211,12 @@ describe('EmployeeMonthlyPayrollRepository', () => {
 });
 
 function buildTransactionClient(overrides?: {
-  currentPayroll?: { id: string; year: number; month: number; status: 'DRAFT' | 'FINALIZED' };
+  currentPayroll?: {
+    id: string;
+    year: number;
+    month: number;
+    status: 'DRAFT' | 'FINALIZED';
+  };
   groupedBonuses?: Array<{
     employeeId: string;
     _sum: { amount: number | null };
@@ -207,63 +224,89 @@ function buildTransactionClient(overrides?: {
   }>;
 }) {
   const currentPayroll =
-    overrides?.currentPayroll ?? ({ id: 'payroll-2026-05', year: 2026, month: 5, status: 'DRAFT' } as const);
-  const groupedBonuses =
-    overrides?.groupedBonuses ?? [
-      { employeeId: 'employee-1', _sum: { amount: 150000 }, _count: 1 },
-      { employeeId: 'employee-2', _sum: { amount: 90000 }, _count: 1 },
-    ];
+    overrides?.currentPayroll ??
+    ({ id: 'payroll-2026-05', year: 2026, month: 5, status: 'DRAFT' } as const);
+  const groupedBonuses = overrides?.groupedBonuses ?? [
+    { employeeId: 'employee-1', _sum: { amount: 150000 }, _count: 1 },
+    { employeeId: 'employee-2', _sum: { amount: 90000 }, _count: 1 },
+  ];
+  const createMany = jest
+    .fn<
+      Promise<Prisma.BatchPayload>,
+      [Prisma.EmployeeMonthlyPayrollLineCreateManyArgs]
+    >()
+    .mockResolvedValue({ count: 2 });
 
   return {
     employeeMonthlyPayroll: {
       upsert: jest.fn().mockResolvedValue(currentPayroll),
-      update: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) =>
-        Promise.resolve({ ...currentPayroll, ...data }),
-      ),
+      update: jest
+        .fn()
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+          Promise.resolve({ ...currentPayroll, ...data }),
+        ),
     },
     employeeMonthlyPayrollLine: {
       deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
-      createMany: jest.fn().mockResolvedValue({ count: 2 }),
-      findMany: jest.fn().mockImplementation(({ where }: { where: { payrollId: string } }) =>
-        Promise.resolve([
-          {
-            id: 'line-1',
-            payrollId: where.payrollId,
-            employeeId: 'employee-1',
-            employeeName: 'Ana Torres',
-            employeeType: EmployeeType.MECHANIC,
-            costCenterId: 'cost-center-general',
-            costCenterCode: 'GENERAL',
-            costCenterName: 'General',
-            baseSalaryMonthlySnapshot: 2500000,
-            bonusTotal: groupedBonuses.find((bonus) => bonus.employeeId === 'employee-1')?._sum.amount ?? 0,
-            bonusCount: groupedBonuses.find((bonus) => bonus.employeeId === 'employee-1')?._count ?? 0,
-            totalPay:
-              2500000 +
-              (groupedBonuses.find((bonus) => bonus.employeeId === 'employee-1')?._sum.amount ?? 0),
-            createdAt: new Date('2026-05-31T12:00:00.000Z'),
-            updatedAt: new Date('2026-05-31T12:00:00.000Z'),
-          },
-          {
-            id: 'line-2',
-            payrollId: where.payrollId,
-            employeeId: 'employee-2',
-            employeeName: 'Mario Rincon',
-            employeeType: EmployeeType.ADMIN,
-            costCenterId: 'cost-center-oficina',
-            costCenterCode: 'OFICINA',
-            costCenterName: 'Oficina',
-            baseSalaryMonthlySnapshot: 3200000,
-            bonusTotal: groupedBonuses.find((bonus) => bonus.employeeId === 'employee-2')?._sum.amount ?? 0,
-            bonusCount: groupedBonuses.find((bonus) => bonus.employeeId === 'employee-2')?._count ?? 0,
-            totalPay:
-              3200000 +
-              (groupedBonuses.find((bonus) => bonus.employeeId === 'employee-2')?._sum.amount ?? 0),
-            createdAt: new Date('2026-05-31T12:00:00.000Z'),
-            updatedAt: new Date('2026-05-31T12:00:00.000Z'),
-          },
-        ]),
-      ),
+      createMany,
+      findMany: jest
+        .fn()
+        .mockImplementation(({ where }: { where: { payrollId: string } }) =>
+          Promise.resolve([
+            {
+              id: 'line-1',
+              payrollId: where.payrollId,
+              employeeId: 'employee-1',
+              employeeName: 'Ana Torres',
+              employeeType: EmployeeType.MECHANIC,
+              costCenterId: 'cost-center-general',
+              costCenterCode: 'GENERAL',
+              costCenterName: 'General',
+              baseSalaryMonthlySnapshot: 2500000,
+              bonusTotal:
+                groupedBonuses.find(
+                  (bonus) => bonus.employeeId === 'employee-1',
+                )?._sum.amount ?? 0,
+              bonusCount:
+                groupedBonuses.find(
+                  (bonus) => bonus.employeeId === 'employee-1',
+                )?._count ?? 0,
+              totalPay:
+                2500000 +
+                (groupedBonuses.find(
+                  (bonus) => bonus.employeeId === 'employee-1',
+                )?._sum.amount ?? 0),
+              createdAt: new Date('2026-05-31T12:00:00.000Z'),
+              updatedAt: new Date('2026-05-31T12:00:00.000Z'),
+            },
+            {
+              id: 'line-2',
+              payrollId: where.payrollId,
+              employeeId: 'employee-2',
+              employeeName: 'Mario Rincon',
+              employeeType: EmployeeType.ADMIN,
+              costCenterId: 'cost-center-oficina',
+              costCenterCode: 'OFICINA',
+              costCenterName: 'Oficina',
+              baseSalaryMonthlySnapshot: 3200000,
+              bonusTotal:
+                groupedBonuses.find(
+                  (bonus) => bonus.employeeId === 'employee-2',
+                )?._sum.amount ?? 0,
+              bonusCount:
+                groupedBonuses.find(
+                  (bonus) => bonus.employeeId === 'employee-2',
+                )?._count ?? 0,
+              totalPay:
+                3200000 +
+                (groupedBonuses.find(
+                  (bonus) => bonus.employeeId === 'employee-2',
+                )?._sum.amount ?? 0),
+              createdAt: new Date('2026-05-31T12:00:00.000Z'),
+              updatedAt: new Date('2026-05-31T12:00:00.000Z'),
+            },
+          ]),
+        ),
     },
     employee: {
       findMany: jest.fn().mockResolvedValue([
@@ -273,7 +316,11 @@ function buildTransactionClient(overrides?: {
           type: EmployeeType.MECHANIC,
           baseSalaryMonthly: 2500000,
           costCenterId: 'cost-center-general',
-          CostCenter: { id: 'cost-center-general', code: 'GENERAL', name: 'General' },
+          CostCenter: {
+            id: 'cost-center-general',
+            code: 'GENERAL',
+            name: 'General',
+          },
         },
         {
           id: 'employee-2',
@@ -281,7 +328,11 @@ function buildTransactionClient(overrides?: {
           type: EmployeeType.ADMIN,
           baseSalaryMonthly: 3200000,
           costCenterId: 'cost-center-oficina',
-          CostCenter: { id: 'cost-center-oficina', code: 'OFICINA', name: 'Oficina' },
+          CostCenter: {
+            id: 'cost-center-oficina',
+            code: 'OFICINA',
+            name: 'Oficina',
+          },
         },
       ]),
     },

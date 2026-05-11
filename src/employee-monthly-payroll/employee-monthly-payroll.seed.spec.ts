@@ -8,8 +8,10 @@ import {
 
 type CostCenterFindUniqueArgs = Prisma.CostCenterFindUniqueArgs;
 type EmployeeMonthlyPayrollUpsertArgs = Prisma.EmployeeMonthlyPayrollUpsertArgs;
-type EmployeeMonthlyPayrollLineDeleteManyArgs = Prisma.EmployeeMonthlyPayrollLineDeleteManyArgs;
-type EmployeeMonthlyPayrollLineCreateManyArgs = Prisma.EmployeeMonthlyPayrollLineCreateManyArgs;
+type EmployeeMonthlyPayrollLineDeleteManyArgs =
+  Prisma.EmployeeMonthlyPayrollLineDeleteManyArgs;
+type EmployeeMonthlyPayrollLineCreateManyArgs =
+  Prisma.EmployeeMonthlyPayrollLineCreateManyArgs;
 
 void (seedEmployeeMonthlyPayroll satisfies (
   prisma: EmployeeMonthlyPayrollSeedPrismaClient,
@@ -73,25 +75,37 @@ describe('employee monthly payroll seeds', () => {
   });
 
   it('replaces stable line snapshots for the seeded payroll periods', async () => {
+    let capturedCreateManyArgs:
+      | EmployeeMonthlyPayrollLineCreateManyArgs
+      | undefined;
+    const findUnique = jest
+      .fn<Promise<{ id: string } | null>, [CostCenterFindUniqueArgs]>()
+      .mockImplementation(({ where }) =>
+        Promise.resolve(
+          where.code === 'GENERAL'
+            ? { id: 'cost-center-general' }
+            : { id: 'cost-center-oficina' },
+        ),
+      );
+    const payrollUpsert = jest
+      .fn<Promise<unknown>, [EmployeeMonthlyPayrollUpsertArgs]>()
+      .mockResolvedValue(undefined);
     const deleteMany = jest
       .fn<Promise<unknown>, [EmployeeMonthlyPayrollLineDeleteManyArgs]>()
       .mockResolvedValue({ count: 0 });
     const createMany = jest
       .fn<Promise<unknown>, [EmployeeMonthlyPayrollLineCreateManyArgs]>()
-      .mockResolvedValue({ count: 4 });
+      .mockImplementation((args) => {
+        capturedCreateManyArgs = args;
+        return Promise.resolve({ count: 4 });
+      });
 
     await seedEmployeeMonthlyPayroll(
       {
-        costCenter: {
-          findUnique: jest.fn().mockImplementation(({ where }) =>
-            Promise.resolve(
-              where.code === 'GENERAL'
-                ? { id: 'cost-center-general' }
-                : { id: 'cost-center-oficina' },
-            ),
-          ),
+        costCenter: { findUnique },
+        employeeMonthlyPayroll: {
+          upsert: payrollUpsert,
         },
-        employeeMonthlyPayroll: { upsert: jest.fn().mockResolvedValue(undefined) },
         employeeMonthlyPayrollLine: { deleteMany, createMany },
       },
       new Date('2026-05-11T12:00:00.000Z'),
@@ -99,11 +113,15 @@ describe('employee monthly payroll seeds', () => {
 
     expect(deleteMany).toHaveBeenCalledWith({
       where: {
-        payrollId: { in: ['seed-payroll-2026-04-finalized', 'seed-payroll-2026-06-draft'] },
+        payrollId: {
+          in: ['seed-payroll-2026-04-finalized', 'seed-payroll-2026-06-draft'],
+        },
       },
     });
-    expect(createMany.mock.calls[0]?.[0]).toMatchObject({
-      data: expect.arrayContaining([
+    const seededLines = capturedCreateManyArgs?.data ?? [];
+
+    expect(seededLines).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-payroll-line-2026-04-ana',
           payrollId: 'seed-payroll-2026-04-finalized',
@@ -117,7 +135,7 @@ describe('employee monthly payroll seeds', () => {
           bonusTotal: 0,
         }),
       ]),
-    });
+    );
   });
 
   it('hooks payroll seeds into prisma/seed.ts after employee bonuses', () => {

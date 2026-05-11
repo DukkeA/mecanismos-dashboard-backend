@@ -4,7 +4,28 @@ import {
   EmployeeType,
 } from '../generated/prisma/enums';
 
-const SEED_PAYROLLS = [
+type SeedPayrollLine = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeType: EmployeeType;
+  costCenterCode: 'GENERAL' | 'OFICINA';
+  baseSalaryMonthlySnapshot: number;
+  bonusTotal: number;
+  bonusCount: number;
+};
+
+type SeedPayroll = {
+  id: string;
+  year: number;
+  month: number;
+  status: EmployeeMonthlyPayrollStatus;
+  generatedAt: Date;
+  finalizedAt: Date | null;
+  lines: SeedPayrollLine[];
+};
+
+const SEED_PAYROLLS: SeedPayroll[] = [
   {
     id: 'seed-payroll-2026-04-finalized',
     year: 2026,
@@ -65,7 +86,7 @@ const SEED_PAYROLLS = [
       },
     ],
   },
-] as const;
+];
 
 export type EmployeeMonthlyPayrollSeedPrismaClient = {
   costCenter: {
@@ -130,28 +151,40 @@ export async function seedEmployeeMonthlyPayroll(
 
   await prisma.employeeMonthlyPayrollLine.createMany({
     data: SEED_PAYROLLS.flatMap((payroll) =>
-      payroll.lines.map((line) => ({
-        id: line.id,
-        payrollId: payroll.id,
-        employeeId: line.employeeId,
-        employeeName: line.employeeName,
-        employeeType: line.employeeType,
-        costCenterId: costCenterIds.get(line.costCenterCode) ?? null,
-        costCenterCode: line.costCenterCode,
-        costCenterName:
-          line.costCenterCode === 'GENERAL' ? 'General' : 'Oficina',
-        baseSalaryMonthlySnapshot: line.baseSalaryMonthlySnapshot,
-        bonusTotal: line.bonusTotal,
-        bonusCount: line.bonusCount,
-        totalPay: line.baseSalaryMonthlySnapshot + line.bonusTotal,
-        createdAt: now,
-        updatedAt: now,
-      })),
+      payroll.lines.map((line) =>
+        buildSeedPayrollLineCreateInput(line, payroll.id, costCenterIds, now),
+      ),
     ),
   });
 }
 
-async function resolveCostCenterIds(prisma: EmployeeMonthlyPayrollSeedPrismaClient) {
+function buildSeedPayrollLineCreateInput(
+  line: SeedPayrollLine,
+  payrollId: string,
+  costCenterIds: Map<string, string>,
+  now: Date,
+): Prisma.EmployeeMonthlyPayrollLineCreateManyInput {
+  return {
+    id: line.id,
+    payrollId,
+    employeeId: line.employeeId,
+    employeeName: line.employeeName,
+    employeeType: line.employeeType,
+    costCenterId: costCenterIds.get(line.costCenterCode) ?? null,
+    costCenterCode: line.costCenterCode,
+    costCenterName: line.costCenterCode === 'GENERAL' ? 'General' : 'Oficina',
+    baseSalaryMonthlySnapshot: line.baseSalaryMonthlySnapshot,
+    bonusTotal: line.bonusTotal,
+    bonusCount: line.bonusCount,
+    totalPay: line.baseSalaryMonthlySnapshot + line.bonusTotal,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+async function resolveCostCenterIds(
+  prisma: EmployeeMonthlyPayrollSeedPrismaClient,
+) {
   const costCenterIds = new Map<string, string>();
 
   for (const code of ['GENERAL', 'OFICINA'] as const) {
@@ -172,10 +205,7 @@ async function resolveCostCenterIds(prisma: EmployeeMonthlyPayrollSeedPrismaClie
 }
 
 function calculateSeedPayrollTotals(
-  lines: readonly {
-    baseSalaryMonthlySnapshot: number;
-    bonusTotal: number;
-  }[],
+  lines: Pick<SeedPayrollLine, 'baseSalaryMonthlySnapshot' | 'bonusTotal'>[],
 ) {
   return lines.reduce(
     (totals, line) => ({

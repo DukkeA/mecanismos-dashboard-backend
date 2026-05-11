@@ -39,14 +39,20 @@ describe('EmployeeMonthlyPayrollController', () => {
   });
 
   it('validates generate/list DTOs and registers protected payroll routes with admin-only mutations', async () => {
-    const validGenerateDto = plainToInstance(GenerateEmployeeMonthlyPayrollDto, {
-      year: 2026,
-      month: 5,
-    });
-    const invalidGenerateDto = plainToInstance(GenerateEmployeeMonthlyPayrollDto, {
-      year: 199,
-      month: 13,
-    });
+    const validGenerateDto = plainToInstance(
+      GenerateEmployeeMonthlyPayrollDto,
+      {
+        year: 2026,
+        month: 5,
+      },
+    );
+    const invalidGenerateDto = plainToInstance(
+      GenerateEmployeeMonthlyPayrollDto,
+      {
+        year: 199,
+        month: 13,
+      },
+    );
     const validListDto = plainToInstance(ListEmployeeMonthlyPayrollQueryDto, {
       page: '2',
       limit: '5',
@@ -63,36 +69,72 @@ describe('EmployeeMonthlyPayrollController', () => {
       ]),
     );
 
-    service.findAll.mockResolvedValue({ data: [], meta: { page: 1, limit: 10, total: 0, totalPages: 1 } } as never);
+    service.findAll.mockResolvedValue({
+      data: [],
+      meta: { page: 1, limit: 10, total: 0, totalPages: 1 },
+    });
     service.findOne.mockResolvedValue({ id: 'payroll-1', lines: [] } as never);
-    service.generate.mockResolvedValue({ id: 'payroll-1', status: 'DRAFT' } as never);
-    service.finalize.mockResolvedValue({ id: 'payroll-1', status: 'FINALIZED' } as never);
+    service.generate.mockResolvedValue({
+      id: 'payroll-1',
+      status: 'DRAFT',
+    } as never);
+    service.finalize.mockResolvedValue({
+      id: 'payroll-1',
+      status: 'FINALIZED',
+    } as never);
 
     await expect(controller.findAll(validListDto)).resolves.toEqual({
       data: [],
       meta: { page: 1, limit: 10, total: 0, totalPages: 1 },
     });
-    await expect(controller.findOne('payroll-1')).resolves.toEqual({ id: 'payroll-1', lines: [] });
-    await expect(controller.generate(validGenerateDto)).resolves.toEqual({ id: 'payroll-1', status: 'DRAFT' });
-    await expect(controller.finalize('payroll-1')).resolves.toEqual({ id: 'payroll-1', status: 'FINALIZED' });
+    await expect(controller.findOne('payroll-1')).resolves.toEqual({
+      id: 'payroll-1',
+      lines: [],
+    });
+    await expect(controller.generate(validGenerateDto)).resolves.toEqual({
+      id: 'payroll-1',
+      status: 'DRAFT',
+    });
+    await expect(controller.finalize('payroll-1')).resolves.toEqual({
+      id: 'payroll-1',
+      status: 'FINALIZED',
+    });
 
-    expect(Reflect.getMetadata(PATH_METADATA, EmployeeMonthlyPayrollController)).toBe('employee-monthly-payroll');
-    expect(Reflect.getMetadata(ROLES_KEY, EmployeeMonthlyPayrollController)).toEqual(['ADMIN', 'SALES']);
-    expect(Reflect.getMetadata(GUARDS_METADATA, EmployeeMonthlyPayrollController)).toEqual([JwtAuthGuard, RolesGuard]);
+    expect(
+      Reflect.getMetadata(PATH_METADATA, EmployeeMonthlyPayrollController),
+    ).toBe('employee-monthly-payroll');
+    expect(
+      Reflect.getMetadata(ROLES_KEY, EmployeeMonthlyPayrollController),
+    ).toEqual(['ADMIN', 'SALES']);
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, EmployeeMonthlyPayrollController),
+    ).toEqual([JwtAuthGuard, RolesGuard]);
 
     const listHandler = getControllerMethod('findAll');
     const detailHandler = getControllerMethod('findOne');
     const generateHandler = getControllerMethod('generate');
     const finalizeHandler = getControllerMethod('finalize');
 
-    expect(Reflect.getMetadata(METHOD_METADATA, listHandler)).toBe(RequestMethod.GET);
+    expect(Reflect.getMetadata(METHOD_METADATA, listHandler)).toBe(
+      RequestMethod.GET,
+    );
     expect(Reflect.getMetadata(PATH_METADATA, detailHandler)).toBe(':id');
-    expect(Reflect.getMetadata(METHOD_METADATA, detailHandler)).toBe(RequestMethod.GET);
-    expect(Reflect.getMetadata(PATH_METADATA, generateHandler)).toBe('generate');
-    expect(Reflect.getMetadata(METHOD_METADATA, generateHandler)).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(METHOD_METADATA, detailHandler)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, generateHandler)).toBe(
+      'generate',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, generateHandler)).toBe(
+      RequestMethod.POST,
+    );
     expect(Reflect.getMetadata(ROLES_KEY, generateHandler)).toEqual(['ADMIN']);
-    expect(Reflect.getMetadata(PATH_METADATA, finalizeHandler)).toBe(':id/finalize');
-    expect(Reflect.getMetadata(METHOD_METADATA, finalizeHandler)).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(PATH_METADATA, finalizeHandler)).toBe(
+      ':id/finalize',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, finalizeHandler)).toBe(
+      RequestMethod.POST,
+    );
     expect(Reflect.getMetadata(ROLES_KEY, finalizeHandler)).toEqual(['ADMIN']);
 
     const detailApiResponseMetadata = Reflect.getMetadata(

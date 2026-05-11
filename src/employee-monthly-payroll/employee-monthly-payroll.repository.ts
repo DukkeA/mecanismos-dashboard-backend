@@ -7,10 +7,7 @@ import type {
   EmployeeMonthlyPayrollLine,
   Prisma,
 } from '../../generated/prisma/client';
-import {
-  EmployeeMonthlyPayrollStatus,
-  EmployeeType,
-} from '../../generated/prisma/enums';
+import { EmployeeMonthlyPayrollStatus } from '../../generated/prisma/enums';
 
 export const EMPLOYEE_MONTHLY_PAYROLL_PRISMA_CLIENT = Symbol(
   'EMPLOYEE_MONTHLY_PAYROLL_PRISMA_CLIENT',
@@ -57,31 +54,70 @@ type EmployeeBonusTotalsRecord = {
   _count: number;
 };
 
+type PayrollLineCreateRecord = {
+  id: string;
+  payrollId: string;
+  employeeId: string;
+  employeeName: string;
+  employeeType: ActiveEmployeeSnapshotRecord['type'];
+  costCenterId: string | null;
+  costCenterCode: string | null;
+  costCenterName: string | null;
+  baseSalaryMonthlySnapshot: number;
+  bonusTotal: number;
+  bonusCount: number;
+  totalPay: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type EmployeeMonthlyPayrollPrismaClient = {
-  $transaction<T>(callback: (tx: EmployeeMonthlyPayrollTransactionClient) => Promise<T>): Promise<T>;
+  $transaction<T>(
+    callback: (tx: EmployeeMonthlyPayrollTransactionClient) => Promise<T>,
+  ): Promise<T>;
   employeeMonthlyPayroll: {
     count(args: Prisma.EmployeeMonthlyPayrollCountArgs): Promise<number>;
-    findMany(args: Prisma.EmployeeMonthlyPayrollFindManyArgs): Promise<PayrollSummaryRecord[]>;
-    findUnique(args: Prisma.EmployeeMonthlyPayrollFindUniqueArgs): Promise<PayrollDetailRecord | null>;
+    findMany(
+      args: Prisma.EmployeeMonthlyPayrollFindManyArgs,
+    ): Promise<PayrollSummaryRecord[]>;
+    findUnique(
+      args: Prisma.EmployeeMonthlyPayrollFindUniqueArgs,
+    ): Promise<PayrollDetailRecord | null>;
   };
 };
 
 type EmployeeMonthlyPayrollTransactionClient = {
   employeeMonthlyPayroll: {
-    upsert(args: Prisma.EmployeeMonthlyPayrollUpsertArgs): Promise<EmployeeMonthlyPayroll>;
-    findUnique(args: Prisma.EmployeeMonthlyPayrollFindUniqueArgs): Promise<PayrollDetailRecord | null>;
-    update(args: Prisma.EmployeeMonthlyPayrollUpdateArgs): Promise<EmployeeMonthlyPayroll>;
+    upsert(
+      args: Prisma.EmployeeMonthlyPayrollUpsertArgs,
+    ): Promise<EmployeeMonthlyPayroll>;
+    findUnique(
+      args: Prisma.EmployeeMonthlyPayrollFindUniqueArgs,
+    ): Promise<PayrollDetailRecord | null>;
+    update(
+      args: Prisma.EmployeeMonthlyPayrollUpdateArgs,
+    ): Promise<EmployeeMonthlyPayroll>;
   };
   employeeMonthlyPayrollLine: {
-    deleteMany(args: Prisma.EmployeeMonthlyPayrollLineDeleteManyArgs): Promise<Prisma.BatchPayload>;
-    createMany(args: Prisma.EmployeeMonthlyPayrollLineCreateManyArgs): Promise<Prisma.BatchPayload>;
-    findMany(args: Prisma.EmployeeMonthlyPayrollLineFindManyArgs): Promise<EmployeeMonthlyPayrollLine[]>;
+    deleteMany(
+      args: Prisma.EmployeeMonthlyPayrollLineDeleteManyArgs,
+    ): Promise<Prisma.BatchPayload>;
+    createMany(
+      args: Prisma.EmployeeMonthlyPayrollLineCreateManyArgs,
+    ): Promise<Prisma.BatchPayload>;
+    findMany(
+      args: Prisma.EmployeeMonthlyPayrollLineFindManyArgs,
+    ): Promise<EmployeeMonthlyPayrollLine[]>;
   };
   employee: {
-    findMany(args: Prisma.EmployeeFindManyArgs): Promise<ActiveEmployeeSnapshotRecord[]>;
+    findMany(
+      args: Prisma.EmployeeFindManyArgs,
+    ): Promise<ActiveEmployeeSnapshotRecord[]>;
   };
   employeeBonus: {
-    groupBy(args: Prisma.EmployeeBonusGroupByArgs): Promise<EmployeeBonusTotalsRecord[]>;
+    groupBy(
+      args: Prisma.EmployeeBonusGroupByArgs,
+    ): Promise<EmployeeBonusTotalsRecord[]>;
   };
 };
 
@@ -198,7 +234,12 @@ export class EmployeeMonthlyPayrollRepository {
         groupedBonuses.map((bonus) => [bonus.employeeId, bonus]),
       );
       const lineData = employees.map((employee) =>
-        buildPayrollLineCreateInput(payroll.id, employee, bonusTotalsByEmployeeId, now),
+        buildPayrollLineCreateInput(
+          payroll.id,
+          employee,
+          bonusTotalsByEmployeeId,
+          now,
+        ),
       );
 
       await tx.employeeMonthlyPayrollLine.deleteMany({
@@ -270,7 +311,7 @@ function buildPayrollLineCreateInput(
   employee: ActiveEmployeeSnapshotRecord,
   bonusTotalsByEmployeeId: Map<string, EmployeeBonusTotalsRecord>,
   now: Date,
-) {
+): PayrollLineCreateRecord {
   const employeeBonus = bonusTotalsByEmployeeId.get(employee.id);
   const bonusTotal = employeeBonus?._sum.amount ?? 0;
   const bonusCount = employeeBonus?._count ?? 0;
@@ -294,14 +335,14 @@ function buildPayrollLineCreateInput(
 }
 
 function mapCreateLineToRecord(
-  line: Prisma.EmployeeMonthlyPayrollLineCreateManyInput,
+  line: PayrollLineCreateRecord,
 ): EmployeeMonthlyPayrollLine {
   return {
     id: line.id,
     payrollId: line.payrollId,
     employeeId: line.employeeId ?? null,
     employeeName: line.employeeName,
-    employeeType: line.employeeType as EmployeeType,
+    employeeType: line.employeeType,
     costCenterId: line.costCenterId ?? null,
     costCenterCode: line.costCenterCode ?? null,
     costCenterName: line.costCenterName ?? null,
@@ -309,7 +350,7 @@ function mapCreateLineToRecord(
     bonusTotal: line.bonusTotal,
     bonusCount: line.bonusCount,
     totalPay: line.totalPay,
-    createdAt: line.createdAt ?? new Date(),
+    createdAt: line.createdAt,
     updatedAt: line.updatedAt,
   };
 }
@@ -321,9 +362,7 @@ function buildPayrollWhere(query: ListEmployeeMonthlyPayrollQuery) {
   } satisfies Prisma.EmployeeMonthlyPayrollWhereInput;
 }
 
-function calculateRepositoryTotals(
-  lines: Prisma.EmployeeMonthlyPayrollLineCreateManyInput[],
-) {
+function calculateRepositoryTotals(lines: PayrollLineCreateRecord[]) {
   return lines.reduce(
     (totals, line) => ({
       salaryTotal: totals.salaryTotal + line.baseSalaryMonthlySnapshot,
