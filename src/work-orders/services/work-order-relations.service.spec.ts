@@ -59,21 +59,19 @@ describe('WorkOrderRelationsService', () => {
       isActive: true,
     });
 
-    await expect(
-      service.assertCreateRelations({
-        type: WorkOrderType.WORKSHOP,
-        customerId: 'customer-1',
-        vehicleId: 'vehicle-1',
-        componentId: 'component-1',
-        assignedEmployeeId: 'employee-1',
-        summary: 'Reparación de alternador',
-      }),
-    ).resolves.toEqual({
-      customer: expect.objectContaining({ id: 'customer-1' }),
-      vehicle: expect.objectContaining({ id: 'vehicle-1' }),
-      component: expect.objectContaining({ id: 'component-1' }),
-      assignedEmployee: expect.objectContaining({ id: 'employee-1' }),
+    const result = await service.assertCreateRelations({
+      type: WorkOrderType.WORKSHOP,
+      customerId: 'customer-1',
+      vehicleId: 'vehicle-1',
+      componentId: 'component-1',
+      assignedEmployeeId: 'employee-1',
+      summary: 'Reparación de alternador',
     });
+
+    expect(result.customer?.id).toBe('customer-1');
+    expect(result.vehicle?.id).toBe('vehicle-1');
+    expect(result.component?.id).toBe('component-1');
+    expect(result.assignedEmployee?.id).toBe('employee-1');
   });
 
   it('rejects create relations when the customer is missing', async () => {
@@ -319,21 +317,19 @@ describe('WorkOrderRelationsService', () => {
       },
     });
 
-    await expect(
-      service.assertActualCostCreateRelations({
-        category: WorkOrderCostCategory.DIRECT_PURCHASE,
-        description: 'Rodamiento SKF',
-        amount: 150000,
-        incurredAt: new Date('2026-05-10T18:00:00.000Z'),
-        supplierId: 'supplier-1',
-        inventoryItemId: 'inventory-1',
-        supplierQuoteHistoryId: 'quote-1',
-      }),
-    ).resolves.toEqual({
-      supplier: expect.objectContaining({ id: 'supplier-1' }),
-      inventoryItem: expect.objectContaining({ id: 'inventory-1' }),
-      supplierQuoteHistory: expect.objectContaining({ id: 'quote-1' }),
+    const result = await service.assertActualCostCreateRelations({
+      category: WorkOrderCostCategory.DIRECT_PURCHASE,
+      description: 'Rodamiento SKF',
+      amount: 150000,
+      incurredAt: new Date('2026-05-10T18:00:00.000Z'),
+      supplierId: 'supplier-1',
+      inventoryItemId: 'inventory-1',
+      supplierQuoteHistoryId: 'quote-1',
     });
+
+    expect(result.supplier?.id).toBe('supplier-1');
+    expect(result.inventoryItem?.id).toBe('inventory-1');
+    expect(result.supplierQuoteHistory?.id).toBe('quote-1');
   });
 
   it('rejects actual-cost direct purchases without a supplier or with mismatched quote links', async () => {

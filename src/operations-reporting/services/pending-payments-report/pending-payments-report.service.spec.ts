@@ -8,13 +8,16 @@ import { OperationsReportingRepository } from '../../persistence/operations-repo
 import { PendingPaymentsReportService } from './pending-payments-report.service';
 
 describe('PendingPaymentsReportService', () => {
+  const findWorkOrdersWithFinancialsMock = jest.fn();
   const repository = {
-    findWorkOrdersWithFinancials: jest.fn(),
+    findWorkOrdersWithFinancials: findWorkOrdersWithFinancialsMock,
   } as unknown as jest.Mocked<OperationsReportingRepository>;
 
+  const loggerLogMock = jest.fn();
+  const loggerErrorMock = jest.fn();
   const logger = {
-    log: jest.fn(),
-    error: jest.fn(),
+    log: loggerLogMock,
+    error: loggerErrorMock,
   };
 
   let service: PendingPaymentsReportService;
@@ -35,7 +38,7 @@ describe('PendingPaymentsReportService', () => {
       customerId: 'customer-1',
     };
 
-    repository.findWorkOrdersWithFinancials.mockResolvedValue([
+    findWorkOrdersWithFinancialsMock.mockResolvedValue([
       buildWorkOrderRow({
         id: 'wo-partial',
         number: 1001,
@@ -100,14 +103,14 @@ describe('PendingPaymentsReportService', () => {
       ],
     });
 
-    expect(repository.findWorkOrdersWithFinancials).toHaveBeenCalledWith(query);
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(findWorkOrdersWithFinancialsMock).toHaveBeenCalledWith(query);
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining('report=pending-payments'),
     );
   });
 
   it('keeps balance null when a pending row has no known payable amount', async () => {
-    repository.findWorkOrdersWithFinancials.mockResolvedValue([
+    findWorkOrdersWithFinancialsMock.mockResolvedValue([
       buildWorkOrderRow({
         id: 'wo-unknown',
         number: 1004,

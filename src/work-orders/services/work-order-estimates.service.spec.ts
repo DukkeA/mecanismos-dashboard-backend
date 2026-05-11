@@ -10,17 +10,21 @@ import { WorkOrderRelationsService } from './work-order-relations.service';
 import { WorkOrderEstimatesService } from './work-order-estimates.service';
 
 describe('WorkOrderEstimatesService', () => {
+  const upsertEstimateMock = jest.fn();
+  const findEstimatesByWorkOrderIdMock = jest.fn();
   const repository = {
-    upsertEstimate: jest.fn(),
-    findEstimatesByWorkOrderId: jest.fn(),
+    upsertEstimate: upsertEstimateMock,
+    findEstimatesByWorkOrderId: findEstimatesByWorkOrderIdMock,
   } as unknown as jest.Mocked<WorkOrdersRepository>;
 
+  const assertEstimateLineRelationsMock = jest.fn();
   const relationsService = {
-    assertEstimateLineRelations: jest.fn(),
+    assertEstimateLineRelations: assertEstimateLineRelationsMock,
   } as unknown as jest.Mocked<WorkOrderRelationsService>;
 
+  const readModelFindOneMock = jest.fn();
   const readModelService = {
-    findOne: jest.fn(),
+    findOne: readModelFindOneMock,
   } as unknown as jest.Mocked<WorkOrderReadModelService>;
 
   let service: WorkOrderEstimatesService;
@@ -55,9 +59,9 @@ describe('WorkOrderEstimatesService', () => {
       ],
     };
 
-    readModelService.findOne.mockResolvedValue({ id: 'wo-1' } as never);
-    relationsService.assertEstimateLineRelations.mockResolvedValue(undefined);
-    repository.upsertEstimate.mockResolvedValue({
+    readModelFindOneMock.mockResolvedValue({ id: 'wo-1' });
+    assertEstimateLineRelationsMock.mockResolvedValue(undefined);
+    upsertEstimateMock.mockResolvedValue({
       id: 'estimate-1',
       workOrderId: 'wo-1',
       phase: EstimatePhase.INITIAL,
@@ -78,12 +82,12 @@ describe('WorkOrderEstimatesService', () => {
       phase: EstimatePhase.INITIAL,
     });
 
-    expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(relationsService.assertEstimateLineRelations).toHaveBeenCalledWith(
+    expect(readModelFindOneMock).toHaveBeenCalledWith('wo-1');
+    expect(assertEstimateLineRelationsMock).toHaveBeenCalledWith(
       'wo-1',
       dto.lines,
     );
-    expect(repository.upsertEstimate).toHaveBeenCalledWith(
+    expect(upsertEstimateMock).toHaveBeenCalledWith(
       'wo-1',
       EstimatePhase.INITIAL,
       dto,
@@ -97,14 +101,14 @@ describe('WorkOrderEstimatesService', () => {
       new BadRequestException('Estimate phase draft is invalid'),
     );
 
-    expect(readModelService.findOne).not.toHaveBeenCalled();
-    expect(relationsService.assertEstimateLineRelations).not.toHaveBeenCalled();
-    expect(repository.upsertEstimate).not.toHaveBeenCalled();
+    expect(readModelFindOneMock).not.toHaveBeenCalled();
+    expect(assertEstimateLineRelationsMock).not.toHaveBeenCalled();
+    expect(upsertEstimateMock).not.toHaveBeenCalled();
   });
 
   it('lists INITIAL and FINAL estimates once the work order exists', async () => {
-    readModelService.findOne.mockResolvedValue({ id: 'wo-1' } as never);
-    repository.findEstimatesByWorkOrderId.mockResolvedValue([
+    readModelFindOneMock.mockResolvedValue({ id: 'wo-1' });
+    findEstimatesByWorkOrderIdMock.mockResolvedValue([
       {
         id: 'estimate-initial',
         workOrderId: 'wo-1',
@@ -140,7 +144,7 @@ describe('WorkOrderEstimatesService', () => {
       ],
     });
 
-    expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(repository.findEstimatesByWorkOrderId).toHaveBeenCalledWith('wo-1');
+    expect(readModelFindOneMock).toHaveBeenCalledWith('wo-1');
+    expect(findEstimatesByWorkOrderIdMock).toHaveBeenCalledWith('wo-1');
   });
 });

@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Prisma } from '../../generated/prisma/client';
 import {
+  type WorkOrderSeedPrismaTransactionClient,
   type WorkOrderSeedPrismaClient,
   seedWorkOrders,
 } from '../../prisma/seed-work-orders';
@@ -100,12 +101,15 @@ describe('work-order seeds', () => {
       },
     };
 
-    const transaction = jest
-      .fn<
-        Promise<void>,
-        [(callback: typeof transactionClient) => Promise<void>]
-      >()
-      .mockImplementation(async (callback) => callback(transactionClient));
+    let transactionCallCount = 0;
+    const transaction: WorkOrderSeedPrismaClient['$transaction'] = async <T>(
+      callback: (
+        transaction: WorkOrderSeedPrismaTransactionClient,
+      ) => Promise<T>,
+    ) => {
+      transactionCallCount += 1;
+      return callback(transactionClient);
+    };
 
     await seedWorkOrders(
       {
@@ -114,7 +118,7 @@ describe('work-order seeds', () => {
       new Date('2026-05-10T12:00:00.000Z'),
     );
 
-    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(transactionCallCount).toBe(1);
     expect(workOrderUpsert).toHaveBeenCalledTimes(4);
     expect(workOrderUpsert.mock.calls[0]?.[0]).toMatchObject({
       where: { id: 'seed-work-order-sale-counter-quote' },
@@ -169,8 +173,10 @@ describe('work-order seeds', () => {
         },
       },
     });
-    expect(workshopDetailsCreateMany).toHaveBeenCalledWith({
-      data: [
+    const workshopDetailsCreateArgs =
+      workshopDetailsCreateMany.mock.calls[0]?.[0];
+    expect(workshopDetailsCreateArgs?.data).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-workshop-details-injector-repair',
           workOrderId: 'seed-work-order-workshop-injector-repair',
@@ -184,11 +190,12 @@ describe('work-order seeds', () => {
           id: 'seed-workshop-details-unknown-payable',
           workOrderId: 'seed-work-order-workshop-unknown-payable',
         }),
-      ],
-    });
+      ]),
+    );
     expect(estimateUpsert).toHaveBeenCalledTimes(3);
-    expect(estimateLineCreateMany).toHaveBeenCalledWith({
-      data: expect.arrayContaining([
+    const estimateLineCreateArgs = estimateLineCreateMany.mock.calls[0]?.[0];
+    expect(estimateLineCreateArgs?.data).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-work-order-estimate-line-sale-part',
           estimateId: 'seed-work-order-estimate-sale-initial',
@@ -205,9 +212,10 @@ describe('work-order seeds', () => {
           unitPrice: 250000,
         }),
       ]),
-    });
-    expect(actualCostCreateMany).toHaveBeenCalledWith({
-      data: expect.arrayContaining([
+    );
+    const actualCostCreateArgs = actualCostCreateMany.mock.calls[0]?.[0];
+    expect(actualCostCreateArgs?.data).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-work-order-actual-cost-workshop-purchase',
           workOrderId: 'seed-work-order-workshop-injector-repair',
@@ -225,9 +233,10 @@ describe('work-order seeds', () => {
           amount: 70000,
         }),
       ]),
-    });
-    expect(paymentCreateMany).toHaveBeenCalledWith({
-      data: expect.arrayContaining([
+    );
+    const paymentCreateArgs = paymentCreateMany.mock.calls[0]?.[0];
+    expect(paymentCreateArgs?.data).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-work-order-payment-workshop-final',
           workOrderId: 'seed-work-order-workshop-injector-repair',
@@ -244,7 +253,7 @@ describe('work-order seeds', () => {
           amount: 30000,
         }),
       ]),
-    });
+    );
     expect(inventoryMovementUpdateMany).toHaveBeenNthCalledWith(1, {
       where: { id: 'seed-inventory-movement-bosch-out-1' },
       data: {

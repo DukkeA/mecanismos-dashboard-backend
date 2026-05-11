@@ -92,26 +92,24 @@ describe('operations-reporting seed fixtures', () => {
 
     await seedWorkOrders(prisma, new Date('2026-05-10T12:00:00.000Z'));
 
-    expect(workOrderUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'seed-work-order-workshop-partial-payment' },
-        create: expect.objectContaining({
-          paymentStatus: PaymentStatus.PARTIAL,
-          assignedEmployeeId: 'seed-employee-ana-torres',
-        }),
-      }),
-    );
-    expect(workOrderUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'seed-work-order-workshop-unknown-payable' },
-        create: expect.objectContaining({
-          paymentStatus: PaymentStatus.PARTIAL,
-          assignedEmployeeId: 'seed-employee-ana-torres',
-        }),
-      }),
-    );
-    expect(workshopDetailsCreateMany).toHaveBeenCalledWith({
-      data: expect.arrayContaining([
+    const partialWorkOrderUpsert = workOrderUpsert.mock.calls.find(
+      ([args]) => args.where.id === 'seed-work-order-workshop-partial-payment',
+    )?.[0];
+    const unknownPayableWorkOrderUpsert = workOrderUpsert.mock.calls.find(
+      ([args]) => args.where.id === 'seed-work-order-workshop-unknown-payable',
+    )?.[0];
+    expect(partialWorkOrderUpsert?.create).toMatchObject({
+      paymentStatus: PaymentStatus.PARTIAL,
+      assignedEmployeeId: 'seed-employee-ana-torres',
+    });
+    expect(unknownPayableWorkOrderUpsert?.create).toMatchObject({
+      paymentStatus: PaymentStatus.PARTIAL,
+      assignedEmployeeId: 'seed-employee-ana-torres',
+    });
+
+    const workshopDetailsArgs = workshopDetailsCreateMany.mock.calls[0]?.[0];
+    expect(workshopDetailsArgs?.data).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           workOrderId: 'seed-work-order-workshop-partial-payment',
         }),
@@ -119,18 +117,19 @@ describe('operations-reporting seed fixtures', () => {
           workOrderId: 'seed-work-order-workshop-unknown-payable',
         }),
       ]),
-    });
-    expect(estimateUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'seed-work-order-estimate-partial-final' },
-        create: expect.objectContaining({
-          workOrderId: 'seed-work-order-workshop-partial-payment',
-          totalPriceAmount: 250000,
-        }),
-      }),
     );
-    expect(actualCostCreateMany).toHaveBeenCalledWith({
-      data: expect.arrayContaining([
+
+    const partialEstimateUpsert = estimateUpsert.mock.calls.find(
+      ([args]) => args.where.id === 'seed-work-order-estimate-partial-final',
+    )?.[0];
+    expect(partialEstimateUpsert?.create).toMatchObject({
+      workOrderId: 'seed-work-order-workshop-partial-payment',
+      totalPriceAmount: 250000,
+    });
+
+    const actualCostArgs = actualCostCreateMany.mock.calls[0]?.[0];
+    expect(actualCostArgs?.data).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-work-order-actual-cost-partial-outsourced',
           workOrderId: 'seed-work-order-workshop-partial-payment',
@@ -142,9 +141,11 @@ describe('operations-reporting seed fixtures', () => {
           amount: 70000,
         }),
       ]),
-    });
-    expect(paymentCreateMany).toHaveBeenCalledWith({
-      data: expect.arrayContaining([
+    );
+
+    const paymentArgs = paymentCreateMany.mock.calls[0]?.[0];
+    expect(paymentArgs?.data).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           id: 'seed-work-order-payment-partial-advance',
           workOrderId: 'seed-work-order-workshop-partial-payment',
@@ -158,7 +159,7 @@ describe('operations-reporting seed fixtures', () => {
           paymentMethod: PaymentMethod.TRANSFER,
         }),
       ]),
-    });
+    );
   });
 
   it('reuses stable paid and unpaid expenses for report breakdown reviewers', async () => {
@@ -187,25 +188,21 @@ describe('operations-reporting seed fixtures', () => {
       new Date('2026-05-10T12:00:00.000Z'),
     );
 
-    expect(expenseUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'seed-expense-rent-may' },
-        create: expect.objectContaining({
-          category: ExpenseCategory.RENT,
-          paidAt: null,
-          costCenterId: 'cost-center-oficina',
-        }),
-      }),
-    );
-    expect(expenseUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'seed-expense-utility-power-april' },
-        create: expect.objectContaining({
-          category: ExpenseCategory.UTILITY,
-          paymentMethod: PaymentMethod.TRANSFER,
-          costCenterId: 'cost-center-general',
-        }),
-      }),
-    );
+    const rentExpenseUpsert = expenseUpsert.mock.calls.find(
+      ([args]) => args.where.id === 'seed-expense-rent-may',
+    )?.[0];
+    const utilityExpenseUpsert = expenseUpsert.mock.calls.find(
+      ([args]) => args.where.id === 'seed-expense-utility-power-april',
+    )?.[0];
+    expect(rentExpenseUpsert?.create).toMatchObject({
+      category: ExpenseCategory.RENT,
+      paidAt: null,
+      costCenterId: 'cost-center-oficina',
+    });
+    expect(utilityExpenseUpsert?.create).toMatchObject({
+      category: ExpenseCategory.UTILITY,
+      paymentMethod: PaymentMethod.TRANSFER,
+      costCenterId: 'cost-center-general',
+    });
   });
 });

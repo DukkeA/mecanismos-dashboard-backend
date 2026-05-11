@@ -11,8 +11,9 @@ import { WorkOrderPaymentsService } from './work-order-payments.service';
 import { WorkOrderReadModelService } from './work-order-read-model.service';
 
 describe('WorkOrderPaymentsService', () => {
+  const loggerLogMock = jest.fn();
   const logger = {
-    log: jest.fn(),
+    log: loggerLogMock,
   };
 
   const payment = {
@@ -59,14 +60,18 @@ describe('WorkOrderPaymentsService', () => {
     payments: [payment],
   };
 
+  const createPaymentMock = jest.fn();
+  const updatePaymentMock = jest.fn();
+  const removePaymentMock = jest.fn();
   const repository = {
-    createPayment: jest.fn(),
-    updatePayment: jest.fn(),
-    removePayment: jest.fn(),
+    createPayment: createPaymentMock,
+    updatePayment: updatePaymentMock,
+    removePayment: removePaymentMock,
   } as unknown as jest.Mocked<WorkOrdersRepository>;
 
+  const readModelFindOneMock = jest.fn();
   const readModelService = {
-    findOne: jest.fn(),
+    findOne: readModelFindOneMock,
   } as unknown as jest.Mocked<WorkOrderReadModelService>;
 
   let service: WorkOrderPaymentsService;
@@ -87,8 +92,8 @@ describe('WorkOrderPaymentsService', () => {
       paymentMethod: PaymentMethod.CASH,
       notes: 'Abono inicial',
     };
-    readModelService.findOne.mockResolvedValue(workOrder);
-    repository.createPayment.mockResolvedValue({
+    readModelFindOneMock.mockResolvedValue(workOrder);
+    createPaymentMock.mockResolvedValue({
       ...workOrder,
       paymentStatus: PaymentStatus.PARTIAL,
     });
@@ -98,29 +103,25 @@ describe('WorkOrderPaymentsService', () => {
       paymentStatus: PaymentStatus.PARTIAL,
     });
 
-    expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(repository.createPayment).toHaveBeenCalledWith(
-      'wo-1',
-      dto,
-      workOrder,
-    );
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(readModelFindOneMock).toHaveBeenCalledWith('wo-1');
+    expect(createPaymentMock).toHaveBeenCalledWith('wo-1', dto, workOrder);
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining('workOrderId=wo-1'),
     );
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining('amount=50000'),
     );
-    expect(logger.log).not.toHaveBeenCalledWith(
+    expect(loggerLogMock).not.toHaveBeenCalledWith(
       expect.stringContaining('Abono inicial'),
     );
   });
 
   it('lists payments from the current work-order read model', async () => {
-    readModelService.findOne.mockResolvedValue(workOrder);
+    readModelFindOneMock.mockResolvedValue(workOrder);
 
     await expect(service.findPayments('wo-1')).resolves.toEqual([payment]);
 
-    expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
+    expect(readModelFindOneMock).toHaveBeenCalledWith('wo-1');
   });
 
   it('updates a payment and recalculates payment status from the preferred payable total', async () => {
@@ -128,8 +129,8 @@ describe('WorkOrderPaymentsService', () => {
       amount: 100000,
       paymentMethod: PaymentMethod.TRANSFER,
     };
-    readModelService.findOne.mockResolvedValue(workOrder);
-    repository.updatePayment.mockResolvedValue({
+    readModelFindOneMock.mockResolvedValue(workOrder);
+    updatePaymentMock.mockResolvedValue({
       ...workOrder,
       paymentStatus: PaymentStatus.PAID,
       payments: [
@@ -148,17 +149,17 @@ describe('WorkOrderPaymentsService', () => {
       paymentStatus: PaymentStatus.PAID,
     });
 
-    expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(repository.updatePayment).toHaveBeenCalledWith(
+    expect(readModelFindOneMock).toHaveBeenCalledWith('wo-1');
+    expect(updatePaymentMock).toHaveBeenCalledWith(
       'wo-1',
       'payment-1',
       dto,
       workOrder,
     );
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining('paymentId=payment-1'),
     );
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining(`paymentStatus=${PaymentStatus.PAID}`),
     );
   });
@@ -169,8 +170,8 @@ describe('WorkOrderPaymentsService', () => {
       paymentStatus: PaymentStatus.PAID,
       estimates: [],
     };
-    readModelService.findOne.mockResolvedValue(manualStatusWorkOrder);
-    repository.removePayment.mockResolvedValue({
+    readModelFindOneMock.mockResolvedValue(manualStatusWorkOrder);
+    removePaymentMock.mockResolvedValue({
       ...manualStatusWorkOrder,
       payments: [],
     });
@@ -183,16 +184,16 @@ describe('WorkOrderPaymentsService', () => {
       payments: [],
     });
 
-    expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(repository.removePayment).toHaveBeenCalledWith(
+    expect(readModelFindOneMock).toHaveBeenCalledWith('wo-1');
+    expect(removePaymentMock).toHaveBeenCalledWith(
       'wo-1',
       'payment-1',
       manualStatusWorkOrder,
     );
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining('paymentId=payment-1'),
     );
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining(`paymentStatus=${PaymentStatus.PAID}`),
     );
   });

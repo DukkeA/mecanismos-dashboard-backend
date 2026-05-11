@@ -1346,11 +1346,9 @@ function buildEstimateUpdatePayload(
   phase: EstimatePhase,
   input: UpsertWorkOrderEstimateDto,
 ) {
-  const { id: _id, ...payload } = buildEstimateCreatePayload(
-    workOrderId,
-    phase,
-    input,
-  );
+  const createPayload = buildEstimateCreatePayload(workOrderId, phase, input);
+  const { id, ...payload } = createPayload;
+  void id;
 
   return payload;
 }

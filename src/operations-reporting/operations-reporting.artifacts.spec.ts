@@ -26,6 +26,12 @@ type PostmanCollection = {
   item?: PostmanCollectionItem[];
 };
 
+type PostmanRequestSummary = {
+  method: string;
+  rawUrl: string;
+  testScriptCoverage: string[];
+};
+
 describe('operations-reporting reviewer artifacts', () => {
   const projectRoot = path.resolve(__dirname, '..', '..');
   const docsDir = path.join(projectRoot, 'docs', 'operations-reporting');
@@ -113,24 +119,30 @@ describe('operations-reporting reviewer artifacts', () => {
         'Operations Reporting forbidden for Mechanic',
       ]),
     );
-    expect(findRequest(collection, 'Get Summary Report')).toMatchObject({
-      method: 'GET',
-      rawUrl:
-        '{{baseUrl}}/operations-reporting/summary?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
-      testScriptCoverage: expect.arrayContaining([
+    const summaryRequest = findRequest(collection, 'Get Summary Report');
+    expect(summaryRequest.method).toBe('GET');
+    expect(summaryRequest.rawUrl).toBe(
+      '{{baseUrl}}/operations-reporting/summary?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
+    );
+    expect(summaryRequest.testScriptCoverage).toEqual(
+      expect.arrayContaining([
         expect.stringContaining("pm.test('summary returns 200'"),
         expect.stringContaining(
           "pm.test('summary is approximate cash-operational'",
         ),
       ]),
-    });
-    expect(
-      findRequest(collection, 'Get Pending Payments Report'),
-    ).toMatchObject({
-      method: 'GET',
-      rawUrl:
-        '{{baseUrl}}/operations-reporting/pending-payments?paymentStatus=PARTIAL&dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
-      testScriptCoverage: expect.arrayContaining([
+    );
+
+    const pendingPaymentsRequest = findRequest(
+      collection,
+      'Get Pending Payments Report',
+    );
+    expect(pendingPaymentsRequest.method).toBe('GET');
+    expect(pendingPaymentsRequest.rawUrl).toBe(
+      '{{baseUrl}}/operations-reporting/pending-payments?paymentStatus=PARTIAL&dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
+    );
+    expect(pendingPaymentsRequest.testScriptCoverage).toEqual(
+      expect.arrayContaining([
         expect.stringContaining("pm.test('pending payments returns 200'"),
         expect.stringContaining(
           "pm.test('partial payment row exposes remaining balance'",
@@ -139,18 +151,21 @@ describe('operations-reporting reviewer artifacts', () => {
           "pm.test('unknown payable row keeps balance null'",
         ),
       ]),
-    });
-    expect(findRequest(collection, 'Get Expenses Report')).toMatchObject({
-      method: 'GET',
-      rawUrl:
-        '{{baseUrl}}/operations-reporting/expenses?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
-      testScriptCoverage: expect.arrayContaining([
+    );
+
+    const expensesRequest = findRequest(collection, 'Get Expenses Report');
+    expect(expensesRequest.method).toBe('GET');
+    expect(expensesRequest.rawUrl).toBe(
+      '{{baseUrl}}/operations-reporting/expenses?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
+    );
+    expect(expensesRequest.testScriptCoverage).toEqual(
+      expect.arrayContaining([
         expect.stringContaining("pm.test('expenses report returns 200'"),
         expect.stringContaining(
           "pm.test('expenses report includes paid and pending seeded rows'",
         ),
       ]),
-    });
+    );
   });
 });
 
@@ -170,20 +185,19 @@ function listVariableKeys(collection: PostmanCollection): string[] {
   return (collection.variable ?? []).map((variable) => variable.key ?? '');
 }
 
-function findRequest(collection: PostmanCollection, requestName: string) {
+function findRequest(
+  collection: PostmanCollection,
+  requestName: string,
+): PostmanRequestSummary {
   const request = flattenItems(collection.item).find(
     (item) => item.name === requestName,
   );
 
-  expect(request).toMatchObject({
-    name: requestName,
-    request: {
-      method: expect.any(String),
-      url: {
-        raw: expect.stringContaining('{{baseUrl}}/operations-reporting/'),
-      },
-    },
-  });
+  expect(request?.name).toBe(requestName);
+  expect(request?.request?.method).toEqual(expect.any(String));
+  expect(request?.request?.url?.raw).toEqual(
+    expect.stringContaining('{{baseUrl}}/operations-reporting/'),
+  );
 
   const testScriptCoverage =
     request?.event
@@ -195,8 +209,8 @@ function findRequest(collection: PostmanCollection, requestName: string) {
   );
 
   return {
-    method: request?.request?.method,
-    rawUrl: request?.request?.url?.raw,
+    method: request?.request?.method ?? '',
+    rawUrl: request?.request?.url?.raw ?? '',
     testScriptCoverage,
   };
 }

@@ -23,8 +23,6 @@ type PostmanCollection = {
   item?: PostmanCollectionItem[];
 };
 
-const UNBOUND_SUPPLIER_QUOTE_ID = 'seed-supplier-quote-bosch-central-v1';
-
 describe('work-order reviewer artifacts', () => {
   const projectRoot = path.resolve(__dirname, '..', '..');
   const docsDir = path.join(projectRoot, 'docs', 'work-orders');

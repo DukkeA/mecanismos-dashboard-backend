@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   EstimateLineType,
   EstimatePhase,
@@ -146,8 +147,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 
@@ -712,8 +713,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 
@@ -885,8 +886,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 
@@ -1009,8 +1010,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 
@@ -1259,8 +1260,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 
@@ -1349,8 +1350,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 
@@ -1430,8 +1431,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 
@@ -1498,8 +1499,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(
-        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
       ),
     };
 

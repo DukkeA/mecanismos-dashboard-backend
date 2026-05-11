@@ -25,6 +25,17 @@ import { WorkOrdersController } from './work-orders.controller';
 import { WorkOrdersModule } from './work-orders.module';
 import { WorkOrdersService } from './work-orders.service';
 
+function getControllerMethod(methodName: keyof WorkOrdersController): object {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    WorkOrdersController.prototype,
+    methodName,
+  );
+
+  expect(descriptor?.value).toBeDefined();
+
+  return descriptor?.value as object;
+}
+
 describe('WorkOrdersController', () => {
   const service = {
     create: jest.fn(),
@@ -128,145 +139,97 @@ describe('WorkOrdersController', () => {
     ]);
 
     const handlers = {
-      create: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'create',
-      )?.value,
-      findAll: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'findAll',
-      )?.value,
-      findOne: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'findOne',
-      )?.value,
-      update: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'update',
-      )?.value,
-      upsertEstimate: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'upsertEstimate',
-      )?.value,
-      findEstimates: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'findEstimates',
-      )?.value,
-      createActualCost: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'createActualCost',
-      )?.value,
-      findActualCosts: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'findActualCosts',
-      )?.value,
-      updateActualCost: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'updateActualCost',
-      )?.value,
-      removeActualCost: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'removeActualCost',
-      )?.value,
-      createPayment: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'createPayment',
-      )?.value,
-      findPayments: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'findPayments',
-      )?.value,
-      updatePayment: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'updatePayment',
-      )?.value,
-      removePayment: Object.getOwnPropertyDescriptor(
-        WorkOrdersController.prototype,
-        'removePayment',
-      )?.value,
+      create: getControllerMethod('create'),
+      findAll: getControllerMethod('findAll'),
+      findOne: getControllerMethod('findOne'),
+      update: getControllerMethod('update'),
+      upsertEstimate: getControllerMethod('upsertEstimate'),
+      findEstimates: getControllerMethod('findEstimates'),
+      createActualCost: getControllerMethod('createActualCost'),
+      findActualCosts: getControllerMethod('findActualCosts'),
+      updateActualCost: getControllerMethod('updateActualCost'),
+      removeActualCost: getControllerMethod('removeActualCost'),
+      createPayment: getControllerMethod('createPayment'),
+      findPayments: getControllerMethod('findPayments'),
+      updatePayment: getControllerMethod('updatePayment'),
+      removePayment: getControllerMethod('removePayment'),
     };
 
-    expect(Reflect.getMetadata(PATH_METADATA, handlers.create as object)).toBe(
-      '/',
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.create)).toBe('/');
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.create)).toBe(
+      RequestMethod.POST,
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.findAll)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.findOne)).toBe(':id');
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.findOne)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.update)).toBe(':id');
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.update)).toBe(
+      RequestMethod.PATCH,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.upsertEstimate)).toBe(
+      ':id/estimates/:phase',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.upsertEstimate)).toBe(
+      RequestMethod.PUT,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.findEstimates)).toBe(
+      ':id/estimates',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.findEstimates)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.createActualCost)).toBe(
+      ':id/actual-costs',
     );
     expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.create as object),
+      Reflect.getMetadata(METHOD_METADATA, handlers.createActualCost),
     ).toBe(RequestMethod.POST);
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.findAll as object),
-    ).toBe(RequestMethod.GET);
-    expect(Reflect.getMetadata(PATH_METADATA, handlers.findOne as object)).toBe(
-      ':id',
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.findActualCosts)).toBe(
+      ':id/actual-costs',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.findActualCosts)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.updateActualCost)).toBe(
+      ':id/actual-costs/:costId',
     );
     expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.findOne as object),
-    ).toBe(RequestMethod.GET);
-    expect(Reflect.getMetadata(PATH_METADATA, handlers.update as object)).toBe(
-      ':id',
+      Reflect.getMetadata(METHOD_METADATA, handlers.updateActualCost),
+    ).toBe(RequestMethod.PATCH);
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.removeActualCost)).toBe(
+      ':id/actual-costs/:costId',
     );
     expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.update as object),
-    ).toBe(RequestMethod.PATCH);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.upsertEstimate as object),
-    ).toBe(':id/estimates/:phase');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.upsertEstimate as object),
-    ).toBe(RequestMethod.PUT);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.findEstimates as object),
-    ).toBe(':id/estimates');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.findEstimates as object),
-    ).toBe(RequestMethod.GET);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.createActualCost as object),
-    ).toBe(':id/actual-costs');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.createActualCost as object),
-    ).toBe(RequestMethod.POST);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.findActualCosts as object),
-    ).toBe(':id/actual-costs');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.findActualCosts as object),
-    ).toBe(RequestMethod.GET);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.updateActualCost as object),
-    ).toBe(':id/actual-costs/:costId');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.updateActualCost as object),
-    ).toBe(RequestMethod.PATCH);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.removeActualCost as object),
-    ).toBe(':id/actual-costs/:costId');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.removeActualCost as object),
+      Reflect.getMetadata(METHOD_METADATA, handlers.removeActualCost),
     ).toBe(RequestMethod.DELETE);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.createPayment as object),
-    ).toBe(':id/payments');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.createPayment as object),
-    ).toBe(RequestMethod.POST);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.findPayments as object),
-    ).toBe(':id/payments');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.findPayments as object),
-    ).toBe(RequestMethod.GET);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.updatePayment as object),
-    ).toBe(':id/payments/:paymentId');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.updatePayment as object),
-    ).toBe(RequestMethod.PATCH);
-    expect(
-      Reflect.getMetadata(PATH_METADATA, handlers.removePayment as object),
-    ).toBe(':id/payments/:paymentId');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, handlers.removePayment as object),
-    ).toBe(RequestMethod.DELETE);
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.createPayment)).toBe(
+      ':id/payments',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.createPayment)).toBe(
+      RequestMethod.POST,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.findPayments)).toBe(
+      ':id/payments',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.findPayments)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.updatePayment)).toBe(
+      ':id/payments/:paymentId',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.updatePayment)).toBe(
+      RequestMethod.PATCH,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.removePayment)).toBe(
+      ':id/payments/:paymentId',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.removePayment)).toBe(
+      RequestMethod.DELETE,
+    );
 
     expect(service.create.mock.calls[0]).toEqual([createDto]);
     expect(service.findAll.mock.calls[0]).toEqual([listDto]);

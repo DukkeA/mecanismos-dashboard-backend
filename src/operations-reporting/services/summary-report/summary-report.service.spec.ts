@@ -13,16 +13,22 @@ import { OperationsReportingRepository } from '../../persistence/operations-repo
 import { SummaryReportService } from './summary-report.service';
 
 describe('SummaryReportService', () => {
+  const findSummaryWorkOrdersMock = jest.fn();
+  const findWorkOrdersWithFinancialsMock = jest.fn();
+  const findPaidExpensesMock = jest.fn();
+  const findPendingExpensesMock = jest.fn();
   const repository = {
-    findSummaryWorkOrders: jest.fn(),
-    findWorkOrdersWithFinancials: jest.fn(),
-    findPaidExpenses: jest.fn(),
-    findPendingExpenses: jest.fn(),
+    findSummaryWorkOrders: findSummaryWorkOrdersMock,
+    findWorkOrdersWithFinancials: findWorkOrdersWithFinancialsMock,
+    findPaidExpenses: findPaidExpensesMock,
+    findPendingExpenses: findPendingExpensesMock,
   } as unknown as jest.Mocked<OperationsReportingRepository>;
 
+  const loggerLogMock = jest.fn();
+  const loggerErrorMock = jest.fn();
   const logger = {
-    log: jest.fn(),
-    error: jest.fn(),
+    log: loggerLogMock,
+    error: loggerErrorMock,
   };
 
   let service: SummaryReportService;
@@ -42,7 +48,7 @@ describe('SummaryReportService', () => {
       dateTo: new Date('2026-05-31T23:59:59.000Z'),
     };
 
-    repository.findSummaryWorkOrders.mockResolvedValue([
+    findSummaryWorkOrdersMock.mockResolvedValue([
       buildSummaryWorkOrder(
         'wo-1',
         WorkOrderStatus.IN_PROGRESS,
@@ -64,7 +70,7 @@ describe('SummaryReportService', () => {
         PaymentStatus.PARTIAL,
       ),
     ]);
-    repository.findWorkOrdersWithFinancials.mockResolvedValue([
+    findWorkOrdersWithFinancialsMock.mockResolvedValue([
       buildFinancialWorkOrder({
         id: 'wo-1',
         paymentStatus: PaymentStatus.PENDING,
@@ -89,11 +95,11 @@ describe('SummaryReportService', () => {
         actualCosts: [30_000],
       }),
     ]);
-    repository.findPaidExpenses.mockResolvedValue([
+    findPaidExpensesMock.mockResolvedValue([
       buildExpense('expense-1', 12_000, ExpenseCategory.RENT, true),
       buildExpense('expense-2', 8_000, ExpenseCategory.UTILITY, true),
     ]);
-    repository.findPendingExpenses.mockResolvedValue([
+    findPendingExpensesMock.mockResolvedValue([
       buildExpense('expense-3', 7_000, ExpenseCategory.OTHER, false),
     ]);
 
@@ -125,24 +131,24 @@ describe('SummaryReportService', () => {
       },
     });
 
-    expect(repository.findSummaryWorkOrders).toHaveBeenCalledWith(query);
-    expect(repository.findWorkOrdersWithFinancials).toHaveBeenCalledWith(query);
-    expect(repository.findPaidExpenses).toHaveBeenCalledWith(query);
-    expect(repository.findPendingExpenses).toHaveBeenCalledWith(query);
-    expect(logger.log).toHaveBeenCalledWith(
+    expect(findSummaryWorkOrdersMock).toHaveBeenCalledWith(query);
+    expect(findWorkOrdersWithFinancialsMock).toHaveBeenCalledWith(query);
+    expect(findPaidExpensesMock).toHaveBeenCalledWith(query);
+    expect(findPendingExpensesMock).toHaveBeenCalledWith(query);
+    expect(loggerLogMock).toHaveBeenCalledWith(
       expect.stringContaining('report=summary'),
     );
   });
 
   it('keeps pending receivables unknown when a pending balance has no payable estimate', async () => {
-    repository.findSummaryWorkOrders.mockResolvedValue([
+    findSummaryWorkOrdersMock.mockResolvedValue([
       buildSummaryWorkOrder(
         'wo-unknown',
         WorkOrderStatus.IN_PROGRESS,
         PaymentStatus.PENDING,
       ),
     ]);
-    repository.findWorkOrdersWithFinancials.mockResolvedValue([
+    findWorkOrdersWithFinancialsMock.mockResolvedValue([
       buildFinancialWorkOrder({
         id: 'wo-unknown',
         paymentStatus: PaymentStatus.PENDING,
@@ -151,8 +157,8 @@ describe('SummaryReportService', () => {
         actualCosts: [5_000],
       }),
     ]);
-    repository.findPaidExpenses.mockResolvedValue([]);
-    repository.findPendingExpenses.mockResolvedValue([]);
+    findPaidExpensesMock.mockResolvedValue([]);
+    findPendingExpensesMock.mockResolvedValue([]);
 
     await expect(service.getReport({})).resolves.toMatchObject({
       totals: {

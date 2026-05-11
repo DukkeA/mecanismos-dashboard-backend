@@ -65,27 +65,38 @@ describe('WorkOrderActualCostsService', () => {
       id: 'quote-1',
       supplierId: 'supplier-1',
       inventoryItemId: 'inventory-1',
+      workOrderId: null,
       quotedCost: 145000,
       quotedAt: new Date('2026-05-09T15:00:00.000Z'),
       status: 'ACTIVE',
+      supplier: null,
+      inventoryItem: null,
     },
   };
 
+  const createActualCostMock = jest.fn();
+  const findActualCostsMock = jest.fn();
+  const findActualCostByIdMock = jest.fn();
+  const updateActualCostMock = jest.fn();
+  const removeActualCostMock = jest.fn();
   const repository = {
-    createActualCost: jest.fn(),
-    findActualCosts: jest.fn(),
-    findActualCostById: jest.fn(),
-    updateActualCost: jest.fn(),
-    removeActualCost: jest.fn(),
+    createActualCost: createActualCostMock,
+    findActualCosts: findActualCostsMock,
+    findActualCostById: findActualCostByIdMock,
+    updateActualCost: updateActualCostMock,
+    removeActualCost: removeActualCostMock,
   } as unknown as jest.Mocked<WorkOrdersRepository>;
 
+  const readModelFindOneMock = jest.fn();
   const readModelService = {
-    findOne: jest.fn(),
+    findOne: readModelFindOneMock,
   } as unknown as jest.Mocked<WorkOrderReadModelService>;
 
+  const assertActualCostCreateRelationsMock = jest.fn();
+  const assertActualCostUpdateRelationsMock = jest.fn();
   const relationsService = {
-    assertActualCostCreateRelations: jest.fn(),
-    assertActualCostUpdateRelations: jest.fn(),
+    assertActualCostCreateRelations: assertActualCostCreateRelationsMock,
+    assertActualCostUpdateRelations: assertActualCostUpdateRelationsMock,
   } as unknown as jest.Mocked<WorkOrderRelationsService>;
 
   let service: WorkOrderActualCostsService;
@@ -112,14 +123,14 @@ describe('WorkOrderActualCostsService', () => {
       notes: ' Compra urgente ',
     };
 
-    readModelService.findOne.mockResolvedValue(workOrder);
-    relationsService.assertActualCostCreateRelations.mockResolvedValue({
+    readModelFindOneMock.mockResolvedValue(workOrder);
+    assertActualCostCreateRelationsMock.mockResolvedValue({
       supplier: directPurchaseCost.supplier,
       inventoryItem: directPurchaseCost.inventoryItem,
       supplierQuoteHistory: directPurchaseCost.supplierQuoteHistory,
-    } as never);
-    repository.createActualCost.mockResolvedValue(directPurchaseCost);
-    repository.findActualCosts.mockResolvedValue([directPurchaseCost]);
+    });
+    createActualCostMock.mockResolvedValue(directPurchaseCost);
+    findActualCostsMock.mockResolvedValue([directPurchaseCost]);
 
     await expect(service.createActualCost('wo-1', createDto)).resolves.toEqual(
       directPurchaseCost,
@@ -128,28 +139,26 @@ describe('WorkOrderActualCostsService', () => {
       data: [directPurchaseCost],
     });
 
-    expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(
-      relationsService.assertActualCostCreateRelations,
-    ).toHaveBeenCalledWith(createDto);
-    expect(repository.createActualCost).toHaveBeenCalledWith('wo-1', createDto);
-    expect(repository.findActualCosts).toHaveBeenCalledWith('wo-1');
+    expect(readModelFindOneMock).toHaveBeenCalledWith('wo-1');
+    expect(assertActualCostCreateRelationsMock).toHaveBeenCalledWith(createDto);
+    expect(createActualCostMock).toHaveBeenCalledWith('wo-1', createDto);
+    expect(findActualCostsMock).toHaveBeenCalledWith('wo-1');
   });
 
   it('updates and removes only the child actual cost while preserving the parent work order', async () => {
-    readModelService.findOne.mockResolvedValue(workOrder);
-    repository.findActualCostById.mockResolvedValue(directPurchaseCost);
-    relationsService.assertActualCostUpdateRelations.mockResolvedValue({
+    readModelFindOneMock.mockResolvedValue(workOrder);
+    findActualCostByIdMock.mockResolvedValue(directPurchaseCost);
+    assertActualCostUpdateRelationsMock.mockResolvedValue({
       supplier: directPurchaseCost.supplier,
       inventoryItem: directPurchaseCost.inventoryItem,
       supplierQuoteHistory: directPurchaseCost.supplierQuoteHistory,
-    } as never);
-    repository.updateActualCost.mockResolvedValue({
+    });
+    updateActualCostMock.mockResolvedValue({
       ...directPurchaseCost,
       description: 'Rodamiento SKF 6203',
       notes: null,
     });
-    repository.removeActualCost.mockResolvedValue(undefined);
+    removeActualCostMock.mockResolvedValue(undefined);
 
     await expect(
       service.updateActualCost('wo-1', 'cost-1', {
@@ -166,22 +175,17 @@ describe('WorkOrderActualCostsService', () => {
       service.removeActualCost('wo-1', 'cost-1'),
     ).resolves.toBeUndefined();
 
-    expect(repository.findActualCostById).toHaveBeenCalledWith(
-      'wo-1',
-      'cost-1',
-    );
-    expect(
-      relationsService.assertActualCostUpdateRelations,
-    ).toHaveBeenCalledWith(
+    expect(findActualCostByIdMock).toHaveBeenCalledWith('wo-1', 'cost-1');
+    expect(assertActualCostUpdateRelationsMock).toHaveBeenCalledWith(
       directPurchaseCost,
       expect.objectContaining({ description: ' Rodamiento SKF 6203 ' }),
     );
-    expect(repository.removeActualCost).toHaveBeenCalledWith('wo-1', 'cost-1');
+    expect(removeActualCostMock).toHaveBeenCalledWith('wo-1', 'cost-1');
   });
 
   it('fails before persistence when direct-purchase links are invalid', async () => {
-    readModelService.findOne.mockResolvedValue(workOrder);
-    relationsService.assertActualCostCreateRelations.mockRejectedValue(
+    readModelFindOneMock.mockResolvedValue(workOrder);
+    assertActualCostCreateRelationsMock.mockRejectedValue(
       new BadRequestException(
         'DIRECT_PURCHASE actual costs require a supplierId',
       ),
@@ -200,12 +204,12 @@ describe('WorkOrderActualCostsService', () => {
       ),
     );
 
-    expect(repository.createActualCost).not.toHaveBeenCalled();
+    expect(createActualCostMock).not.toHaveBeenCalled();
   });
 
   it('fails when updating a missing actual cost child', async () => {
-    readModelService.findOne.mockResolvedValue(workOrder);
-    repository.findActualCostById.mockResolvedValue(null);
+    readModelFindOneMock.mockResolvedValue(workOrder);
+    findActualCostByIdMock.mockResolvedValue(null);
 
     await expect(
       service.updateActualCost('wo-1', 'missing-cost', {
@@ -217,6 +221,6 @@ describe('WorkOrderActualCostsService', () => {
       ),
     );
 
-    expect(repository.updateActualCost).not.toHaveBeenCalled();
+    expect(updateActualCostMock).not.toHaveBeenCalled();
   });
 });

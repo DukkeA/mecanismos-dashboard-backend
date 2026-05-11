@@ -32,6 +32,19 @@ import { WorkOrderProfitabilityReportService } from './services/work-order-profi
 import { OperationsReportingController } from './operations-reporting.controller';
 import { OperationsReportingModule } from './operations-reporting.module';
 
+function getControllerMethod(
+  methodName: keyof OperationsReportingController,
+): object {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    OperationsReportingController.prototype,
+    methodName,
+  );
+
+  expect(descriptor?.value).toBeDefined();
+
+  return descriptor?.value as object;
+}
+
 describe('OperationsReportingController', () => {
   const summaryService = {
     getReport: jest.fn(),
@@ -152,63 +165,42 @@ describe('OperationsReportingController', () => {
       Reflect.getMetadata(GUARDS_METADATA, OperationsReportingController),
     ).toEqual([JwtAuthGuard, RolesGuard]);
 
-    const summaryHandler = Object.getOwnPropertyDescriptor(
-      OperationsReportingController.prototype,
-      'getSummary',
-    )?.value;
-    const pendingPaymentsHandler = Object.getOwnPropertyDescriptor(
-      OperationsReportingController.prototype,
-      'getPendingPayments',
-    )?.value;
-    const workOrderProfitabilityHandler = Object.getOwnPropertyDescriptor(
-      OperationsReportingController.prototype,
+    const summaryHandler = getControllerMethod('getSummary');
+    const pendingPaymentsHandler = getControllerMethod('getPendingPayments');
+    const workOrderProfitabilityHandler = getControllerMethod(
       'getWorkOrderProfitability',
-    )?.value;
-    const mechanicsHandler = Object.getOwnPropertyDescriptor(
-      OperationsReportingController.prototype,
-      'getMechanics',
-    )?.value;
-    const expensesHandler = Object.getOwnPropertyDescriptor(
-      OperationsReportingController.prototype,
-      'getExpenses',
-    )?.value;
-
-    expect(Reflect.getMetadata(PATH_METADATA, summaryHandler as object)).toBe(
-      'summary',
     );
-    expect(Reflect.getMetadata(METHOD_METADATA, summaryHandler as object)).toBe(
+    const mechanicsHandler = getControllerMethod('getMechanics');
+    const expensesHandler = getControllerMethod('getExpenses');
+
+    expect(Reflect.getMetadata(PATH_METADATA, summaryHandler)).toBe('summary');
+    expect(Reflect.getMetadata(METHOD_METADATA, summaryHandler)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, pendingPaymentsHandler)).toBe(
+      'pending-payments',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, pendingPaymentsHandler)).toBe(
       RequestMethod.GET,
     );
     expect(
-      Reflect.getMetadata(PATH_METADATA, pendingPaymentsHandler as object),
-    ).toBe('pending-payments');
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, pendingPaymentsHandler as object),
-    ).toBe(RequestMethod.GET);
-    expect(
-      Reflect.getMetadata(
-        PATH_METADATA,
-        workOrderProfitabilityHandler as object,
-      ),
+      Reflect.getMetadata(PATH_METADATA, workOrderProfitabilityHandler),
     ).toBe('work-order-profitability');
     expect(
-      Reflect.getMetadata(
-        METHOD_METADATA,
-        workOrderProfitabilityHandler as object,
-      ),
+      Reflect.getMetadata(METHOD_METADATA, workOrderProfitabilityHandler),
     ).toBe(RequestMethod.GET);
-    expect(Reflect.getMetadata(PATH_METADATA, mechanicsHandler as object)).toBe(
+    expect(Reflect.getMetadata(PATH_METADATA, mechanicsHandler)).toBe(
       'mechanics',
     );
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, mechanicsHandler as object),
-    ).toBe(RequestMethod.GET);
-    expect(Reflect.getMetadata(PATH_METADATA, expensesHandler as object)).toBe(
+    expect(Reflect.getMetadata(METHOD_METADATA, mechanicsHandler)).toBe(
+      RequestMethod.GET,
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, expensesHandler)).toBe(
       'expenses',
     );
-    expect(
-      Reflect.getMetadata(METHOD_METADATA, expensesHandler as object),
-    ).toBe(RequestMethod.GET);
+    expect(Reflect.getMetadata(METHOD_METADATA, expensesHandler)).toBe(
+      RequestMethod.GET,
+    );
 
     expect(summaryService.getReport.mock.calls[0]).toEqual([summaryQuery]);
     expect(pendingPaymentsService.getReport.mock.calls[0]).toEqual([
