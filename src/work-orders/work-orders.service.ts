@@ -7,8 +7,15 @@ import { UpdateWorkOrderActualCostDto } from './dto/update-work-order-actual-cos
 import { UpdateWorkOrderDto } from './dto/update-work-order.dto';
 import { UpdateWorkOrderPaymentDto } from './dto/update-work-order-payment.dto';
 import { UpsertWorkOrderEstimateDto } from './dto/upsert-work-order-estimate.dto';
+import {
+  ConsumeWorkOrderInventoryDto,
+  ReleaseWorkOrderInventoryDto,
+  ReserveWorkOrderInventoryDto,
+  SellWorkOrderInventoryDto,
+} from './dto/work-order-inventory-action.dto';
 import { WorkOrderActualCostsService } from './services/work-order-actual-costs.service';
 import { WorkOrderEstimatesService } from './services/work-order-estimates.service';
+import { WorkOrderInventoryService } from './services/work-order-inventory.service';
 import { WorkOrderLifecycleService } from './services/work-order-lifecycle.service';
 import { WorkOrderPaymentsService } from './services/work-order-payments.service';
 
@@ -19,6 +26,7 @@ export class WorkOrdersService {
     private readonly workOrderEstimatesService: WorkOrderEstimatesService,
     private readonly workOrderActualCostsService: WorkOrderActualCostsService,
     private readonly workOrderPaymentsService: WorkOrderPaymentsService,
+    private readonly workOrderInventoryService: WorkOrderInventoryService,
   ) {}
 
   create(createWorkOrderDto: CreateWorkOrderDto) {
@@ -81,6 +89,22 @@ export class WorkOrdersService {
 
   removeActualCost(id: string, costId: string) {
     return this.workOrderActualCostsService.removeActualCost(id, costId);
+  }
+
+  reserveInventory(id: string, dto: ReserveWorkOrderInventoryDto) {
+    return this.workOrderInventoryService.reserve(id, dto);
+  }
+
+  releaseInventory(id: string, dto: ReleaseWorkOrderInventoryDto) {
+    return this.workOrderInventoryService.release(id, dto);
+  }
+
+  consumeInventory(id: string, dto: ConsumeWorkOrderInventoryDto) {
+    return this.workOrderInventoryService.consume(id, dto);
+  }
+
+  sellInventory(id: string, dto: SellWorkOrderInventoryDto) {
+    return this.workOrderInventoryService.sell(id, dto);
   }
 
   createPayment(

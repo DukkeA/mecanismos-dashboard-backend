@@ -32,6 +32,12 @@ import { UpdateWorkOrderActualCostDto } from './dto/update-work-order-actual-cos
 import { UpdateWorkOrderDto } from './dto/update-work-order.dto';
 import { UpdateWorkOrderPaymentDto } from './dto/update-work-order-payment.dto';
 import { UpsertWorkOrderEstimateDto } from './dto/upsert-work-order-estimate.dto';
+import {
+  ConsumeWorkOrderInventoryDto,
+  ReleaseWorkOrderInventoryDto,
+  ReserveWorkOrderInventoryDto,
+  SellWorkOrderInventoryDto,
+} from './dto/work-order-inventory-action.dto';
 import { WorkOrdersService } from './work-orders.service';
 
 @ApiTags('work-orders')
@@ -158,6 +164,46 @@ export class WorkOrdersController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   removeActualCost(@Param('id') id: string, @Param('costId') costId: string) {
     return this.workOrdersService.removeActualCost(id, costId);
+  }
+
+  @Post(':id/inventory/reservations')
+  @ApiOperation({ summary: 'Reserve inventory stock for a work order' })
+  @ApiCreatedResponse({ description: 'Inventory reservation created.' })
+  reserveInventory(
+    @Param('id') id: string,
+    @Body() reserveInventoryDto: ReserveWorkOrderInventoryDto,
+  ) {
+    return this.workOrdersService.reserveInventory(id, reserveInventoryDto);
+  }
+
+  @Post(':id/inventory/releases')
+  @ApiOperation({ summary: 'Release reserved inventory stock from a work order' })
+  @ApiCreatedResponse({ description: 'Inventory release created.' })
+  releaseInventory(
+    @Param('id') id: string,
+    @Body() releaseInventoryDto: ReleaseWorkOrderInventoryDto,
+  ) {
+    return this.workOrdersService.releaseInventory(id, releaseInventoryDto);
+  }
+
+  @Post(':id/inventory/consumptions')
+  @ApiOperation({ summary: 'Consume inventory stock from a work order' })
+  @ApiCreatedResponse({ description: 'Inventory consumption created.' })
+  consumeInventory(
+    @Param('id') id: string,
+    @Body() consumeInventoryDto: ConsumeWorkOrderInventoryDto,
+  ) {
+    return this.workOrdersService.consumeInventory(id, consumeInventoryDto);
+  }
+
+  @Post(':id/inventory/sales')
+  @ApiOperation({ summary: 'Sell inventory stock from a work order' })
+  @ApiCreatedResponse({ description: 'Inventory sale created.' })
+  sellInventory(
+    @Param('id') id: string,
+    @Body() sellInventoryDto: SellWorkOrderInventoryDto,
+  ) {
+    return this.workOrdersService.sellInventory(id, sellInventoryDto);
   }
 
   @Post(':id/payments')

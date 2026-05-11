@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
   EstimatePhase,
+  WorkOrderCostCategory,
   PaymentStatus,
   WorkOrderStatus,
   WorkOrderType,
@@ -15,6 +17,12 @@ import type { UpsertWorkOrderEstimateDto } from '../dto/upsert-work-order-estima
 import type { UpdateWorkOrderActualCostDto } from '../dto/update-work-order-actual-cost.dto';
 import type { UpdateWorkOrderPaymentDto } from '../dto/update-work-order-payment.dto';
 import type { UpdateWorkOrderDto } from '../dto/update-work-order.dto';
+import {
+  buildWorkOrderInventoryActivity,
+  calculateActiveReservationQuantity,
+  calculateAvailableStockForWorkOrder,
+  calculatePhysicalStockFromMovements,
+} from '../work-order-inventory.helpers';
 
 export const WORK_ORDERS_PRISMA_CLIENT = Symbol('WORK_ORDERS_PRISMA_CLIENT');
 
@@ -141,6 +149,36 @@ export type WorkOrderInventoryItemSummary = {
   identifier?: string | null;
   defaultSalePrice?: number | null;
   isActive?: boolean | null;
+  itemType?: string | null;
+};
+
+export type WorkOrderInventoryMovementSummary = {
+  id: string;
+  inventoryItemId: string;
+  movementType: string;
+  reason: string;
+  quantity: number;
+  unitCost: number | null;
+  supplierId: string | null;
+  workOrderId: string | null;
+  isReservedForWorkOrder: boolean;
+  occurredAt: Date;
+  notes: string | null;
+  actualCostId: string | null;
+};
+
+export type WorkOrderInventoryActivitySummary = {
+  inventoryItemId: string;
+  itemName: string;
+  sku: string | null;
+  reference: string | null;
+  identifier: string | null;
+  defaultSalePrice: number | null;
+  activeReservedQuantity: number;
+  consumedQuantity: number;
+  soldQuantity: number;
+  actualCostIds: string[];
+  movements: WorkOrderInventoryMovementSummary[];
 };
 
 export type WorkOrderSupplierQuoteSummary = {
@@ -210,7 +248,49 @@ export type WorkOrderDetail = {
   estimates: WorkOrderEstimateSummary[];
   actualCosts: WorkOrderActualCostSummary[];
   payments: WorkOrderPaymentSummary[];
+  inventoryActivity: WorkOrderInventoryActivitySummary[];
 };
+
+export type CreateWorkOrderInventoryActionInput = {
+  inventoryItemId: string;
+  movementType: 'IN' | 'OUT';
+  movementReason: string;
+  quantity: number;
+  occurredAt: Date;
+  supplierId?: string;
+  unitCost?: number;
+  notes?: string;
+  isReservedForWorkOrder?: boolean;
+  actualCost?: {
+    category: WorkOrderCostCategory;
+    description: string;
+    amount: number;
+    supplierId?: string;
+    inventoryItemId?: string;
+    supplierQuoteHistoryId?: string;
+    paymentMethod?: string;
+    incurredAt: Date;
+    notes?: string;
+  };
+};
+
+export class WorkOrderInventoryStockConflictError extends Error {
+  constructor(
+    readonly currentAvailableStock: number,
+    readonly attemptedQuantity: number,
+  ) {
+    super('Work-order inventory action exceeds available stock');
+  }
+}
+
+export class WorkOrderInventoryReservationConflictError extends Error {
+  constructor(
+    readonly currentReservedQuantity: number,
+    readonly attemptedQuantity: number,
+  ) {
+    super('Work-order inventory release exceeds reserved stock');
+  }
+}
 
 export type WorkOrdersListResult = {
   items: WorkOrderDetail[];
@@ -275,6 +355,7 @@ type WorkOrdersPrismaClient = {
       select: {
         id: true;
         name: true;
+        itemType?: true;
         reference: true;
         identifier: true;
         defaultSalePrice: true;
@@ -283,6 +364,7 @@ type WorkOrdersPrismaClient = {
     }): Promise<{
       id: string;
       name: string;
+      itemType?: string;
       reference: string | null;
       identifier: string | null;
       defaultSalePrice: number | null;
@@ -430,6 +512,26 @@ type WorkOrdersPrismaClient = {
     }): Promise<unknown>;
     delete(args: { where: { id: string } }): Promise<unknown>;
   };
+  inventoryMovement?: {
+    findMany(args: {
+      where: { inventoryItemId: string } | { workOrderId: string };
+      orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }];
+      include?: {
+        InventoryItem: {
+          select: {
+            id: true;
+            name: true;
+            reference: true;
+            identifier: true;
+            defaultSalePrice: true;
+            isActive: true;
+            itemType: true;
+          };
+        };
+      };
+    }): Promise<InventoryMovementRecordWithItem[]>;
+    create(args: { data: Record<string, unknown> }): Promise<InventoryMovementRecord>;
+  };
 };
 
 type WorkOrdersPrismaTransactionClient = Pick<
@@ -439,6 +541,9 @@ type WorkOrdersPrismaTransactionClient = Pick<
   | 'workOrderEstimateLine'
   | 'workshopWorkOrderDetails'
   | 'workOrderPayment'
+  | 'workOrderActualCost'
+  | 'inventoryItem'
+  | 'inventoryMovement'
 >;
 
 type DecimalValue = number | string | { toNumber(): number } | null;
@@ -589,6 +694,34 @@ type WorkOrderRecord = {
     paidAt: Date;
     notes: string | null;
   }>;
+  InventoryMovement: InventoryMovementRecordWithItem[];
+};
+
+type InventoryMovementRecord = {
+  id: string;
+  inventoryItemId: string;
+  movementType: string;
+  reason: string;
+  quantity: number;
+  unitCost: number | null;
+  supplierId: string | null;
+  workOrderId: string | null;
+  isReservedForWorkOrder: boolean;
+  occurredAt: Date;
+  notes: string | null;
+  createdAt: Date;
+};
+
+type InventoryMovementRecordWithItem = InventoryMovementRecord & {
+  InventoryItem: {
+    id: string;
+    name: string;
+    reference: string | null;
+    identifier: string | null;
+    defaultSalePrice: number | null;
+    isActive: boolean | null;
+    itemType?: string | null;
+  } | null;
 };
 
 const actualCostInclude = {
@@ -646,6 +779,22 @@ const workOrderDetailInclude = {
   },
   WorkOrderPayment: {
     orderBy: { paidAt: 'desc' as const },
+  },
+  InventoryMovement: {
+    orderBy: [{ occurredAt: 'asc' as const }, { createdAt: 'asc' as const }],
+    include: {
+      InventoryItem: {
+        select: {
+          id: true,
+          name: true,
+          reference: true,
+          identifier: true,
+          defaultSalePrice: true,
+          isActive: true,
+          itemType: true,
+        },
+      },
+    },
   },
 } as const;
 
@@ -982,6 +1131,172 @@ export class WorkOrdersRepository {
     );
   }
 
+  async createInventoryAction(
+    workOrderId: string,
+    input: CreateWorkOrderInventoryActionInput,
+  ) {
+    return Promise.resolve().then(async () => {
+      if (!this.prisma.$transaction) {
+        throw new Error(
+          'WorkOrdersRepository inventory actions require transactions',
+        );
+      }
+
+      return this.prisma.$transaction(async (tx) => {
+        if (
+          !tx.inventoryItem ||
+          !tx.inventoryMovement ||
+          !tx.workOrder ||
+          !tx.workOrderActualCost
+        ) {
+          throw new Error(
+            'WorkOrdersRepository inventory actions require inventory delegates',
+          );
+        }
+
+      const inventoryItem = await tx.inventoryItem.findUnique({
+        where: { id: input.inventoryItemId },
+        select: {
+          id: true,
+          name: true,
+          itemType: true,
+          reference: true,
+          identifier: true,
+          defaultSalePrice: true,
+          isActive: true,
+        },
+      });
+
+      if (!inventoryItem) {
+        throw new Error(`Inventory item ${input.inventoryItemId} not found`);
+      }
+
+      const itemMovements = await tx.inventoryMovement.findMany({
+        where: { inventoryItemId: input.inventoryItemId },
+        orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          InventoryItem: {
+            select: {
+              id: true,
+              name: true,
+              reference: true,
+              identifier: true,
+              defaultSalePrice: true,
+              isActive: true,
+              itemType: true,
+            },
+          },
+        },
+      });
+
+      if (input.movementType === 'IN') {
+        const currentReserved = Math.max(
+          calculateActiveReservationQuantity(itemMovements, workOrderId),
+          0,
+        );
+
+        if (input.quantity > currentReserved) {
+          throw new WorkOrderInventoryReservationConflictError(
+            currentReserved,
+            input.quantity,
+          );
+        }
+      }
+
+      if (input.movementType === 'OUT') {
+        const currentAvailable = calculateAvailableStockForWorkOrder(
+          itemMovements,
+          workOrderId,
+        );
+
+        if (input.quantity > currentAvailable) {
+          throw new WorkOrderInventoryStockConflictError(
+            currentAvailable,
+            input.quantity,
+          );
+        }
+      }
+
+      const movement = await tx.inventoryMovement.create({
+        data: {
+          id: randomUUID(),
+          inventoryItemId: input.inventoryItemId,
+          movementType: input.movementType,
+          reason: input.movementReason,
+          quantity: input.quantity,
+          unitCost: input.unitCost ?? null,
+          supplierId: input.supplierId ?? null,
+          workOrderId,
+          isReservedForWorkOrder: input.isReservedForWorkOrder ?? false,
+          occurredAt: input.occurredAt,
+          notes: normalizeOptionalString(input.notes),
+        },
+      });
+
+      const actualCost = input.actualCost
+        ? await (async () => {
+            if (input.actualCost.amount <= 0) {
+              throw new BadRequestException(
+                'Actual cost amount must be greater than zero',
+              );
+            }
+
+            return tx.workOrderActualCost.create({
+            data: {
+              id: randomUUID(),
+              workOrderId,
+              category: input.actualCost.category,
+              description: input.actualCost.description.trim(),
+              amount: input.actualCost.amount,
+              supplierId:
+                normalizeOptionalForeignKey(input.actualCost.supplierId) ?? null,
+              inventoryItemId:
+                normalizeOptionalForeignKey(
+                  input.actualCost.inventoryItemId ?? input.inventoryItemId,
+                ) ?? null,
+              supplierQuoteHistoryId:
+                normalizeOptionalForeignKey(
+                  input.actualCost.supplierQuoteHistoryId,
+                ) ?? null,
+              paymentMethod: input.actualCost.paymentMethod ?? null,
+              incurredAt: input.actualCost.incurredAt,
+              notes: normalizeOptionalString(input.actualCost.notes),
+              updatedAt: new Date(),
+            },
+            include: actualCostInclude,
+            });
+          })()
+        : null;
+
+      const persisted = await tx.workOrder.findUnique({
+        where: { id: workOrderId },
+        include: workOrderDetailInclude,
+      });
+
+      const refreshedMovements = [...itemMovements, { ...movement, InventoryItem: inventoryItem }];
+      const currentStockAfter =
+        input.movementType === 'OUT'
+          ? calculateAvailableStockForWorkOrder(refreshedMovements, workOrderId)
+          : calculatePhysicalStockFromMovements(refreshedMovements);
+
+        return {
+          movement: {
+            ...movement,
+            actualCostId: actualCost?.id ?? null,
+          },
+          actualCost: actualCost ? mapActualCostRecord(actualCost) : undefined,
+          currentStockAfter,
+          workOrderInventory: buildWorkOrderInventoryActivity(
+            persisted?.InventoryMovement ?? [
+              { ...movement, InventoryItem: inventoryItem },
+            ],
+            persisted?.WorkOrderActualCost ?? (actualCost ? [actualCost] : []),
+          ),
+        };
+      });
+    });
+  }
+
   findCustomerById(id: string) {
     return this.prisma.customer.findUnique({
       where: { id },
@@ -1041,6 +1356,7 @@ export class WorkOrdersRepository {
       select: {
         id: true,
         name: true,
+        itemType: true,
         reference: true,
         identifier: true,
         defaultSalePrice: true,
@@ -1586,6 +1902,13 @@ function mapWorkOrderRecord(record: WorkOrderRecord): WorkOrderDetail {
       paidAt: payment.paidAt,
       notes: payment.notes,
     })),
+    inventoryActivity: buildWorkOrderInventoryActivity(
+      record.InventoryMovement ?? [],
+      record.WorkOrderActualCost.map((cost) => ({
+        id: cost.id,
+        inventoryItemId: cost.inventoryItemId,
+      })),
+    ),
   };
 }
 

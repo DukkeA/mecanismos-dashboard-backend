@@ -332,6 +332,91 @@ describe('WorkOrderRelationsService', () => {
     expect(result.supplierQuoteHistory?.id).toBe('quote-1');
   });
 
+  it('accepts work-order inventory links when stock items and quotes belong to the same order', async () => {
+    repository.findInventoryItemById.mockResolvedValue({
+      id: 'inventory-1',
+      name: 'Inyector Bosch',
+      reference: '0445120231',
+      identifier: 'INV-1',
+      defaultSalePrice: 250000,
+      isActive: true,
+      itemType: 'STOCK_OWNED',
+    } as never);
+    repository.findSupplierById.mockResolvedValue({
+      id: 'supplier-1',
+      name: 'Proveedor Uno',
+      type: 'COMPANY',
+      isActive: true,
+    });
+    repository.findSupplierQuoteHistoryById.mockResolvedValue({
+      id: 'quote-1',
+      supplierId: 'supplier-1',
+      inventoryItemId: 'inventory-1',
+      workOrderId: 'wo-1',
+      quotedCost: 180000,
+      quotedAt: new Date('2026-05-10T18:00:00.000Z'),
+      status: SupplierQuoteStatus.ACTIVE,
+      supplier: null,
+      inventoryItem: null,
+    });
+
+    await expect(
+      service.assertInventoryActionRelations('wo-1', {
+        inventoryItemId: 'inventory-1',
+        supplierId: 'supplier-1',
+        supplierQuoteHistoryId: 'quote-1',
+      }),
+    ).resolves.toMatchObject({
+      inventoryItem: { id: 'inventory-1', itemType: 'STOCK_OWNED' },
+      supplier: { id: 'supplier-1' },
+      supplierQuoteHistory: { id: 'quote-1' },
+    });
+  });
+
+  it('rejects work-order inventory links when the item or quote is inconsistent', async () => {
+    repository.findInventoryItemById.mockResolvedValue(null);
+
+    await expect(
+      service.assertInventoryActionRelations('wo-1', {
+        inventoryItemId: 'missing-item',
+      }),
+    ).rejects.toThrow(
+      new NotFoundException('Inventory item missing-item not found'),
+    );
+
+    repository.findInventoryItemById.mockResolvedValue({
+      id: 'inventory-1',
+      name: 'Inyector Bosch',
+      reference: '0445120231',
+      identifier: 'INV-1',
+      defaultSalePrice: 250000,
+      isActive: true,
+      itemType: 'STOCK_OWNED',
+    } as never);
+    repository.findSupplierQuoteHistoryById.mockResolvedValue({
+      id: 'quote-1',
+      supplierId: 'supplier-1',
+      inventoryItemId: 'inventory-9',
+      workOrderId: 'wo-1',
+      quotedCost: 180000,
+      quotedAt: new Date('2026-05-10T18:00:00.000Z'),
+      status: SupplierQuoteStatus.ACTIVE,
+      supplier: null,
+      inventoryItem: null,
+    });
+
+    await expect(
+      service.assertInventoryActionRelations('wo-1', {
+        inventoryItemId: 'inventory-1',
+        supplierQuoteHistoryId: 'quote-1',
+      }),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Supplier quote quote-1 does not belong to inventory item inventory-1',
+      ),
+    );
+  });
+
   it('rejects actual-cost direct purchases without a supplier or with mismatched quote links', async () => {
     await expect(
       service.assertActualCostCreateRelations({

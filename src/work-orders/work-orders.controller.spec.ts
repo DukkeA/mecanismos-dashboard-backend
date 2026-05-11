@@ -14,6 +14,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { AppModule } from '../app.module';
 import { CreateWorkOrderActualCostDto } from './dto/create-work-order-actual-cost.dto';
+import {
+  ConsumeWorkOrderInventoryDto,
+  ReleaseWorkOrderInventoryDto,
+  ReserveWorkOrderInventoryDto,
+  SellWorkOrderInventoryDto,
+} from './dto/work-order-inventory-action.dto';
 import { CreateWorkOrderDto } from './dto/create-work-order.dto';
 import { CreateWorkOrderPaymentDto } from './dto/create-work-order-payment.dto';
 import { ListWorkOrdersQueryDto } from './dto/list-work-orders-query.dto';
@@ -48,6 +54,10 @@ describe('WorkOrdersController', () => {
     findActualCosts: jest.fn(),
     updateActualCost: jest.fn(),
     removeActualCost: jest.fn(),
+    reserveInventory: jest.fn(),
+    releaseInventory: jest.fn(),
+    consumeInventory: jest.fn(),
+    sellInventory: jest.fn(),
     createPayment: jest.fn(),
     findPayments: jest.fn(),
     updatePayment: jest.fn(),
@@ -68,6 +78,10 @@ describe('WorkOrdersController', () => {
     const estimateDto = {} as UpsertWorkOrderEstimateDto;
     const createCostDto = {} as CreateWorkOrderActualCostDto;
     const updateCostDto = {} as UpdateWorkOrderActualCostDto;
+    const reserveInventoryDto = {} as ReserveWorkOrderInventoryDto;
+    const releaseInventoryDto = {} as ReleaseWorkOrderInventoryDto;
+    const consumeInventoryDto = {} as ConsumeWorkOrderInventoryDto;
+    const sellInventoryDto = {} as SellWorkOrderInventoryDto;
     const createPaymentDto = {} as CreateWorkOrderPaymentDto;
     const updatePaymentDto = {} as UpdateWorkOrderPaymentDto;
 
@@ -81,6 +95,10 @@ describe('WorkOrdersController', () => {
     service.findActualCosts.mockResolvedValue({ data: [] });
     service.updateActualCost.mockResolvedValue({ id: 'cost-1' } as never);
     service.removeActualCost.mockResolvedValue(undefined);
+    service.reserveInventory.mockResolvedValue({ movement: { id: 'movement-1' } });
+    service.releaseInventory.mockResolvedValue({ movement: { id: 'movement-2' } });
+    service.consumeInventory.mockResolvedValue({ movement: { id: 'movement-3' } });
+    service.sellInventory.mockResolvedValue({ movement: { id: 'movement-4' } });
     service.createPayment.mockResolvedValue({ id: 'payment-1' } as never);
     service.findPayments.mockResolvedValue({ data: [] } as never);
     service.updatePayment.mockResolvedValue({ id: 'payment-1' } as never);
@@ -113,6 +131,18 @@ describe('WorkOrdersController', () => {
     await expect(
       controller.removeActualCost('wo-1', 'cost-1'),
     ).resolves.toBeUndefined();
+    await expect(
+      controller.reserveInventory('wo-1', reserveInventoryDto),
+    ).resolves.toEqual({ movement: { id: 'movement-1' } });
+    await expect(
+      controller.releaseInventory('wo-1', releaseInventoryDto),
+    ).resolves.toEqual({ movement: { id: 'movement-2' } });
+    await expect(
+      controller.consumeInventory('wo-1', consumeInventoryDto),
+    ).resolves.toEqual({ movement: { id: 'movement-3' } });
+    await expect(
+      controller.sellInventory('wo-1', sellInventoryDto),
+    ).resolves.toEqual({ movement: { id: 'movement-4' } });
     await expect(
       controller.createPayment('wo-1', createPaymentDto),
     ).resolves.toEqual({ id: 'payment-1' });
@@ -149,6 +179,10 @@ describe('WorkOrdersController', () => {
       findActualCosts: getControllerMethod('findActualCosts'),
       updateActualCost: getControllerMethod('updateActualCost'),
       removeActualCost: getControllerMethod('removeActualCost'),
+      reserveInventory: getControllerMethod('reserveInventory'),
+      releaseInventory: getControllerMethod('releaseInventory'),
+      consumeInventory: getControllerMethod('consumeInventory'),
+      sellInventory: getControllerMethod('sellInventory'),
       createPayment: getControllerMethod('createPayment'),
       findPayments: getControllerMethod('findPayments'),
       updatePayment: getControllerMethod('updatePayment'),
@@ -206,6 +240,30 @@ describe('WorkOrdersController', () => {
     expect(
       Reflect.getMetadata(METHOD_METADATA, handlers.removeActualCost),
     ).toBe(RequestMethod.DELETE);
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.reserveInventory)).toBe(
+      ':id/inventory/reservations',
+    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, handlers.reserveInventory),
+    ).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.releaseInventory)).toBe(
+      ':id/inventory/releases',
+    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, handlers.releaseInventory),
+    ).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.consumeInventory)).toBe(
+      ':id/inventory/consumptions',
+    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, handlers.consumeInventory),
+    ).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(PATH_METADATA, handlers.sellInventory)).toBe(
+      ':id/inventory/sales',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handlers.sellInventory)).toBe(
+      RequestMethod.POST,
+    );
     expect(Reflect.getMetadata(PATH_METADATA, handlers.createPayment)).toBe(
       ':id/payments',
     );
@@ -252,6 +310,22 @@ describe('WorkOrdersController', () => {
       updateCostDto,
     ]);
     expect(service.removeActualCost.mock.calls[0]).toEqual(['wo-1', 'cost-1']);
+    expect(service.reserveInventory.mock.calls[0]).toEqual([
+      'wo-1',
+      reserveInventoryDto,
+    ]);
+    expect(service.releaseInventory.mock.calls[0]).toEqual([
+      'wo-1',
+      releaseInventoryDto,
+    ]);
+    expect(service.consumeInventory.mock.calls[0]).toEqual([
+      'wo-1',
+      consumeInventoryDto,
+    ]);
+    expect(service.sellInventory.mock.calls[0]).toEqual([
+      'wo-1',
+      sellInventoryDto,
+    ]);
     expect(service.createPayment.mock.calls[0]).toEqual([
       'wo-1',
       createPaymentDto,

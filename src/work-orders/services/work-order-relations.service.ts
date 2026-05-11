@@ -37,6 +37,14 @@ type ResolvedActualCostRelations = {
   >;
 };
 
+type ResolvedInventoryActionRelations = {
+  inventoryItem: Awaited<ReturnType<WorkOrdersRepository['findInventoryItemById']>>;
+  supplier: Awaited<ReturnType<WorkOrdersRepository['findSupplierById']>>;
+  supplierQuoteHistory: Awaited<
+    ReturnType<WorkOrdersRepository['findSupplierQuoteHistoryById']>
+  >;
+};
+
 @Injectable()
 export class WorkOrderRelationsService {
   constructor(private readonly workOrdersRepository: WorkOrdersRepository) {}
@@ -198,6 +206,93 @@ export class WorkOrderRelationsService {
         currentActualCost.supplierQuoteHistoryId ?? null,
       ),
     });
+  }
+
+  async assertInventoryActionRelations(
+    workOrderId: string,
+    input: {
+      inventoryItemId: string;
+      supplierId?: string | null;
+      supplierQuoteHistoryId?: string | null;
+    },
+  ): Promise<ResolvedInventoryActionRelations> {
+    const inventoryItemId = input.inventoryItemId.trim();
+    const supplierId = normalizeOptionalId(input.supplierId);
+    const supplierQuoteHistoryId = normalizeOptionalId(
+      input.supplierQuoteHistoryId,
+    );
+
+    const inventoryItem = await this.workOrdersRepository.findInventoryItemById(
+      inventoryItemId,
+    );
+
+    if (!inventoryItem) {
+      throw new NotFoundException(`Inventory item ${inventoryItemId} not found`);
+    }
+
+    const supplier = supplierId
+      ? await this.workOrdersRepository.findSupplierById(supplierId)
+      : null;
+
+    if (supplierId && !supplier) {
+      throw new NotFoundException(`Supplier ${supplierId} not found`);
+    }
+
+    const supplierQuoteHistory = supplierQuoteHistoryId
+      ? await this.workOrdersRepository.findSupplierQuoteHistoryById(
+          supplierQuoteHistoryId,
+        )
+      : null;
+
+    if (supplierQuoteHistoryId && !supplierQuoteHistory) {
+      throw new NotFoundException(
+        `Supplier quote ${supplierQuoteHistoryId} not found`,
+      );
+    }
+
+    if (
+      supplierQuoteHistory &&
+      supplierQuoteHistory.status !== SupplierQuoteStatus.ACTIVE
+    ) {
+      throw new BadRequestException(
+        `Supplier quote ${supplierQuoteHistory.id} is not active`,
+      );
+    }
+
+    if (
+      supplierQuoteHistory &&
+      supplierId &&
+      supplierQuoteHistory.supplierId !== supplierId
+    ) {
+      throw new BadRequestException(
+        `Supplier quote ${supplierQuoteHistory.id} does not belong to supplier ${supplierId}`,
+      );
+    }
+
+    if (
+      supplierQuoteHistory &&
+      supplierQuoteHistory.inventoryItemId !== inventoryItemId
+    ) {
+      throw new BadRequestException(
+        `Supplier quote ${supplierQuoteHistory.id} does not belong to inventory item ${inventoryItemId}`,
+      );
+    }
+
+    if (
+      supplierQuoteHistory &&
+      supplierQuoteHistory.workOrderId &&
+      supplierQuoteHistory.workOrderId !== workOrderId
+    ) {
+      throw new BadRequestException(
+        `Supplier quote ${supplierQuoteHistory.id} does not belong to work order ${workOrderId}`,
+      );
+    }
+
+    return {
+      inventoryItem,
+      supplier,
+      supplierQuoteHistory,
+    };
   }
 
   private async resolveRelations(input: {

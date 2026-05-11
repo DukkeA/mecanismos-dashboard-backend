@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { BadRequestException } from '@nestjs/common';
 import {
   EstimateLineType,
   EstimatePhase,
@@ -9,7 +10,10 @@ import {
   WorkOrderStatus,
   WorkOrderType,
 } from '../../../generated/prisma/enums';
-import { WorkOrdersRepository } from './work-orders.repository';
+import {
+  WorkOrderInventoryReservationConflictError,
+  WorkOrdersRepository,
+} from './work-orders.repository';
 
 describe('WorkOrdersRepository', () => {
   it('creates one workshop detail transactionally for workshop work orders', async () => {
@@ -278,6 +282,289 @@ describe('WorkOrdersRepository', () => {
         WorkOrderPayment: expect.any(Object),
       }),
     );
+  });
+
+  it('creates work-order inventory actions atomically and returns refreshed inventory summaries', async () => {
+    const tx = {
+      inventoryItem: {
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            id: 'item-1',
+            name: 'Inyector Bosch',
+            reference: '0445120231',
+            identifier: 'INV-1',
+            defaultSalePrice: 250000,
+            isActive: true,
+            itemType: 'STOCK_OWNED',
+          }),
+        ),
+      },
+      inventoryMovement: {
+        findMany: jest.fn(() =>
+          Promise.resolve([
+            {
+              id: 'movement-stock-in',
+              inventoryItemId: 'item-1',
+              movementType: 'IN',
+              reason: 'PURCHASE',
+              quantity: 5,
+              unitCost: 180000,
+              supplierId: 'supplier-1',
+              workOrderId: null,
+              isReservedForWorkOrder: false,
+              occurredAt: new Date('2026-05-10T08:00:00.000Z'),
+              notes: null,
+              createdAt: new Date('2026-05-10T08:00:00.000Z'),
+            },
+          ]),
+        ),
+        create: jest.fn(() =>
+          Promise.resolve({
+            id: 'movement-1',
+            inventoryItemId: 'item-1',
+            movementType: 'OUT',
+            reason: 'WORK_ORDER_CONSUMPTION',
+            quantity: 2,
+            unitCost: 180000,
+            supplierId: 'supplier-1',
+            workOrderId: 'wo-1',
+            isReservedForWorkOrder: false,
+            occurredAt: new Date('2026-05-11T10:00:00.000Z'),
+            notes: 'Consumo final',
+            createdAt: new Date('2026-05-11T10:00:00.000Z'),
+          }),
+        ),
+      },
+      workOrderActualCost: {
+        create: jest.fn(() =>
+          Promise.resolve({
+            id: 'cost-1',
+            category: 'DIRECT_PURCHASE',
+            description: 'Consumo final',
+            amount: 360000,
+            supplierId: 'supplier-1',
+            inventoryItemId: 'item-1',
+            supplierQuoteHistoryId: null,
+            paymentMethod: 'TRANSFER',
+            incurredAt: new Date('2026-05-11T10:00:00.000Z'),
+            notes: null,
+            Supplier: null,
+            InventoryItem: null,
+            SupplierQuoteHistory: null,
+          }),
+        ),
+      },
+      workOrder: {
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            id: 'wo-1',
+            number: 1001,
+            type: WorkOrderType.WORKSHOP,
+            status: WorkOrderStatus.IN_PROGRESS,
+            paymentStatus: PaymentStatus.PENDING,
+            customerId: 'customer-1',
+            vehicleId: null,
+            componentId: null,
+            assignedEmployeeId: null,
+            summary: 'Orden inventario',
+            externalLink: null,
+            notes: null,
+            estimatedCompletionAt: null,
+            estimatedCollectionAt: null,
+            completedAt: null,
+            createdAt: new Date('2026-05-10T08:00:00.000Z'),
+            updatedAt: new Date('2026-05-11T10:00:00.000Z'),
+            Customer: null,
+            Vehicle: null,
+            Component: null,
+            Employee: null,
+            WorkshopWorkOrderDetails: null,
+            WorkOrderEstimate: [],
+            WorkOrderActualCost: [],
+            WorkOrderPayment: [],
+            InventoryMovement: [
+              {
+                id: 'movement-1',
+                inventoryItemId: 'item-1',
+                movementType: 'OUT',
+                reason: 'WORK_ORDER_CONSUMPTION',
+                quantity: 2,
+                unitCost: 180000,
+                supplierId: 'supplier-1',
+                workOrderId: 'wo-1',
+                isReservedForWorkOrder: false,
+                occurredAt: new Date('2026-05-11T10:00:00.000Z'),
+                notes: 'Consumo final',
+                createdAt: new Date('2026-05-11T10:00:00.000Z'),
+                InventoryItem: {
+                  id: 'item-1',
+                  name: 'Inyector Bosch',
+                  reference: '0445120231',
+                  identifier: 'INV-1',
+                  defaultSalePrice: 250000,
+                  isActive: true,
+                  itemType: 'STOCK_OWNED',
+                },
+              },
+            ],
+          }),
+        ),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) =>
+        Promise.resolve(callback(tx)),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await expect(
+      repository.createInventoryAction('wo-1', {
+        inventoryItemId: 'item-1',
+        movementType: 'OUT',
+        movementReason: 'WORK_ORDER_CONSUMPTION',
+        quantity: 2,
+        occurredAt: new Date('2026-05-11T10:00:00.000Z'),
+        supplierId: 'supplier-1',
+        unitCost: 180000,
+        notes: 'Consumo final',
+        actualCost: {
+          category: 'DIRECT_PURCHASE',
+          description: 'Consumo final',
+          amount: 360000,
+          paymentMethod: 'TRANSFER',
+          incurredAt: new Date('2026-05-11T10:00:00.000Z'),
+          supplierId: 'supplier-1',
+          inventoryItemId: 'item-1',
+        },
+      }),
+    ).resolves.toMatchObject({
+      movement: { id: 'movement-1' },
+      actualCost: { id: 'cost-1' },
+      currentStockAfter: 3,
+      workOrderInventory: [
+        {
+          inventoryItemId: 'item-1',
+          consumedQuantity: 2,
+        },
+      ],
+    });
+  });
+
+  it('rejects over-release and bubbles actual-cost failures so the transaction rolls back', async () => {
+    const tx = {
+      inventoryItem: {
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            id: 'item-1',
+            name: 'Inyector Bosch',
+            reference: '0445120231',
+            identifier: 'INV-1',
+            defaultSalePrice: 250000,
+            isActive: true,
+            itemType: 'STOCK_OWNED',
+          }),
+        ),
+      },
+      inventoryMovement: {
+        findMany: jest
+          .fn()
+          .mockResolvedValueOnce([
+            {
+              id: 'reserve-1',
+              inventoryItemId: 'item-1',
+              movementType: 'OUT',
+              reason: 'WORK_ORDER_PURCHASE',
+              quantity: 1,
+              unitCost: null,
+              supplierId: null,
+              workOrderId: 'wo-1',
+              isReservedForWorkOrder: true,
+              occurredAt: new Date('2026-05-11T08:00:00.000Z'),
+              notes: null,
+              createdAt: new Date('2026-05-11T08:00:00.000Z'),
+            },
+          ])
+          .mockResolvedValueOnce([
+            {
+              id: 'stock-in-1',
+              inventoryItemId: 'item-1',
+              movementType: 'IN',
+              reason: 'PURCHASE',
+              quantity: 3,
+              unitCost: 180000,
+              supplierId: 'supplier-1',
+              workOrderId: null,
+              isReservedForWorkOrder: false,
+              occurredAt: new Date('2026-05-10T08:00:00.000Z'),
+              notes: null,
+              createdAt: new Date('2026-05-10T08:00:00.000Z'),
+            },
+          ]),
+        create: jest.fn(() => Promise.resolve({ id: 'movement-1' })),
+      },
+      workOrderActualCost: {
+        create: jest.fn(() =>
+          Promise.reject(
+            new BadRequestException('Actual cost amount must be greater than zero'),
+          ),
+        ),
+      },
+      workOrder: {
+        findUnique: jest.fn(),
+      },
+    };
+
+    const prisma = {
+      $transaction: jest.fn((callback: (transaction: typeof tx) => Promise<unknown>) =>
+        Promise.resolve(callback(tx)),
+      ),
+    };
+
+    const repository = new WorkOrdersRepository(prisma as never);
+
+    await repository
+      .createInventoryAction('wo-1', {
+        inventoryItemId: 'item-1',
+        movementType: 'IN',
+        movementReason: 'RETURN',
+        quantity: 2,
+        occurredAt: new Date('2026-05-11T10:00:00.000Z'),
+      })
+      .then(() => {
+        throw new Error('expected release to fail');
+      })
+      .catch((error: unknown) => {
+        expect(error).toEqual(
+          new WorkOrderInventoryReservationConflictError(1, 2),
+        );
+      });
+
+    await repository
+      .createInventoryAction('wo-1', {
+        inventoryItemId: 'item-1',
+        movementType: 'OUT',
+        movementReason: 'SALE',
+        quantity: 1,
+        occurredAt: new Date('2026-05-11T10:00:00.000Z'),
+        actualCost: {
+          category: 'DIRECT_PURCHASE',
+          description: 'Venta mostrador',
+          amount: 0,
+          incurredAt: new Date('2026-05-11T10:00:00.000Z'),
+          inventoryItemId: 'item-1',
+        },
+      })
+      .then(() => {
+        throw new Error('expected actual cost to fail');
+      })
+      .catch((error: unknown) => {
+        expect(error).toEqual(
+          new BadRequestException('Actual cost amount must be greater than zero'),
+        );
+      });
   });
 
   it('builds filters and pagination for work-order list search', async () => {
