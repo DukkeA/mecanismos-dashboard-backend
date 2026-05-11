@@ -11,7 +11,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { EstimateLineType } from '../../../generated/prisma/enums';
-import { OptionalTrimmedString, TrimmedString } from '../../common/transforms/string.transforms';
+import {
+  OptionalTrimmedString,
+  TrimmedString,
+} from '../../common/transforms/string.transforms';
 
 const estimateLineTypes = Object.values(EstimateLineType);
 

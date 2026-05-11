@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ExpenseCategory, PaymentStatus } from '../../../generated/prisma/enums';
+import {
+  ExpenseCategory,
+  PaymentStatus,
+} from '../../../generated/prisma/enums';
 import { CashOperationalReportDto } from './report-response-common.dto';
 
 class ExpensesBreakdownReportRowDto {

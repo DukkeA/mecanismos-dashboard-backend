@@ -22,20 +22,27 @@ describe('operations-reporting calculations', () => {
   });
 
   it('calculates known balances and overpaid rows from payable totals', () => {
-    expect(calculateBalance({ payableAmount: 100_000, paidTotal: 40_000 })).toBe(
-      60_000,
+    expect(
+      calculateBalance({ payableAmount: 100_000, paidTotal: 40_000 }),
+    ).toBe(60_000);
+    expect(isOverpaid({ payableAmount: 100_000, paidTotal: 110_000 })).toBe(
+      true,
     );
-    expect(isOverpaid({ payableAmount: 100_000, paidTotal: 110_000 })).toBe(true);
   });
 
   it('keeps balance and overpaid false when payable is unknown', () => {
-    expect(calculateBalance({ payableAmount: null, paidTotal: 40_000 })).toBeNull();
+    expect(
+      calculateBalance({ payableAmount: null, paidTotal: 40_000 }),
+    ).toBeNull();
     expect(isOverpaid({ payableAmount: null, paidTotal: 110_000 })).toBe(false);
   });
 
   it('calculates gross utility and margin only when payable is known', () => {
     expect(
-      calculateGrossUtility({ payableAmount: 200_000, actualCostTotal: 80_000 }),
+      calculateGrossUtility({
+        payableAmount: 200_000,
+        actualCostTotal: 80_000,
+      }),
     ).toBe(120_000);
     expect(
       calculateGrossMargin({ payableAmount: 200_000, actualCostTotal: 80_000 }),

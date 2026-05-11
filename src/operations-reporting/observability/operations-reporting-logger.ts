@@ -4,7 +4,10 @@ type LoggerRange = {
 };
 
 type SafeLoggerValue = string | number | boolean | null | undefined | Date;
-type SafeLoggerFilters = Record<string, ReturnType<typeof serializeSafeFilterValue>>;
+type SafeLoggerFilters = Record<
+  string,
+  ReturnType<typeof serializeSafeFilterValue>
+>;
 
 const blockedFilterKeys = new Set([
   'cookie',
@@ -39,7 +42,10 @@ export function buildSafeReportLoggerContext(
   };
 }
 
-function isSafeFilterEntry(key: string, value: unknown): value is SafeLoggerValue {
+function isSafeFilterEntry(
+  key: string,
+  value: unknown,
+): value is SafeLoggerValue {
   return !blockedFilterKeys.has(key) && isSafeFilterValue(value);
 }
 

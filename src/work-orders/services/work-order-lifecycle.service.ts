@@ -17,9 +17,12 @@ export class WorkOrderLifecycleService {
   ) {}
 
   async create(createWorkOrderDto: CreateWorkOrderDto) {
-    await this.workOrderRelationsService.assertCreateRelations(createWorkOrderDto);
+    await this.workOrderRelationsService.assertCreateRelations(
+      createWorkOrderDto,
+    );
 
-    const createdWorkOrder = await this.workOrdersRepository.create(createWorkOrderDto);
+    const createdWorkOrder =
+      await this.workOrdersRepository.create(createWorkOrderDto);
 
     this.logger.log(
       `Created work order workOrderId=${createdWorkOrder.id} type=${createdWorkOrder.type} status=${createdWorkOrder.status} paymentStatus=${createdWorkOrder.paymentStatus}`,

@@ -72,7 +72,9 @@ export class OperationsReportingController {
   }
 
   @Get('mechanics')
-  @ApiOperation({ summary: 'Get mechanics productivity and profitability rows' })
+  @ApiOperation({
+    summary: 'Get mechanics productivity and profitability rows',
+  })
   @ApiOkResponse({ type: MechanicsProductivityReportResponseDto })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })

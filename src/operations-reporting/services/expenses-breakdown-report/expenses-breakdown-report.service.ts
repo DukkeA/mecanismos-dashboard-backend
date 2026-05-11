@@ -24,7 +24,9 @@ export class ExpensesBreakdownReportService {
         ? this.operationsReportingRepository.findPaidExpenses(repositoryQuery)
         : Promise.resolve([]),
       shouldIncludePending(query.paymentStatus)
-        ? this.operationsReportingRepository.findPendingExpenses(repositoryQuery)
+        ? this.operationsReportingRepository.findPendingExpenses(
+            repositoryQuery,
+          )
         : Promise.resolve([]),
     ]);
 
@@ -84,7 +86,8 @@ function addExpenseToGroup(
   expense: ExpenseReadModel,
   paymentStatus: ExpenseBreakdownPaymentStatus,
 ) {
-  const sourceDate = paymentStatus === PaymentStatus.PAID ? expense.paidAt : expense.expectedAt;
+  const sourceDate =
+    paymentStatus === PaymentStatus.PAID ? expense.paidAt : expense.expectedAt;
 
   if (!sourceDate) {
     return;

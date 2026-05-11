@@ -286,7 +286,7 @@ describe('WorkOrderRelationsService', () => {
       name: 'Proveedor Uno',
       type: 'COMPANY',
       isActive: true,
-    } as never);
+    });
     repository.findInventoryItemById.mockResolvedValue({
       id: 'inventory-1',
       name: 'Rodamiento SKF',
@@ -294,7 +294,7 @@ describe('WorkOrderRelationsService', () => {
       identifier: 'INV-6203',
       defaultSalePrice: 180000,
       isActive: true,
-    } as never);
+    });
     repository.findSupplierQuoteHistoryById.mockResolvedValue({
       id: 'quote-1',
       supplierId: 'supplier-1',
@@ -317,7 +317,7 @@ describe('WorkOrderRelationsService', () => {
         defaultSalePrice: 180000,
         isActive: true,
       },
-    } as never);
+    });
 
     await expect(
       service.assertActualCostCreateRelations({
@@ -355,7 +355,7 @@ describe('WorkOrderRelationsService', () => {
       name: 'Proveedor Uno',
       type: 'COMPANY',
       isActive: true,
-    } as never);
+    });
     repository.findInventoryItemById.mockResolvedValue({
       id: 'inventory-1',
       name: 'Rodamiento SKF',
@@ -363,7 +363,7 @@ describe('WorkOrderRelationsService', () => {
       identifier: 'INV-6203',
       defaultSalePrice: 180000,
       isActive: true,
-    } as never);
+    });
     repository.findSupplierQuoteHistoryById.mockResolvedValue({
       id: 'quote-1',
       supplierId: 'supplier-2',
@@ -374,7 +374,7 @@ describe('WorkOrderRelationsService', () => {
       status: SupplierQuoteStatus.ACTIVE,
       supplier: null,
       inventoryItem: null,
-    } as never);
+    });
 
     await expect(
       service.assertActualCostCreateRelations({

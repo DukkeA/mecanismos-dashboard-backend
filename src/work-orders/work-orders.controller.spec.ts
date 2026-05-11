@@ -65,11 +65,11 @@ describe('WorkOrdersController', () => {
     service.findOne.mockResolvedValue({ id: 'wo-1' } as never);
     service.update.mockResolvedValue({ id: 'wo-1' } as never);
     service.upsertEstimate.mockResolvedValue({ id: 'estimate-1' } as never);
-    service.findEstimates.mockResolvedValue({ data: [] } as never);
+    service.findEstimates.mockResolvedValue({ data: [] });
     service.createActualCost.mockResolvedValue({ id: 'cost-1' } as never);
-    service.findActualCosts.mockResolvedValue({ data: [] } as never);
+    service.findActualCosts.mockResolvedValue({ data: [] });
     service.updateActualCost.mockResolvedValue({ id: 'cost-1' } as never);
-    service.removeActualCost.mockResolvedValue(undefined as never);
+    service.removeActualCost.mockResolvedValue(undefined);
     service.createPayment.mockResolvedValue({ id: 'payment-1' } as never);
     service.findPayments.mockResolvedValue({ data: [] } as never);
     service.updatePayment.mockResolvedValue({ id: 'payment-1' } as never);
@@ -128,43 +128,85 @@ describe('WorkOrdersController', () => {
     ]);
 
     const handlers = {
-      create: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'create')?.value,
-      findAll: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'findAll')?.value,
-      findOne: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'findOne')?.value,
-      update: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'update')?.value,
-      upsertEstimate: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'upsertEstimate')?.value,
-      findEstimates: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'findEstimates')?.value,
-      createActualCost: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'createActualCost')?.value,
-      findActualCosts: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'findActualCosts')?.value,
-      updateActualCost: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'updateActualCost')?.value,
-      removeActualCost: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'removeActualCost')?.value,
-      createPayment: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'createPayment')?.value,
-      findPayments: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'findPayments')?.value,
-      updatePayment: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'updatePayment')?.value,
-      removePayment: Object.getOwnPropertyDescriptor(WorkOrdersController.prototype, 'removePayment')?.value,
+      create: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'create',
+      )?.value,
+      findAll: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'findAll',
+      )?.value,
+      findOne: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'findOne',
+      )?.value,
+      update: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'update',
+      )?.value,
+      upsertEstimate: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'upsertEstimate',
+      )?.value,
+      findEstimates: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'findEstimates',
+      )?.value,
+      createActualCost: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'createActualCost',
+      )?.value,
+      findActualCosts: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'findActualCosts',
+      )?.value,
+      updateActualCost: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'updateActualCost',
+      )?.value,
+      removeActualCost: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'removeActualCost',
+      )?.value,
+      createPayment: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'createPayment',
+      )?.value,
+      findPayments: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'findPayments',
+      )?.value,
+      updatePayment: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'updatePayment',
+      )?.value,
+      removePayment: Object.getOwnPropertyDescriptor(
+        WorkOrdersController.prototype,
+        'removePayment',
+      )?.value,
     };
 
     expect(Reflect.getMetadata(PATH_METADATA, handlers.create as object)).toBe(
-      '/'
+      '/',
     );
-    expect(Reflect.getMetadata(METHOD_METADATA, handlers.create as object)).toBe(
-      RequestMethod.POST,
-    );
-    expect(Reflect.getMetadata(METHOD_METADATA, handlers.findAll as object)).toBe(
-      RequestMethod.GET,
-    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, handlers.create as object),
+    ).toBe(RequestMethod.POST);
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, handlers.findAll as object),
+    ).toBe(RequestMethod.GET);
     expect(Reflect.getMetadata(PATH_METADATA, handlers.findOne as object)).toBe(
       ':id',
     );
-    expect(Reflect.getMetadata(METHOD_METADATA, handlers.findOne as object)).toBe(
-      RequestMethod.GET,
-    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, handlers.findOne as object),
+    ).toBe(RequestMethod.GET);
     expect(Reflect.getMetadata(PATH_METADATA, handlers.update as object)).toBe(
       ':id',
     );
-    expect(Reflect.getMetadata(METHOD_METADATA, handlers.update as object)).toBe(
-      RequestMethod.PATCH,
-    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, handlers.update as object),
+    ).toBe(RequestMethod.PATCH);
     expect(
       Reflect.getMetadata(PATH_METADATA, handlers.upsertEstimate as object),
     ).toBe(':id/estimates/:phase');
@@ -236,7 +278,10 @@ describe('WorkOrdersController', () => {
       estimateDto,
     ]);
     expect(service.findEstimates.mock.calls[0]).toEqual(['wo-1']);
-    expect(service.createActualCost.mock.calls[0]).toEqual(['wo-1', createCostDto]);
+    expect(service.createActualCost.mock.calls[0]).toEqual([
+      'wo-1',
+      createCostDto,
+    ]);
     expect(service.findActualCosts.mock.calls[0]).toEqual(['wo-1']);
     expect(service.updateActualCost.mock.calls[0]).toEqual([
       'wo-1',
@@ -254,10 +299,7 @@ describe('WorkOrdersController', () => {
       'payment-1',
       updatePaymentDto,
     ]);
-    expect(service.removePayment.mock.calls[0]).toEqual([
-      'wo-1',
-      'payment-1',
-    ]);
+    expect(service.removePayment.mock.calls[0]).toEqual(['wo-1', 'payment-1']);
 
     const appModuleImports = Reflect.getMetadata(
       MODULE_METADATA.IMPORTS,

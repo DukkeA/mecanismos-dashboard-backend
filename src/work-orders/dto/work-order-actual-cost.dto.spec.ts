@@ -1,6 +1,9 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { PaymentMethod, WorkOrderCostCategory } from '../../../generated/prisma/enums';
+import {
+  PaymentMethod,
+  WorkOrderCostCategory,
+} from '../../../generated/prisma/enums';
 import { CreateWorkOrderActualCostDto } from './create-work-order-actual-cost.dto';
 import { UpdateWorkOrderActualCostDto } from './update-work-order-actual-cost.dto';
 

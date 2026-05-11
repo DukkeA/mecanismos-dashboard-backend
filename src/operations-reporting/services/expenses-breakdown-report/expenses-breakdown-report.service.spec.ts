@@ -1,4 +1,7 @@
-import { ExpenseCategory, PaymentStatus } from '../../../../generated/prisma/enums';
+import {
+  ExpenseCategory,
+  PaymentStatus,
+} from '../../../../generated/prisma/enums';
 import type { ExpenseReadModel } from '../../persistence/operations-reporting.repository';
 import { OperationsReportingRepository } from '../../persistence/operations-reporting.repository';
 import { ExpensesBreakdownReportService } from './expenses-breakdown-report.service';
@@ -224,7 +227,12 @@ function createRepositoryMock({
 }: {
   paidExpenses?: ExpenseReadModel[];
   pendingExpenses?: ExpenseReadModel[];
-}): jest.Mocked<Pick<OperationsReportingRepository, 'findPaidExpenses' | 'findPendingExpenses'>> {
+}): jest.Mocked<
+  Pick<
+    OperationsReportingRepository,
+    'findPaidExpenses' | 'findPendingExpenses'
+  >
+> {
   return {
     findPaidExpenses: jest.fn().mockResolvedValue(paidExpenses),
     findPendingExpenses: jest.fn().mockResolvedValue(pendingExpenses),

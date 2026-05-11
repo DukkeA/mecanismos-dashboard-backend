@@ -68,17 +68,20 @@ describe('work-order reviewer artifacts', () => {
         'Postman',
       ],
     },
-  ])('ships $fileName with work-order reviewer guidance', ({ fileName, expectedContent }) => {
-    const filePath = path.join(docsDir, fileName);
+  ])(
+    'ships $fileName with work-order reviewer guidance',
+    ({ fileName, expectedContent }) => {
+      const filePath = path.join(docsDir, fileName);
 
-    expect(fs.existsSync(filePath)).toBeTruthy();
+      expect(fs.existsSync(filePath)).toBeTruthy();
 
-    const fileContent = fs.readFileSync(filePath, 'utf8');
+      const fileContent = fs.readFileSync(filePath, 'utf8');
 
-    for (const expectedSnippet of expectedContent) {
-      expect(fileContent).toContain(expectedSnippet);
-    }
-  });
+      for (const expectedSnippet of expectedContent) {
+        expect(fileContent).toContain(expectedSnippet);
+      }
+    },
+  );
 
   it('ships a valid Postman collection for work-order reviewers', () => {
     const collection = readCollection(postmanCollectionPath);
@@ -107,13 +110,16 @@ describe('work-order reviewer artifacts', () => {
         'Work Orders list forbidden for Mechanic',
       ]),
     );
-    expect(findRequest(collection, 'Create Workshop Work Order')).toMatchObject({
-      method: 'POST',
-      rawUrl: '{{baseUrl}}/work-orders',
-    });
+    expect(findRequest(collection, 'Create Workshop Work Order')).toMatchObject(
+      {
+        method: 'POST',
+        rawUrl: '{{baseUrl}}/work-orders',
+      },
+    );
     expect(findRequest(collection, 'Upsert Initial Estimate')).toMatchObject({
       method: 'PUT',
-      rawUrl: '{{baseUrl}}/work-orders/{{createdWorkOrderId}}/estimates/{{estimatePhase}}',
+      rawUrl:
+        '{{baseUrl}}/work-orders/{{createdWorkOrderId}}/estimates/{{estimatePhase}}',
     });
     expect(findRawBody(collection, 'Upsert Initial Estimate')).toContain(
       '"supplierQuoteHistoryId": "{{unboundSupplierQuoteId}}"',
@@ -133,7 +139,9 @@ describe('work-order reviewer artifacts', () => {
 function readCollection(collectionPath: string): PostmanCollection {
   expect(fs.existsSync(collectionPath)).toBeTruthy();
 
-  return JSON.parse(fs.readFileSync(collectionPath, 'utf8')) as PostmanCollection;
+  return JSON.parse(
+    fs.readFileSync(collectionPath, 'utf8'),
+  ) as PostmanCollection;
 }
 
 function listRequestNames(collection: PostmanCollection): string[] {

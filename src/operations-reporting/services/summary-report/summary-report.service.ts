@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PaymentStatus, WorkOrderStatus } from '../../../../generated/prisma/enums';
+import {
+  PaymentStatus,
+  WorkOrderStatus,
+} from '../../../../generated/prisma/enums';
 import {
   calculateBalance,
   isOverpaid,
@@ -19,9 +22,7 @@ import {
 export class SummaryReportService {
   private readonly logger = new Logger(SummaryReportService.name);
 
-  constructor(
-    private readonly repository: OperationsReportingRepository,
-  ) {}
+  constructor(private readonly repository: OperationsReportingRepository) {}
 
   async getReport(
     query: SummaryReportQueryDto,
@@ -37,8 +38,14 @@ export class SummaryReportService {
           this.repository.findPendingExpenses(query),
         ]);
 
-      const paymentsCollected = sumFinancialAmounts(financials, 'WorkOrderPayment');
-      const actualCosts = sumFinancialAmounts(financials, 'WorkOrderActualCost');
+      const paymentsCollected = sumFinancialAmounts(
+        financials,
+        'WorkOrderPayment',
+      );
+      const actualCosts = sumFinancialAmounts(
+        financials,
+        'WorkOrderActualCost',
+      );
       const paidExpensesTotal = sumExpenses(paidExpenses);
 
       this.logger.log(
@@ -60,7 +67,8 @@ export class SummaryReportService {
           actualCosts,
           paidExpenses: paidExpensesTotal,
           pendingExpenses: sumExpenses(pendingExpenses),
-          approximateUtility: paymentsCollected - actualCosts - paidExpensesTotal,
+          approximateUtility:
+            paymentsCollected - actualCosts - paidExpensesTotal,
         },
       };
     } catch (error) {
@@ -112,7 +120,10 @@ function sumFinancialAmounts(
   return financials.reduce(
     (total, workOrder) =>
       total +
-      workOrder[field].reduce((nestedTotal, entry) => nestedTotal + entry.amount, 0),
+      workOrder[field].reduce(
+        (nestedTotal, entry) => nestedTotal + entry.amount,
+        0,
+      ),
     0,
   );
 }
@@ -121,7 +132,9 @@ function sumExpenses(expenses: ExpenseReadModel[]) {
   return expenses.reduce((total, expense) => total + expense.amount, 0);
 }
 
-function calculatePendingReceivables(financials: WorkOrderFinancialReadModel[]) {
+function calculatePendingReceivables(
+  financials: WorkOrderFinancialReadModel[],
+) {
   const pendingRows = financials.filter(
     (workOrder) =>
       workOrder.paymentStatus === PaymentStatus.PENDING ||

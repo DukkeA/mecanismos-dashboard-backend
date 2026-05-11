@@ -16,12 +16,15 @@ type WorkOrderEstimateLineDeleteManyArgs =
   Prisma.WorkOrderEstimateLineDeleteManyArgs;
 type WorkOrderEstimateLineCreateManyArgs =
   Prisma.WorkOrderEstimateLineCreateManyArgs;
-type WorkOrderActualCostDeleteManyArgs = Prisma.WorkOrderActualCostDeleteManyArgs;
-type WorkOrderActualCostCreateManyArgs = Prisma.WorkOrderActualCostCreateManyArgs;
+type WorkOrderActualCostDeleteManyArgs =
+  Prisma.WorkOrderActualCostDeleteManyArgs;
+type WorkOrderActualCostCreateManyArgs =
+  Prisma.WorkOrderActualCostCreateManyArgs;
 type WorkOrderPaymentDeleteManyArgs = Prisma.WorkOrderPaymentDeleteManyArgs;
 type WorkOrderPaymentCreateManyArgs = Prisma.WorkOrderPaymentCreateManyArgs;
 type InventoryMovementUpdateManyArgs = Prisma.InventoryMovementUpdateManyArgs;
-type SupplierQuoteHistoryUpdateManyArgs = Prisma.SupplierQuoteHistoryUpdateManyArgs;
+type SupplierQuoteHistoryUpdateManyArgs =
+  Prisma.SupplierQuoteHistoryUpdateManyArgs;
 
 void (seedWorkOrders satisfies (
   prisma: WorkOrderSeedPrismaClient,
@@ -98,7 +101,10 @@ describe('work-order seeds', () => {
     };
 
     const transaction = jest
-      .fn<Promise<void>, [(callback: typeof transactionClient) => Promise<void>]>()
+      .fn<
+        Promise<void>,
+        [(callback: typeof transactionClient) => Promise<void>]
+      >()
       .mockImplementation(async (callback) => callback(transactionClient));
 
     await seedWorkOrders(

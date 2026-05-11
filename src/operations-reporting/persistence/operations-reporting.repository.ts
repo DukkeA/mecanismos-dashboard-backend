@@ -116,7 +116,13 @@ export type MechanicAssignmentsReadModel = Pick<
 
 export type ExpenseReadModel = Pick<
   Expense,
-  'id' | 'name' | 'category' | 'amount' | 'costCenterId' | 'expectedAt' | 'paidAt'
+  | 'id'
+  | 'name'
+  | 'category'
+  | 'amount'
+  | 'costCenterId'
+  | 'expectedAt'
+  | 'paidAt'
 > & {
   CostCenter: Pick<CostCenter, 'id' | 'code' | 'name'> | null;
 };
@@ -162,7 +168,9 @@ const financialSelect = {
   customerId: true,
   assignedEmployeeId: true,
   Customer: { select: { id: true, name: true } },
-  Vehicle: { select: { id: true, brand: true, modelReference: true, plate: true } },
+  Vehicle: {
+    select: { id: true, brand: true, modelReference: true, plate: true },
+  },
   Component: {
     select: { id: true, brand: true, reference: true, identifier: true },
   },
@@ -210,7 +218,7 @@ export class OperationsReportingRepository {
     return this.prisma.workOrder.findMany({
       where: buildSummaryWorkOrderWhere(query),
       select: summarySelect,
-    }) as Promise<SummaryWorkOrderReadModel[]>;
+    });
   }
 
   async findWorkOrdersWithFinancials(
@@ -297,7 +305,9 @@ function buildFinancialWorkOrderWhere(
   };
 }
 
-function buildMechanicWhere(query: MechanicsAssignmentsQuery): EmployeeWhereInput {
+function buildMechanicWhere(
+  query: MechanicsAssignmentsQuery,
+): EmployeeWhereInput {
   return {
     ...(query.assignedEmployeeId ? { id: query.assignedEmployeeId } : {}),
     type: EmployeeType.MECHANIC,
@@ -313,7 +323,9 @@ function buildPaidExpensesWhere(query: ReportExpensesQuery): ExpenseWhereInput {
   };
 }
 
-function buildPendingExpensesWhere(query: ReportExpensesQuery): ExpenseWhereInput {
+function buildPendingExpensesWhere(
+  query: ReportExpensesQuery,
+): ExpenseWhereInput {
   return {
     ...(query.costCenterId ? { costCenterId: query.costCenterId } : {}),
     ...(query.expenseCategory ? { category: query.expenseCategory } : {}),

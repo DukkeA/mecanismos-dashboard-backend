@@ -124,7 +124,9 @@ describe('OperationsReportingController (real db e2e)', () => {
               body.totals.paidExpenses,
           );
           if (body.totals.pendingReceivables !== null) {
-            expect(body.totals.pendingReceivables).toBeGreaterThanOrEqual(125000);
+            expect(body.totals.pendingReceivables).toBeGreaterThanOrEqual(
+              125000,
+            );
           }
           expect(body.totals.workOrders.inProgress).toBeGreaterThan(0);
           expect(body.totals.workOrders.completed).toBeGreaterThan(0);

@@ -15,7 +15,9 @@ import {
 
 @Injectable()
 export class WorkOrderProfitabilityReportService {
-  private readonly logger = new Logger(WorkOrderProfitabilityReportService.name);
+  private readonly logger = new Logger(
+    WorkOrderProfitabilityReportService.name,
+  );
 
   constructor(
     private readonly operationsReportingRepository: OperationsReportingRepository,
@@ -37,7 +39,9 @@ export class WorkOrderProfitabilityReportService {
 
     try {
       const workOrders =
-        await this.operationsReportingRepository.findWorkOrdersWithFinancials(query);
+        await this.operationsReportingRepository.findWorkOrdersWithFinancials(
+          query,
+        );
 
       const data = workOrders.map((workOrder) =>
         mapWorkOrderProfitabilityRow(workOrder),

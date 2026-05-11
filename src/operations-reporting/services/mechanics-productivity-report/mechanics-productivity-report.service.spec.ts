@@ -1,6 +1,11 @@
 import { Test } from '@nestjs/testing';
 
-import { EmployeeType, EstimatePhase, PaymentStatus, WorkOrderStatus } from '../../../../generated/prisma/enums';
+import {
+  EmployeeType,
+  EstimatePhase,
+  PaymentStatus,
+  WorkOrderStatus,
+} from '../../../../generated/prisma/enums';
 import {
   OperationsReportingRepository,
   type MechanicAssignmentsReadModel,
@@ -10,7 +15,9 @@ import { MechanicsProductivityReportService } from './mechanics-productivity-rep
 describe('MechanicsProductivityReportService', () => {
   const repository = {
     findMechanicsWithAssignments: jest.fn(),
-  } as unknown as jest.Mocked<Pick<OperationsReportingRepository, 'findMechanicsWithAssignments'>>;
+  } as unknown as jest.Mocked<
+    Pick<OperationsReportingRepository, 'findMechanicsWithAssignments'>
+  >;
 
   let service: MechanicsProductivityReportService;
 
@@ -48,7 +55,11 @@ describe('MechanicsProductivityReportService', () => {
               { phase: EstimatePhase.FINAL, totalPriceAmount: 120 },
             ],
             WorkOrderPayment: [
-              { id: 'payment-1', amount: 70, paidAt: new Date('2026-05-02T00:00:00.000Z') },
+              {
+                id: 'payment-1',
+                amount: 70,
+                paidAt: new Date('2026-05-02T00:00:00.000Z'),
+              },
             ],
             WorkOrderActualCost: [
               {
@@ -121,7 +132,11 @@ describe('MechanicsProductivityReportService', () => {
             paymentStatus: PaymentStatus.PARTIAL,
             WorkOrderEstimate: [],
             WorkOrderPayment: [
-              { id: 'payment-2', amount: 25, paidAt: new Date('2026-05-04T00:00:00.000Z') },
+              {
+                id: 'payment-2',
+                amount: 25,
+                paidAt: new Date('2026-05-04T00:00:00.000Z'),
+              },
             ],
             WorkOrderActualCost: [
               {
@@ -136,7 +151,9 @@ describe('MechanicsProductivityReportService', () => {
       },
     ] as MechanicAssignmentsReadModel[]);
 
-    await expect(service.getReport({ includeInactiveMechanics: true })).resolves.toEqual({
+    await expect(
+      service.getReport({ includeInactiveMechanics: true }),
+    ).resolves.toEqual({
       approximate: true,
       basis: 'cash-operational',
       window: { dateFrom: null, dateTo: null },

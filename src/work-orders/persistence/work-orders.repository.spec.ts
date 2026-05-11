@@ -146,8 +146,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
@@ -406,10 +406,35 @@ describe('WorkOrdersRepository', () => {
             completedAt: null,
             createdAt: new Date('2026-05-10T20:00:00.000Z'),
             updatedAt: new Date('2026-05-10T20:00:00.000Z'),
-            Customer: { id: 'customer-1', name: 'Cliente Uno', phone: '3000000000', documentType: 'CEDULA', documentNumber: '123', email: null },
-            Vehicle: { id: 'vehicle-1', customerId: 'customer-1', brand: 'Mazda', modelReference: 'BT-50', plate: 'ABC123' },
-            Component: { id: 'component-1', customerId: 'customer-1', vehicleId: 'vehicle-1', brand: 'Bosch', reference: 'ALT-90A', identifier: 'SER-100' },
-            Employee: { id: 'employee-1', name: 'Mecánico Uno', type: 'MECHANIC', isActive: true },
+            Customer: {
+              id: 'customer-1',
+              name: 'Cliente Uno',
+              phone: '3000000000',
+              documentType: 'CEDULA',
+              documentNumber: '123',
+              email: null,
+            },
+            Vehicle: {
+              id: 'vehicle-1',
+              customerId: 'customer-1',
+              brand: 'Mazda',
+              modelReference: 'BT-50',
+              plate: 'ABC123',
+            },
+            Component: {
+              id: 'component-1',
+              customerId: 'customer-1',
+              vehicleId: 'vehicle-1',
+              brand: 'Bosch',
+              reference: 'ALT-90A',
+              identifier: 'SER-100',
+            },
+            Employee: {
+              id: 'employee-1',
+              name: 'Mecánico Uno',
+              type: 'MECHANIC',
+              isActive: true,
+            },
             WorkshopWorkOrderDetails: null,
             WorkOrderEstimate: [],
             WorkOrderActualCost: [],
@@ -437,10 +462,35 @@ describe('WorkOrdersRepository', () => {
             completedAt: new Date('2026-05-12T18:00:00.000Z'),
             createdAt: new Date('2026-05-10T20:00:00.000Z'),
             updatedAt: new Date('2026-05-12T18:00:00.000Z'),
-            Customer: { id: 'customer-1', name: 'Cliente Uno', phone: '3000000000', documentType: 'CEDULA', documentNumber: '123', email: null },
-            Vehicle: { id: 'vehicle-1', customerId: 'customer-1', brand: 'Mazda', modelReference: 'BT-50', plate: 'ABC123' },
-            Component: { id: 'component-1', customerId: 'customer-1', vehicleId: 'vehicle-1', brand: 'Bosch', reference: 'ALT-90A', identifier: 'SER-100' },
-            Employee: { id: 'employee-1', name: 'Mecánico Uno', type: 'MECHANIC', isActive: true },
+            Customer: {
+              id: 'customer-1',
+              name: 'Cliente Uno',
+              phone: '3000000000',
+              documentType: 'CEDULA',
+              documentNumber: '123',
+              email: null,
+            },
+            Vehicle: {
+              id: 'vehicle-1',
+              customerId: 'customer-1',
+              brand: 'Mazda',
+              modelReference: 'BT-50',
+              plate: 'ABC123',
+            },
+            Component: {
+              id: 'component-1',
+              customerId: 'customer-1',
+              vehicleId: 'vehicle-1',
+              brand: 'Bosch',
+              reference: 'ALT-90A',
+              identifier: 'SER-100',
+            },
+            Employee: {
+              id: 'employee-1',
+              name: 'Mecánico Uno',
+              type: 'MECHANIC',
+              isActive: true,
+            },
             WorkshopWorkOrderDetails: null,
             WorkOrderEstimate: [],
             WorkOrderActualCost: [],
@@ -499,7 +549,9 @@ describe('WorkOrdersRepository', () => {
     };
 
     let receivedWorkshopDetailUpsertArgs: WorkshopDetailUpsertArgs | undefined;
-    let receivedWorkshopDetailDeleteManyArgs: WorkshopDetailDeleteManyArgs | undefined;
+    let receivedWorkshopDetailDeleteManyArgs:
+      | WorkshopDetailDeleteManyArgs
+      | undefined;
 
     const tx = {
       workOrder: {
@@ -572,9 +624,29 @@ describe('WorkOrdersRepository', () => {
             completedAt: null,
             createdAt: new Date('2026-05-10T20:00:00.000Z'),
             updatedAt: new Date('2026-05-11T20:00:00.000Z'),
-            Customer: { id: 'customer-1', name: 'Cliente Uno', phone: '3000000000', documentType: 'CEDULA', documentNumber: '123', email: 'cliente@example.com' },
-            Vehicle: { id: 'vehicle-1', customerId: 'customer-1', brand: 'Mazda', modelReference: 'BT-50', plate: 'ABC123' },
-            Component: { id: 'component-1', customerId: 'customer-1', vehicleId: 'vehicle-1', brand: 'Bosch', reference: 'ALT-90A', identifier: 'SER-100' },
+            Customer: {
+              id: 'customer-1',
+              name: 'Cliente Uno',
+              phone: '3000000000',
+              documentType: 'CEDULA',
+              documentNumber: '123',
+              email: 'cliente@example.com',
+            },
+            Vehicle: {
+              id: 'vehicle-1',
+              customerId: 'customer-1',
+              brand: 'Mazda',
+              modelReference: 'BT-50',
+              plate: 'ABC123',
+            },
+            Component: {
+              id: 'component-1',
+              customerId: 'customer-1',
+              vehicleId: 'vehicle-1',
+              brand: 'Bosch',
+              reference: 'ALT-90A',
+              identifier: 'SER-100',
+            },
             Employee: null,
             WorkshopWorkOrderDetails: {
               id: 'workshop-detail-1',
@@ -604,7 +676,14 @@ describe('WorkOrdersRepository', () => {
             completedAt: null,
             createdAt: new Date('2026-05-10T20:00:00.000Z'),
             updatedAt: new Date('2026-05-11T20:00:00.000Z'),
-            Customer: { id: 'customer-1', name: 'Cliente Uno', phone: '3000000000', documentType: 'CEDULA', documentNumber: '123', email: 'cliente@example.com' },
+            Customer: {
+              id: 'customer-1',
+              name: 'Cliente Uno',
+              phone: '3000000000',
+              documentType: 'CEDULA',
+              documentNumber: '123',
+              email: 'cliente@example.com',
+            },
             Vehicle: null,
             Component: null,
             Employee: null,
@@ -633,20 +712,24 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
     const repository = new WorkOrdersRepository(prisma as never);
 
     await expect(
-      repository.update('wo-workshop-1', {
-        summary: ' Diagnóstico actualizado ',
-        customerReportedIssue: ' No enciende ',
-        diagnosisRequired: false,
-        diagnosisSummary: ' Alternador revisado ',
-      }, WorkOrderType.WORKSHOP),
+      repository.update(
+        'wo-workshop-1',
+        {
+          summary: ' Diagnóstico actualizado ',
+          customerReportedIssue: ' No enciende ',
+          diagnosisRequired: false,
+          diagnosisSummary: ' Alternador revisado ',
+        },
+        WorkOrderType.WORKSHOP,
+      ),
     ).resolves.toMatchObject({
       id: 'wo-workshop-1',
       workshopDetails: {
@@ -691,7 +774,9 @@ describe('WorkOrdersRepository', () => {
   });
   it('upserts INITIAL estimates transactionally by replacing previous lines with the submitted set', async () => {
     type UpsertArgs = {
-      where: { workOrderId_phase: { workOrderId: string; phase: EstimatePhase } };
+      where: {
+        workOrderId_phase: { workOrderId: string; phase: EstimatePhase };
+      };
       create: Record<string, unknown>;
       update: Record<string, unknown>;
     };
@@ -800,8 +885,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
@@ -924,8 +1009,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
@@ -1133,8 +1218,8 @@ describe('WorkOrdersRepository', () => {
       notes: null,
       updatedAt: expect.any(Date),
     });
-  expect(receivedDeleteArgs).toEqual({ where: { id: 'cost-1' } });
-  expect(prisma.workOrder.delete).not.toHaveBeenCalled();
+    expect(receivedDeleteArgs).toEqual({ where: { id: 'cost-1' } });
+    expect(prisma.workOrder.delete).not.toHaveBeenCalled();
   });
 
   it('creates a payment and derives PARTIAL from the FINAL estimate total before INITIAL', async () => {
@@ -1174,8 +1259,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
@@ -1264,8 +1349,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
@@ -1281,14 +1366,18 @@ describe('WorkOrdersRepository', () => {
         },
         buildWorkOrderDetail({
           paymentStatus: PaymentStatus.PARTIAL,
-          estimates: [buildEstimateSummary('estimate-initial-1', 'INITIAL', 100000)],
+          estimates: [
+            buildEstimateSummary('estimate-initial-1', 'INITIAL', 100000),
+          ],
           payments: [buildPaymentSummary('payment-1', 50000)],
         }),
       ),
     ).resolves.toMatchObject({
       id: 'wo-1',
       paymentStatus: PaymentStatus.PAID,
-      payments: [{ id: 'payment-1', amount: 100000, paymentMethod: 'TRANSFER' }],
+      payments: [
+        { id: 'payment-1', amount: 100000, paymentMethod: 'TRANSFER' },
+      ],
     });
 
     expect(receivedPaymentUpdateArgs).toMatchObject({
@@ -1341,8 +1430,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
@@ -1354,7 +1443,9 @@ describe('WorkOrdersRepository', () => {
         'payment-1',
         buildWorkOrderDetail({
           paymentStatus: PaymentStatus.PARTIAL,
-          estimates: [buildEstimateSummary('estimate-final-1', 'FINAL', 100000)],
+          estimates: [
+            buildEstimateSummary('estimate-final-1', 'FINAL', 100000),
+          ],
           payments: [buildPaymentSummary('payment-1', 50000)],
         }),
       ),
@@ -1397,7 +1488,9 @@ describe('WorkOrdersRepository', () => {
             buildWorkOrderRecord({
               paymentStatus: PaymentStatus.PAID,
               WorkOrderEstimate: [],
-              WorkOrderPayment: [buildPaymentRecord('payment-2', 15000, 'CARD')],
+              WorkOrderPayment: [
+                buildPaymentRecord('payment-2', 15000, 'CARD'),
+              ],
             }),
           );
         }),
@@ -1405,8 +1498,8 @@ describe('WorkOrdersRepository', () => {
     };
 
     const prisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
+      $transaction: jest.fn(
+        async (callback: (transaction: typeof tx) => unknown) => callback(tx),
       ),
     };
 
@@ -1513,7 +1606,11 @@ function buildWorkOrderRecord(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function buildEstimateSummary(id: string, phase: string, totalPriceAmount: number) {
+function buildEstimateSummary(
+  id: string,
+  phase: string,
+  totalPriceAmount: number,
+) {
   return {
     id,
     phase,
@@ -1523,7 +1620,11 @@ function buildEstimateSummary(id: string, phase: string, totalPriceAmount: numbe
   };
 }
 
-function buildEstimateRecord(id: string, phase: string, totalPriceAmount: number) {
+function buildEstimateRecord(
+  id: string,
+  phase: string,
+  totalPriceAmount: number,
+) {
   return {
     id,
     phase,
@@ -1543,7 +1644,11 @@ function buildPaymentSummary(id: string, amount: number) {
   };
 }
 
-function buildPaymentRecord(id: string, amount: number, paymentMethod = 'CASH') {
+function buildPaymentRecord(
+  id: string,
+  amount: number,
+  paymentMethod = 'CASH',
+) {
   return {
     id,
     amount,

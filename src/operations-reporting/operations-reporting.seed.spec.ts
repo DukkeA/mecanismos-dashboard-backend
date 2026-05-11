@@ -1,4 +1,8 @@
-import type { CostCenter, Expense, Prisma } from '../../generated/prisma/client';
+import type {
+  CostCenter,
+  Expense,
+  Prisma,
+} from '../../generated/prisma/client';
 import {
   ExpenseCategory,
   PaymentMethod,
@@ -20,7 +24,8 @@ type WorkOrderUpsertArgs = Prisma.WorkOrderUpsertArgs;
 type WorkshopWorkOrderDetailsCreateManyArgs =
   Prisma.WorkshopWorkOrderDetailsCreateManyArgs;
 type WorkOrderEstimateUpsertArgs = Prisma.WorkOrderEstimateUpsertArgs;
-type WorkOrderActualCostCreateManyArgs = Prisma.WorkOrderActualCostCreateManyArgs;
+type WorkOrderActualCostCreateManyArgs =
+  Prisma.WorkOrderActualCostCreateManyArgs;
 type WorkOrderPaymentCreateManyArgs = Prisma.WorkOrderPaymentCreateManyArgs;
 
 void (seedWorkOrders satisfies (
@@ -79,7 +84,9 @@ describe('operations-reporting seed fixtures', () => {
 
     const prisma: WorkOrderSeedPrismaClient = {
       $transaction: async <T>(
-        callback: (transaction: WorkOrderSeedPrismaTransactionClient) => Promise<T>,
+        callback: (
+          transaction: WorkOrderSeedPrismaTransactionClient,
+        ) => Promise<T>,
       ) => callback(transactionClient),
     };
 

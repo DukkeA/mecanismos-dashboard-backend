@@ -22,12 +22,16 @@ type ResolvedWorkOrderRelations = {
   customer: Awaited<ReturnType<WorkOrdersRepository['findCustomerById']>>;
   vehicle: Awaited<ReturnType<WorkOrdersRepository['findVehicleById']>>;
   component: Awaited<ReturnType<WorkOrdersRepository['findComponentById']>>;
-  assignedEmployee: Awaited<ReturnType<WorkOrdersRepository['findEmployeeById']>>;
+  assignedEmployee: Awaited<
+    ReturnType<WorkOrdersRepository['findEmployeeById']>
+  >;
 };
 
 type ResolvedActualCostRelations = {
   supplier: Awaited<ReturnType<WorkOrdersRepository['findSupplierById']>>;
-  inventoryItem: Awaited<ReturnType<WorkOrdersRepository['findInventoryItemById']>>;
+  inventoryItem: Awaited<
+    ReturnType<WorkOrdersRepository['findInventoryItemById']>
+  >;
   supplierQuoteHistory: Awaited<
     ReturnType<WorkOrdersRepository['findSupplierQuoteHistoryById']>
   >;
@@ -92,7 +96,9 @@ export class WorkOrderRelationsService {
       }
 
       const serviceCatalog = serviceCatalogId
-        ? await this.workOrdersRepository.findServiceCatalogById(serviceCatalogId)
+        ? await this.workOrdersRepository.findServiceCatalogById(
+            serviceCatalogId,
+          )
         : null;
 
       if (serviceCatalogId && !serviceCatalog) {
@@ -130,7 +136,11 @@ export class WorkOrderRelationsService {
         );
       }
 
-      if (supplierQuote && supplierId && supplierQuote.supplierId !== supplierId) {
+      if (
+        supplierQuote &&
+        supplierId &&
+        supplierQuote.supplierId !== supplierId
+      ) {
         throw new BadRequestException(
           `Supplier quote ${supplierQuote.id} does not belong to supplier ${supplierId}`,
         );
@@ -197,7 +207,8 @@ export class WorkOrderRelationsService {
     assignedEmployeeId?: string | null;
   }): Promise<ResolvedWorkOrderRelations> {
     const customerId = input.customerId.trim();
-    const customer = await this.workOrdersRepository.findCustomerById(customerId);
+    const customer =
+      await this.workOrdersRepository.findCustomerById(customerId);
 
     if (!customer) {
       throw new NotFoundException(`Customer ${customerId} not found`);
@@ -235,7 +246,12 @@ export class WorkOrderRelationsService {
       );
     }
 
-    if (component && vehicleId && component.vehicleId && component.vehicleId !== vehicleId) {
+    if (
+      component &&
+      vehicleId &&
+      component.vehicleId &&
+      component.vehicleId !== vehicleId
+    ) {
       throw new BadRequestException(
         `Component ${component.id} does not belong to vehicle ${vehicleId}`,
       );
@@ -246,9 +262,7 @@ export class WorkOrderRelationsService {
       : null;
 
     if (assignedEmployeeId && !assignedEmployee) {
-      throw new NotFoundException(
-        `Employee ${assignedEmployeeId} not found`,
-      );
+      throw new NotFoundException(`Employee ${assignedEmployeeId} not found`);
     }
 
     return {
@@ -293,7 +307,9 @@ export class WorkOrderRelationsService {
       : null;
 
     if (inventoryItemId && !inventoryItem) {
-      throw new NotFoundException(`Inventory item ${inventoryItemId} not found`);
+      throw new NotFoundException(
+        `Inventory item ${inventoryItemId} not found`,
+      );
     }
 
     const supplierQuoteHistory = supplierQuoteHistoryId

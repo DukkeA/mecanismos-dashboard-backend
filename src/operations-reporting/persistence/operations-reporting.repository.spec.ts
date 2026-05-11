@@ -109,7 +109,9 @@ describe('OperationsReportingRepository', () => {
         Component: {
           select: { id: true, brand: true, reference: true, identifier: true },
         },
-        Employee: { select: { id: true, name: true, type: true, isActive: true } },
+        Employee: {
+          select: { id: true, name: true, type: true, isActive: true },
+        },
         WorkOrderEstimate: {
           select: { phase: true, totalPriceAmount: true },
           orderBy: { createdAt: 'asc' },
@@ -211,7 +213,12 @@ describe('OperationsReportingRepository', () => {
                   lte: new Date('2026-05-31T23:59:59.000Z'),
                 },
               },
-              select: { id: true, amount: true, category: true, incurredAt: true },
+              select: {
+                id: true,
+                amount: true,
+                category: true,
+                incurredAt: true,
+              },
               orderBy: { incurredAt: 'asc' },
             },
           },

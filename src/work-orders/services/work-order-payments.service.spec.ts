@@ -1,4 +1,9 @@
-import { PaymentMethod, PaymentStatus, WorkOrderStatus, WorkOrderType } from '../../../generated/prisma/enums';
+import {
+  PaymentMethod,
+  PaymentStatus,
+  WorkOrderStatus,
+  WorkOrderType,
+} from '../../../generated/prisma/enums';
 import { CreateWorkOrderPaymentDto } from '../dto/create-work-order-payment.dto';
 import { UpdateWorkOrderPaymentDto } from '../dto/update-work-order-payment.dto';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
@@ -94,7 +99,11 @@ describe('WorkOrderPaymentsService', () => {
     });
 
     expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(repository.createPayment).toHaveBeenCalledWith('wo-1', dto, workOrder);
+    expect(repository.createPayment).toHaveBeenCalledWith(
+      'wo-1',
+      dto,
+      workOrder,
+    );
     expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining('workOrderId=wo-1'),
     );
@@ -132,7 +141,9 @@ describe('WorkOrderPaymentsService', () => {
       ],
     });
 
-    await expect(service.updatePayment('wo-1', 'payment-1', dto)).resolves.toMatchObject({
+    await expect(
+      service.updatePayment('wo-1', 'payment-1', dto),
+    ).resolves.toMatchObject({
       id: 'wo-1',
       paymentStatus: PaymentStatus.PAID,
     });
@@ -164,7 +175,9 @@ describe('WorkOrderPaymentsService', () => {
       payments: [],
     });
 
-    await expect(service.removePayment('wo-1', 'payment-1')).resolves.toMatchObject({
+    await expect(
+      service.removePayment('wo-1', 'payment-1'),
+    ).resolves.toMatchObject({
       id: 'wo-1',
       paymentStatus: PaymentStatus.PAID,
       payments: [],

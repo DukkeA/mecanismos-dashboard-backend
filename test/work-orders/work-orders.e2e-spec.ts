@@ -205,7 +205,11 @@ describe('WorkOrdersController (real db e2e)', () => {
 
   it('replaces estimate lines atomically for a single phase', async () => {
     const cookies = await loginAsRole(app, 'ADMIN');
-    const workOrderId = await createSaleWorkOrder(app, cookies, `estimate-${Date.now()}`);
+    const workOrderId = await createSaleWorkOrder(
+      app,
+      cookies,
+      `estimate-${Date.now()}`,
+    );
 
     await request(app.getHttpServer())
       .put(`/work-orders/${workOrderId}/estimates/INITIAL`)
@@ -285,7 +289,11 @@ describe('WorkOrdersController (real db e2e)', () => {
 
   it('rejects estimate lines that reuse a supplier quote linked to another work order', async () => {
     const cookies = await loginAsRole(app, 'ADMIN');
-    const workOrderId = await createSaleWorkOrder(app, cookies, `estimate-locked-${Date.now()}`);
+    const workOrderId = await createSaleWorkOrder(
+      app,
+      cookies,
+      `estimate-locked-${Date.now()}`,
+    );
 
     await request(app.getHttpServer())
       .put(`/work-orders/${workOrderId}/estimates/INITIAL`)
@@ -316,7 +324,11 @@ describe('WorkOrdersController (real db e2e)', () => {
 
   it('creates, lists, updates, and removes actual costs without deleting the parent order', async () => {
     const cookies = await loginAsRole(app, 'ADMIN');
-    const workOrderId = await createSaleWorkOrder(app, cookies, `cost-${Date.now()}`);
+    const workOrderId = await createSaleWorkOrder(
+      app,
+      cookies,
+      `cost-${Date.now()}`,
+    );
 
     const createdResponse = await request(app.getHttpServer())
       .post(`/work-orders/${workOrderId}/actual-costs`)
@@ -377,7 +389,11 @@ describe('WorkOrdersController (real db e2e)', () => {
 
   it('derives payment status from payable totals across create, update, and delete payment flows', async () => {
     const cookies = await loginAsRole(app, 'SALES');
-    const workOrderId = await createSaleWorkOrder(app, cookies, `payment-${Date.now()}`);
+    const workOrderId = await createSaleWorkOrder(
+      app,
+      cookies,
+      `payment-${Date.now()}`,
+    );
 
     await request(app.getHttpServer())
       .put(`/work-orders/${workOrderId}/estimates/FINAL`)

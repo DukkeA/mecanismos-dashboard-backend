@@ -106,8 +106,12 @@ function mapMechanicProductivityRow(mechanic: MechanicAssignmentsReadModel) {
     payableTotal,
     paidTotal,
     actualCosts,
-    grossUtility: calculateGrossUtility({ payableAmount: payableTotal, actualCostTotal: actualCosts }),
-    unknownPayableCount: payableAmounts.filter((amount) => amount === null).length,
+    grossUtility: calculateGrossUtility({
+      payableAmount: payableTotal,
+      actualCostTotal: actualCosts,
+    }),
+    unknownPayableCount: payableAmounts.filter((amount) => amount === null)
+      .length,
   };
 }
 

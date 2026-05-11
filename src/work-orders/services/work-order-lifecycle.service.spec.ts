@@ -1,4 +1,8 @@
-import { PaymentStatus, WorkOrderStatus, WorkOrderType } from '../../../generated/prisma/enums';
+import {
+  PaymentStatus,
+  WorkOrderStatus,
+  WorkOrderType,
+} from '../../../generated/prisma/enums';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
 import { WorkOrderLifecycleService } from './work-order-lifecycle.service';
 import { WorkOrderReadModelService } from './work-order-read-model.service';

@@ -1,5 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
-import { EstimateLineType, EstimatePhase } from '../../../generated/prisma/enums';
+import {
+  EstimateLineType,
+  EstimatePhase,
+} from '../../../generated/prisma/enums';
 import { UpsertWorkOrderEstimateDto } from '../dto/upsert-work-order-estimate.dto';
 import { WorkOrdersRepository } from '../persistence/work-orders.repository';
 import { WorkOrderReadModelService } from './work-order-read-model.service';
@@ -66,9 +69,11 @@ describe('WorkOrderEstimatesService', () => {
       totalPriceAmount: 220000,
       notes: 'Estimación inicial',
       lines: [],
-    } as never);
+    });
 
-    await expect(service.upsertEstimate('wo-1', ' initial ', dto)).resolves.toMatchObject({
+    await expect(
+      service.upsertEstimate('wo-1', ' initial ', dto),
+    ).resolves.toMatchObject({
       id: 'estimate-1',
       phase: EstimatePhase.INITIAL,
     });

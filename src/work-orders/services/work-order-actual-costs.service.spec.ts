@@ -7,7 +7,10 @@ import {
   WorkOrderType,
 } from '../../../generated/prisma/enums';
 import { CreateWorkOrderActualCostDto } from '../dto/create-work-order-actual-cost.dto';
-import { WorkOrderActualCostSummary, WorkOrdersRepository } from '../persistence/work-orders.repository';
+import {
+  WorkOrderActualCostSummary,
+  WorkOrdersRepository,
+} from '../persistence/work-orders.repository';
 import { WorkOrderReadModelService } from './work-order-read-model.service';
 import { WorkOrderRelationsService } from './work-order-relations.service';
 import { WorkOrderActualCostsService } from './work-order-actual-costs.service';
@@ -53,7 +56,11 @@ describe('WorkOrderActualCostsService', () => {
     inventoryItemId: 'inventory-1',
     supplierQuoteHistoryId: 'quote-1',
     supplier: { id: 'supplier-1', name: 'Proveedor Uno', isActive: true },
-    inventoryItem: { id: 'inventory-1', name: 'Rodamiento SKF', sku: 'SKF-6203' },
+    inventoryItem: {
+      id: 'inventory-1',
+      name: 'Rodamiento SKF',
+      sku: 'SKF-6203',
+    },
     supplierQuoteHistory: {
       id: 'quote-1',
       supplierId: 'supplier-1',
@@ -105,7 +112,7 @@ describe('WorkOrderActualCostsService', () => {
       notes: ' Compra urgente ',
     };
 
-    readModelService.findOne.mockResolvedValue(workOrder as never);
+    readModelService.findOne.mockResolvedValue(workOrder);
     relationsService.assertActualCostCreateRelations.mockResolvedValue({
       supplier: directPurchaseCost.supplier,
       inventoryItem: directPurchaseCost.inventoryItem,
@@ -122,15 +129,15 @@ describe('WorkOrderActualCostsService', () => {
     });
 
     expect(readModelService.findOne).toHaveBeenCalledWith('wo-1');
-    expect(relationsService.assertActualCostCreateRelations).toHaveBeenCalledWith(
-      createDto,
-    );
+    expect(
+      relationsService.assertActualCostCreateRelations,
+    ).toHaveBeenCalledWith(createDto);
     expect(repository.createActualCost).toHaveBeenCalledWith('wo-1', createDto);
     expect(repository.findActualCosts).toHaveBeenCalledWith('wo-1');
   });
 
   it('updates and removes only the child actual cost while preserving the parent work order', async () => {
-    readModelService.findOne.mockResolvedValue(workOrder as never);
+    readModelService.findOne.mockResolvedValue(workOrder);
     repository.findActualCostById.mockResolvedValue(directPurchaseCost);
     relationsService.assertActualCostUpdateRelations.mockResolvedValue({
       supplier: directPurchaseCost.supplier,
@@ -159,8 +166,13 @@ describe('WorkOrderActualCostsService', () => {
       service.removeActualCost('wo-1', 'cost-1'),
     ).resolves.toBeUndefined();
 
-    expect(repository.findActualCostById).toHaveBeenCalledWith('wo-1', 'cost-1');
-    expect(relationsService.assertActualCostUpdateRelations).toHaveBeenCalledWith(
+    expect(repository.findActualCostById).toHaveBeenCalledWith(
+      'wo-1',
+      'cost-1',
+    );
+    expect(
+      relationsService.assertActualCostUpdateRelations,
+    ).toHaveBeenCalledWith(
       directPurchaseCost,
       expect.objectContaining({ description: ' Rodamiento SKF 6203 ' }),
     );
@@ -168,7 +180,7 @@ describe('WorkOrderActualCostsService', () => {
   });
 
   it('fails before persistence when direct-purchase links are invalid', async () => {
-    readModelService.findOne.mockResolvedValue(workOrder as never);
+    readModelService.findOne.mockResolvedValue(workOrder);
     relationsService.assertActualCostCreateRelations.mockRejectedValue(
       new BadRequestException(
         'DIRECT_PURCHASE actual costs require a supplierId',
@@ -192,7 +204,7 @@ describe('WorkOrderActualCostsService', () => {
   });
 
   it('fails when updating a missing actual cost child', async () => {
-    readModelService.findOne.mockResolvedValue(workOrder as never);
+    readModelService.findOne.mockResolvedValue(workOrder);
     repository.findActualCostById.mockResolvedValue(null);
 
     await expect(
@@ -200,7 +212,9 @@ describe('WorkOrderActualCostsService', () => {
         description: 'Cambio',
       }),
     ).rejects.toThrow(
-      new NotFoundException('Actual cost missing-cost not found for work order wo-1'),
+      new NotFoundException(
+        'Actual cost missing-cost not found for work order wo-1',
+      ),
     );
 
     expect(repository.updateActualCost).not.toHaveBeenCalled();

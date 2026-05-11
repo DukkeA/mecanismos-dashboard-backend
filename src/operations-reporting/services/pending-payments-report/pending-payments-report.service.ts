@@ -17,17 +17,20 @@ import {
 export class PendingPaymentsReportService {
   private readonly logger = new Logger(PendingPaymentsReportService.name);
 
-  constructor(
-    private readonly repository: OperationsReportingRepository,
-  ) {}
+  constructor(private readonly repository: OperationsReportingRepository) {}
 
   async getReport(
     query: PendingPaymentsReportQueryDto,
   ): Promise<PendingPaymentsReportResponseDto> {
-    const context = buildSafeReportLoggerContext('pending-payments', query, query);
+    const context = buildSafeReportLoggerContext(
+      'pending-payments',
+      query,
+      query,
+    );
 
     try {
-      const workOrders = await this.repository.findWorkOrdersWithFinancials(query);
+      const workOrders =
+        await this.repository.findWorkOrdersWithFinancials(query);
       const rows = workOrders
         .filter(
           (workOrder) =>

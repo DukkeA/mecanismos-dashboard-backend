@@ -1,4 +1,9 @@
-import { EstimatePhase, ExpenseCategory, PaymentStatus, WorkOrderStatus } from '../../../../generated/prisma/enums';
+import {
+  EstimatePhase,
+  ExpenseCategory,
+  PaymentStatus,
+  WorkOrderStatus,
+} from '../../../../generated/prisma/enums';
 import type {
   ExpenseReadModel,
   SummaryWorkOrderReadModel,
@@ -38,10 +43,26 @@ describe('SummaryReportService', () => {
     };
 
     repository.findSummaryWorkOrders.mockResolvedValue([
-      buildSummaryWorkOrder('wo-1', WorkOrderStatus.IN_PROGRESS, PaymentStatus.PENDING),
-      buildSummaryWorkOrder('wo-2', WorkOrderStatus.PAUSED, PaymentStatus.PARTIAL),
-      buildSummaryWorkOrder('wo-3', WorkOrderStatus.COMPLETED, PaymentStatus.PAID),
-      buildSummaryWorkOrder('wo-4', WorkOrderStatus.CANCELLED, PaymentStatus.PARTIAL),
+      buildSummaryWorkOrder(
+        'wo-1',
+        WorkOrderStatus.IN_PROGRESS,
+        PaymentStatus.PENDING,
+      ),
+      buildSummaryWorkOrder(
+        'wo-2',
+        WorkOrderStatus.PAUSED,
+        PaymentStatus.PARTIAL,
+      ),
+      buildSummaryWorkOrder(
+        'wo-3',
+        WorkOrderStatus.COMPLETED,
+        PaymentStatus.PAID,
+      ),
+      buildSummaryWorkOrder(
+        'wo-4',
+        WorkOrderStatus.CANCELLED,
+        PaymentStatus.PARTIAL,
+      ),
     ]);
     repository.findWorkOrdersWithFinancials.mockResolvedValue([
       buildFinancialWorkOrder({
@@ -115,7 +136,11 @@ describe('SummaryReportService', () => {
 
   it('keeps pending receivables unknown when a pending balance has no payable estimate', async () => {
     repository.findSummaryWorkOrders.mockResolvedValue([
-      buildSummaryWorkOrder('wo-unknown', WorkOrderStatus.IN_PROGRESS, PaymentStatus.PENDING),
+      buildSummaryWorkOrder(
+        'wo-unknown',
+        WorkOrderStatus.IN_PROGRESS,
+        PaymentStatus.PENDING,
+      ),
     ]);
     repository.findWorkOrdersWithFinancials.mockResolvedValue([
       buildFinancialWorkOrder({

@@ -3,11 +3,7 @@ type ReportDateRange = {
   dateTo?: Date;
 };
 
-type WindowField =
-  | 'createdAt'
-  | 'expectedAt'
-  | 'incurredAt'
-  | 'paidAt';
+type WindowField = 'createdAt' | 'expectedAt' | 'incurredAt' | 'paidAt';
 
 export function buildInclusiveDateWindow(
   field: WindowField,

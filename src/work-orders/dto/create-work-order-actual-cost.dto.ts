@@ -1,9 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ValidateIf } from 'class-validator';
-import { IsDate, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
-import { PaymentMethod, WorkOrderCostCategory } from '../../../generated/prisma/enums';
-import { OptionalTrimmedString, TrimmedString } from '../../common/transforms/string.transforms';
+import {
+  IsDate,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
+import {
+  PaymentMethod,
+  WorkOrderCostCategory,
+} from '../../../generated/prisma/enums';
+import {
+  OptionalTrimmedString,
+  TrimmedString,
+} from '../../common/transforms/string.transforms';
 
 const workOrderCostCategories = Object.values(WorkOrderCostCategory);
 const paymentMethods = Object.values(PaymentMethod);

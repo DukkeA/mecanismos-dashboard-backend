@@ -73,17 +73,20 @@ describe('operations-reporting reviewer artifacts', () => {
         'rollback',
       ],
     },
-  ])('ships $fileName with operations-reporting reviewer guidance', ({ fileName, expectedContent }) => {
-    const filePath = path.join(docsDir, fileName);
+  ])(
+    'ships $fileName with operations-reporting reviewer guidance',
+    ({ fileName, expectedContent }) => {
+      const filePath = path.join(docsDir, fileName);
 
-    expect(fs.existsSync(filePath)).toBeTruthy();
+      expect(fs.existsSync(filePath)).toBeTruthy();
 
-    const fileContent = fs.readFileSync(filePath, 'utf8');
+      const fileContent = fs.readFileSync(filePath, 'utf8');
 
-    for (const expectedSnippet of expectedContent) {
-      expect(fileContent).toContain(expectedSnippet);
-    }
-  });
+      for (const expectedSnippet of expectedContent) {
+        expect(fileContent).toContain(expectedSnippet);
+      }
+    },
+  );
 
   it('ships a valid Postman collection for all operations-reporting routes', () => {
     const collection = readCollection(postmanCollectionPath);
@@ -116,10 +119,14 @@ describe('operations-reporting reviewer artifacts', () => {
         '{{baseUrl}}/operations-reporting/summary?dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
       testScriptCoverage: expect.arrayContaining([
         expect.stringContaining("pm.test('summary returns 200'"),
-        expect.stringContaining("pm.test('summary is approximate cash-operational'"),
+        expect.stringContaining(
+          "pm.test('summary is approximate cash-operational'",
+        ),
       ]),
     });
-    expect(findRequest(collection, 'Get Pending Payments Report')).toMatchObject({
+    expect(
+      findRequest(collection, 'Get Pending Payments Report'),
+    ).toMatchObject({
       method: 'GET',
       rawUrl:
         '{{baseUrl}}/operations-reporting/pending-payments?paymentStatus=PARTIAL&dateFrom=2026-04-01T00:00:00.000Z&dateTo=2026-05-31T23:59:59.999Z',
@@ -150,7 +157,9 @@ describe('operations-reporting reviewer artifacts', () => {
 function readCollection(collectionPath: string): PostmanCollection {
   expect(fs.existsSync(collectionPath)).toBeTruthy();
 
-  return JSON.parse(fs.readFileSync(collectionPath, 'utf8')) as PostmanCollection;
+  return JSON.parse(
+    fs.readFileSync(collectionPath, 'utf8'),
+  ) as PostmanCollection;
 }
 
 function listRequestNames(collection: PostmanCollection): string[] {

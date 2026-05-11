@@ -74,7 +74,10 @@ export class WorkOrdersController {
   @ApiOkResponse({ description: 'Work order updated.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
-  update(@Param('id') id: string, @Body() updateWorkOrderDto: UpdateWorkOrderDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateWorkOrderDto: UpdateWorkOrderDto,
+  ) {
     return this.workOrdersService.update(id, updateWorkOrderDto);
   }
 
@@ -147,7 +150,9 @@ export class WorkOrdersController {
 
   @Delete(':id/actual-costs/:costId')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Remove an actual-cost child without deleting the work order' })
+  @ApiOperation({
+    summary: 'Remove an actual-cost child without deleting the work order',
+  })
   @ApiNoContentResponse({ description: 'Actual cost removed.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
@@ -195,7 +200,9 @@ export class WorkOrdersController {
 
   @Delete(':id/payments/:paymentId')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Remove a payment child without deleting the work order' })
+  @ApiOperation({
+    summary: 'Remove a payment child without deleting the work order',
+  })
   @ApiNoContentResponse({ description: 'Payment removed.' })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })

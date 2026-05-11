@@ -35,10 +35,8 @@ export class WorkOrderActualCostsService {
   ) {
     await this.workOrderReadModelService.findOne(id);
 
-    const currentActualCost = await this.workOrdersRepository.findActualCostById(
-      id,
-      costId,
-    );
+    const currentActualCost =
+      await this.workOrdersRepository.findActualCostById(id, costId);
 
     if (!currentActualCost) {
       throw new NotFoundException(
@@ -57,10 +55,8 @@ export class WorkOrderActualCostsService {
   async removeActualCost(id: string, costId: string) {
     await this.workOrderReadModelService.findOne(id);
 
-    const currentActualCost = await this.workOrdersRepository.findActualCostById(
-      id,
-      costId,
-    );
+    const currentActualCost =
+      await this.workOrdersRepository.findActualCostById(id, costId);
 
     if (!currentActualCost) {
       throw new NotFoundException(

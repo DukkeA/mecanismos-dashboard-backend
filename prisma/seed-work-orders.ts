@@ -14,19 +14,31 @@ export type WorkOrderSeedPrismaTransactionClient = {
     upsert(args: Prisma.WorkOrderUpsertArgs): Promise<unknown>;
   };
   workshopWorkOrderDetails: {
-    deleteMany(args: Prisma.WorkshopWorkOrderDetailsDeleteManyArgs): Promise<unknown>;
-    createMany(args: Prisma.WorkshopWorkOrderDetailsCreateManyArgs): Promise<unknown>;
+    deleteMany(
+      args: Prisma.WorkshopWorkOrderDetailsDeleteManyArgs,
+    ): Promise<unknown>;
+    createMany(
+      args: Prisma.WorkshopWorkOrderDetailsCreateManyArgs,
+    ): Promise<unknown>;
   };
   workOrderEstimate: {
     upsert(args: Prisma.WorkOrderEstimateUpsertArgs): Promise<unknown>;
   };
   workOrderEstimateLine: {
-    deleteMany(args: Prisma.WorkOrderEstimateLineDeleteManyArgs): Promise<unknown>;
-    createMany(args: Prisma.WorkOrderEstimateLineCreateManyArgs): Promise<unknown>;
+    deleteMany(
+      args: Prisma.WorkOrderEstimateLineDeleteManyArgs,
+    ): Promise<unknown>;
+    createMany(
+      args: Prisma.WorkOrderEstimateLineCreateManyArgs,
+    ): Promise<unknown>;
   };
   workOrderActualCost: {
-    deleteMany(args: Prisma.WorkOrderActualCostDeleteManyArgs): Promise<unknown>;
-    createMany(args: Prisma.WorkOrderActualCostCreateManyArgs): Promise<unknown>;
+    deleteMany(
+      args: Prisma.WorkOrderActualCostDeleteManyArgs,
+    ): Promise<unknown>;
+    createMany(
+      args: Prisma.WorkOrderActualCostCreateManyArgs,
+    ): Promise<unknown>;
   };
   workOrderPayment: {
     deleteMany(args: Prisma.WorkOrderPaymentDeleteManyArgs): Promise<unknown>;
@@ -36,7 +48,9 @@ export type WorkOrderSeedPrismaTransactionClient = {
     updateMany(args: Prisma.InventoryMovementUpdateManyArgs): Promise<unknown>;
   };
   supplierQuoteHistory: {
-    updateMany(args: Prisma.SupplierQuoteHistoryUpdateManyArgs): Promise<unknown>;
+    updateMany(
+      args: Prisma.SupplierQuoteHistoryUpdateManyArgs,
+    ): Promise<unknown>;
   };
 };
 
@@ -81,8 +95,10 @@ const seedWorkOrderRows = [
     componentId: 'seed-component-acme-inyector',
     assignedEmployeeId: 'seed-employee-ana-torres',
     summary: 'Reparación integral de inyector Bosch',
-    externalLink: 'https://mecanismos.test/work-orders/seed-workshop-injector-repair',
-    notes: 'Caso WORKSHOP con detalle, estimate FINAL, costo real y pago total.',
+    externalLink:
+      'https://mecanismos.test/work-orders/seed-workshop-injector-repair',
+    notes:
+      'Caso WORKSHOP con detalle, estimate FINAL, costo real y pago total.',
     estimatedCompletionAt: new Date('2026-05-08T17:00:00.000Z'),
     estimatedCollectionAt: new Date('2026-05-09T15:00:00.000Z'),
     completedAt: new Date('2026-05-09T13:30:00.000Z'),
@@ -97,7 +113,8 @@ const seedWorkOrderRows = [
     componentId: 'seed-component-ana-tobera',
     assignedEmployeeId: 'seed-employee-ana-torres',
     summary: 'Servicio parcial con anticipo y saldo pendiente',
-    externalLink: 'https://mecanismos.test/work-orders/seed-workshop-partial-payment',
+    externalLink:
+      'https://mecanismos.test/work-orders/seed-workshop-partial-payment',
     notes:
       'Caso WORKSHOP con estimate FINAL y pago parcial para reportes de receivables.',
     estimatedCompletionAt: new Date('2026-05-18T17:00:00.000Z'),
@@ -114,7 +131,8 @@ const seedWorkOrderRows = [
     componentId: 'seed-component-acme-inyector',
     assignedEmployeeId: 'seed-employee-ana-torres',
     summary: 'Trabajo asignado sin estimate publicado',
-    externalLink: 'https://mecanismos.test/work-orders/seed-workshop-unknown-payable',
+    externalLink:
+      'https://mecanismos.test/work-orders/seed-workshop-unknown-payable',
     notes:
       'Caso WORKSHOP para payable desconocido con costo real y anticipo ya registrados.',
     estimatedCompletionAt: new Date('2026-05-21T17:00:00.000Z'),
@@ -127,7 +145,8 @@ const workshopDetails = [
   {
     id: 'seed-workshop-details-injector-repair',
     workOrderId: workshopWorkOrderId,
-    customerReportedIssue: 'El inyector presenta retorno excesivo y pérdida de potencia.',
+    customerReportedIssue:
+      'El inyector presenta retorno excesivo y pérdida de potencia.',
     diagnosisRequired: true,
     diagnosisSummary:
       'Se confirmó desgaste interno y se requirió reparación + calibración final.',
@@ -135,7 +154,8 @@ const workshopDetails = [
   {
     id: 'seed-workshop-details-partial-payment',
     workOrderId: partialPaymentWorkOrderId,
-    customerReportedIssue: 'El vehículo presenta falla intermitente y requiere avance parcial.',
+    customerReportedIssue:
+      'El vehículo presenta falla intermitente y requiere avance parcial.',
     diagnosisRequired: true,
     diagnosisSummary:
       'Se autorizó anticipo para diagnóstico y servicio correctivo aún en curso.',
@@ -143,7 +163,8 @@ const workshopDetails = [
   {
     id: 'seed-workshop-details-unknown-payable',
     workOrderId: unknownPayableWorkOrderId,
-    customerReportedIssue: 'Pendiente definición de alcance final antes de emitir estimate.',
+    customerReportedIssue:
+      'Pendiente definición de alcance final antes de emitir estimate.',
     diagnosisRequired: true,
     diagnosisSummary:
       'Ya hay costos y un anticipo, pero todavía no se publica estimate INITIAL/FINAL.',

@@ -46,7 +46,8 @@ describe('operations reporting DTO contracts', () => {
       expect(errors).toHaveLength(1);
       expect(errors[0]?.property).toBe('dateTo');
       expect(errors[0]?.constraints).toMatchObject({
-        isDateRangeOrderValid: 'dateTo must be greater than or equal to dateFrom',
+        isDateRangeOrderValid:
+          'dateTo must be greater than or equal to dateFrom',
       });
     }
   });
@@ -58,12 +59,15 @@ describe('operations reporting DTO contracts', () => {
       status: WorkOrderStatus.COMPLETED,
       paymentStatus: PaymentStatus.PAID,
     });
-    const pendingPaymentsQuery = plainToInstance(PendingPaymentsReportQueryDto, {
-      dateFrom: '2026-05-01T00:00:00.000Z',
-      dateTo: '2026-05-31T23:59:59.000Z',
-      customerId: '  customer-1  ',
-      paymentStatus: PaymentStatus.PARTIAL,
-    });
+    const pendingPaymentsQuery = plainToInstance(
+      PendingPaymentsReportQueryDto,
+      {
+        dateFrom: '2026-05-01T00:00:00.000Z',
+        dateTo: '2026-05-31T23:59:59.000Z',
+        customerId: '  customer-1  ',
+        paymentStatus: PaymentStatus.PARTIAL,
+      },
+    );
     const profitabilityQuery = plainToInstance(
       WorkOrderProfitabilityReportQueryDto,
       {
@@ -72,13 +76,16 @@ describe('operations reporting DTO contracts', () => {
         assignedEmployeeId: '  employee-1  ',
       },
     );
-    const mechanicsQuery = plainToInstance(MechanicsProductivityReportQueryDto, {
-      dateFrom: '2026-05-01T00:00:00.000Z',
-      dateTo: '2026-05-31T23:59:59.000Z',
-      assignedEmployeeId: '  employee-2  ',
-      employeeType: EmployeeType.MECHANIC,
-      includeInactiveMechanics: 'true',
-    });
+    const mechanicsQuery = plainToInstance(
+      MechanicsProductivityReportQueryDto,
+      {
+        dateFrom: '2026-05-01T00:00:00.000Z',
+        dateTo: '2026-05-31T23:59:59.000Z',
+        assignedEmployeeId: '  employee-2  ',
+        employeeType: EmployeeType.MECHANIC,
+        includeInactiveMechanics: 'true',
+      },
+    );
     const expensesQuery = plainToInstance(ExpensesBreakdownReportQueryDto, {
       dateFrom: '2026-05-01T00:00:00.000Z',
       dateTo: '2026-05-31T23:59:59.000Z',
@@ -86,9 +93,12 @@ describe('operations reporting DTO contracts', () => {
       expenseCategory: ExpenseCategory.RENT,
       paymentStatus: PaymentStatus.PENDING,
     });
-    const invalidExpensesQuery = plainToInstance(ExpensesBreakdownReportQueryDto, {
-      paymentStatus: PaymentStatus.PARTIAL,
-    });
+    const invalidExpensesQuery = plainToInstance(
+      ExpensesBreakdownReportQueryDto,
+      {
+        paymentStatus: PaymentStatus.PARTIAL,
+      },
+    );
 
     expect(summaryQuery.dateFrom).toBeInstanceOf(Date);
     expect(summaryQuery.dateTo).toBeInstanceOf(Date);

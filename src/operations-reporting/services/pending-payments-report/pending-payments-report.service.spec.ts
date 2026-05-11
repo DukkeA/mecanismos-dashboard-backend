@@ -1,4 +1,8 @@
-import { EstimatePhase, PaymentStatus, WorkOrderStatus } from '../../../../generated/prisma/enums';
+import {
+  EstimatePhase,
+  PaymentStatus,
+  WorkOrderStatus,
+} from '../../../../generated/prisma/enums';
 import type { WorkOrderFinancialReadModel } from '../../persistence/operations-reporting.repository';
 import { OperationsReportingRepository } from '../../persistence/operations-reporting.repository';
 import { PendingPaymentsReportService } from './pending-payments-report.service';
@@ -46,7 +50,11 @@ describe('PendingPaymentsReportService', () => {
         paymentStatus: PaymentStatus.PARTIAL,
         payableAmount: 80_000,
         payments: [100_000],
-        component: { brand: 'Bosch', reference: 'ALT-90A', identifier: 'SER-100' },
+        component: {
+          brand: 'Bosch',
+          reference: 'ALT-90A',
+          identifier: 'SER-100',
+        },
       }),
       buildWorkOrderRow({
         id: 'wo-paid',

@@ -228,19 +228,39 @@ type WorkOrdersPrismaClient = {
   customer: {
     findUnique(args: {
       where: { id: string };
-      select: { id: true; name: true; phone: true; documentType: true; documentNumber: true; email: true };
+      select: {
+        id: true;
+        name: true;
+        phone: true;
+        documentType: true;
+        documentNumber: true;
+        email: true;
+      };
     }): Promise<WorkOrderCustomerSummary | null>;
   };
   vehicle: {
     findUnique(args: {
       where: { id: string };
-      select: { id: true; customerId: true; brand: true; modelReference: true; plate: true };
+      select: {
+        id: true;
+        customerId: true;
+        brand: true;
+        modelReference: true;
+        plate: true;
+      };
     }): Promise<WorkOrderVehicleSummary | null>;
   };
   component: {
     findUnique(args: {
       where: { id: string };
-      select: { id: true; customerId: true; vehicleId: true; brand: true; reference: true; identifier: true };
+      select: {
+        id: true;
+        customerId: true;
+        vehicleId: true;
+        brand: true;
+        reference: true;
+        identifier: true;
+      };
     }): Promise<WorkOrderComponentSummary | null>;
   };
   employee: {
@@ -260,17 +280,14 @@ type WorkOrdersPrismaClient = {
         defaultSalePrice: true;
         isActive: true;
       };
-    }): Promise<
-      | {
-          id: string;
-          name: string;
-          reference: string | null;
-          identifier: string | null;
-          defaultSalePrice: number | null;
-          isActive: boolean | null;
-        }
-      | null
-    >;
+    }): Promise<{
+      id: string;
+      name: string;
+      reference: string | null;
+      identifier: string | null;
+      defaultSalePrice: number | null;
+      isActive: boolean | null;
+    } | null>;
   };
   serviceCatalog: {
     findUnique(args: {
@@ -295,7 +312,9 @@ type WorkOrdersPrismaClient = {
         quotedCost: true;
         quotedAt: true;
         status: true;
-        Supplier: { select: { id: true; name: true; type: true; isActive: true } };
+        Supplier: {
+          select: { id: true; name: true; type: true; isActive: true };
+        };
         InventoryItem: {
           select: {
             id: true;
@@ -307,30 +326,30 @@ type WorkOrdersPrismaClient = {
           };
         };
       };
-    }): Promise<
-      | {
-          id: string;
-          supplierId: string;
-          inventoryItemId: string;
-          workOrderId: string | null;
-          quotedCost: number;
-          quotedAt: Date;
-          status: string;
-          Supplier: WorkOrderSupplierSummary | null;
-          InventoryItem: {
-            id: string;
-            name: string;
-            reference: string | null;
-            identifier: string | null;
-            defaultSalePrice: number | null;
-            isActive: boolean | null;
-          } | null;
-        }
-      | null
-    >;
+    }): Promise<{
+      id: string;
+      supplierId: string;
+      inventoryItemId: string;
+      workOrderId: string | null;
+      quotedCost: number;
+      quotedAt: Date;
+      status: string;
+      Supplier: WorkOrderSupplierSummary | null;
+      InventoryItem: {
+        id: string;
+        name: string;
+        reference: string | null;
+        identifier: string | null;
+        defaultSalePrice: number | null;
+        isActive: boolean | null;
+      } | null;
+    } | null>;
   };
   workOrder: {
-    create(args: { data: Record<string, unknown>; include: typeof workOrderDetailInclude }): Promise<WorkOrderRecord>;
+    create(args: {
+      data: Record<string, unknown>;
+      include: typeof workOrderDetailInclude;
+    }): Promise<WorkOrderRecord>;
     findMany(args: {
       where: WorkOrderWhereInput;
       orderBy: { number: 'desc' };
@@ -351,12 +370,16 @@ type WorkOrdersPrismaClient = {
   };
   workOrderEstimate?: {
     upsert(args: {
-      where: { workOrderId_phase: { workOrderId: string; phase: EstimatePhase } };
+      where: {
+        workOrderId_phase: { workOrderId: string; phase: EstimatePhase };
+      };
       create: Record<string, unknown>;
       update: Record<string, unknown>;
     }): Promise<{ id: string }>;
     findUnique(args: {
-      where: { workOrderId_phase: { workOrderId: string; phase: EstimatePhase } };
+      where: {
+        workOrderId_phase: { workOrderId: string; phase: EstimatePhase };
+      };
       include: typeof estimateDetailInclude;
     }): Promise<WorkOrderEstimateRecord | null>;
     findMany(args: {
@@ -397,11 +420,14 @@ type WorkOrdersPrismaClient = {
       create: Record<string, unknown>;
       update: Record<string, unknown>;
     }): Promise<unknown>;
-      deleteMany(args: { where: { workOrderId: string } }): Promise<unknown>;
+    deleteMany(args: { where: { workOrderId: string } }): Promise<unknown>;
   };
   workOrderPayment?: {
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
-    update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<unknown>;
+    update(args: {
+      where: { id: string };
+      data: Record<string, unknown>;
+    }): Promise<unknown>;
     delete(args: { where: { id: string } }): Promise<unknown>;
   };
 };
@@ -773,15 +799,19 @@ export class WorkOrdersRepository {
     input: UpsertWorkOrderEstimateDto,
   ) {
     if (!this.prisma.$transaction) {
-      throw new Error('Estimate persistence requires transactional Prisma delegates');
+      throw new Error(
+        'Estimate persistence requires transactional Prisma delegates',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
       if (!tx.workOrderEstimate || !tx.workOrderEstimateLine) {
-        throw new Error('Estimate persistence requires estimate Prisma delegates');
+        throw new Error(
+          'Estimate persistence requires estimate Prisma delegates',
+        );
       }
 
-      const estimate = await tx.workOrderEstimate!.upsert({
+      const estimate = await tx.workOrderEstimate.upsert({
         where: {
           workOrderId_phase: {
             workOrderId,
@@ -792,17 +822,17 @@ export class WorkOrdersRepository {
         update: buildEstimateUpdatePayload(workOrderId, phase, input),
       });
 
-      await tx.workOrderEstimateLine!.deleteMany({
+      await tx.workOrderEstimateLine.deleteMany({
         where: { estimateId: estimate.id },
       });
 
       const lines = buildEstimateLineCreateManyData(estimate.id, input.lines);
 
       if (lines.length > 0) {
-        await tx.workOrderEstimateLine!.createMany({ data: lines });
+        await tx.workOrderEstimateLine.createMany({ data: lines });
       }
 
-      const persisted = await tx.workOrderEstimate!.findUnique({
+      const persisted = await tx.workOrderEstimate.findUnique({
         where: {
           workOrderId_phase: {
             workOrderId,
@@ -845,8 +875,8 @@ export class WorkOrdersRepository {
   }
 
   createActualCost(workOrderId: string, input: CreateWorkOrderActualCostDto) {
-    return this.prisma.workOrderActualCost!
-      .create({
+    return this.prisma
+      .workOrderActualCost!.create({
         data: buildActualCostCreateData(workOrderId, input),
         include: actualCostInclude,
       })
@@ -854,8 +884,8 @@ export class WorkOrdersRepository {
   }
 
   findActualCosts(workOrderId: string) {
-    return this.prisma.workOrderActualCost!
-      .findMany({
+    return this.prisma
+      .workOrderActualCost!.findMany({
         where: { workOrderId },
         orderBy: { incurredAt: 'desc' },
         include: actualCostInclude,
@@ -864,8 +894,8 @@ export class WorkOrdersRepository {
   }
 
   findActualCostById(workOrderId: string, costId: string) {
-    return this.prisma.workOrderActualCost!
-      .findFirst({
+    return this.prisma
+      .workOrderActualCost!.findFirst({
         where: { id: costId, workOrderId },
         include: actualCostInclude,
       })
@@ -877,8 +907,8 @@ export class WorkOrdersRepository {
     costId: string,
     input: UpdateWorkOrderActualCostDto,
   ) {
-    return this.prisma.workOrderActualCost!
-      .update({
+    return this.prisma
+      .workOrderActualCost!.update({
         where: { id: costId },
         data: buildActualCostUpdateData(input),
         include: actualCostInclude,
@@ -1097,7 +1127,9 @@ export class WorkOrdersRepository {
     nextPayments: WorkOrderPaymentSummary[],
   ) {
     if (!this.prisma.$transaction) {
-      throw new Error('WorkOrdersRepository payment mutations require transactions');
+      throw new Error(
+        'WorkOrdersRepository payment mutations require transactions',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -1123,7 +1155,9 @@ export class WorkOrdersRepository {
   }
 }
 
-function buildWorkOrderWhere(query: ListWorkOrdersQueryDto): WorkOrderWhereInput {
+function buildWorkOrderWhere(
+  query: ListWorkOrdersQueryDto,
+): WorkOrderWhereInput {
   const search = query.search?.trim();
   const numericSearch = search && /^\d+$/.test(search) ? Number(search) : null;
 
@@ -1139,8 +1173,16 @@ function buildWorkOrderWhere(query: ListWorkOrdersQueryDto): WorkOrderWhereInput
     ...(query.assignedEmployeeId
       ? { assignedEmployeeId: query.assignedEmployeeId.trim() }
       : {}),
-    ...buildDateWindow('estimatedCompletionAt', query.estimatedCompletionFrom, query.estimatedCompletionTo),
-    ...buildDateWindow('estimatedCollectionAt', query.estimatedCollectionFrom, query.estimatedCollectionTo),
+    ...buildDateWindow(
+      'estimatedCompletionAt',
+      query.estimatedCompletionFrom,
+      query.estimatedCompletionTo,
+    ),
+    ...buildDateWindow(
+      'estimatedCollectionAt',
+      query.estimatedCollectionFrom,
+      query.estimatedCollectionTo,
+    ),
     ...buildDateWindow('completedAt', query.completedFrom, query.completedTo),
     ...(search
       ? {
@@ -1176,7 +1218,9 @@ function buildWorkOrderCreateData(input: CreateWorkOrderDto) {
 function buildWorkOrderUpdateData(input: UpdateWorkOrderDto) {
   return {
     ...(input.type !== undefined ? { type: input.type } : {}),
-    ...(input.customerId !== undefined ? { customerId: input.customerId.trim() } : {}),
+    ...(input.customerId !== undefined
+      ? { customerId: input.customerId.trim() }
+      : {}),
     ...(input.vehicleId !== undefined
       ? { vehicleId: normalizeOptionalForeignKey(input.vehicleId) }
       : {}),
@@ -1203,7 +1247,9 @@ function buildWorkOrderUpdateData(input: UpdateWorkOrderDto) {
     ...(input.estimatedCollectionAt !== undefined
       ? { estimatedCollectionAt: input.estimatedCollectionAt }
       : {}),
-    ...(input.completedAt !== undefined ? { completedAt: input.completedAt } : {}),
+    ...(input.completedAt !== undefined
+      ? { completedAt: input.completedAt }
+      : {}),
     ...(input.status !== undefined ? { status: input.status } : {}),
     ...(input.paymentStatus !== undefined
       ? { paymentStatus: input.paymentStatus }
@@ -1525,7 +1571,8 @@ function mapWorkOrderRecord(record: WorkOrderRecord): WorkOrderDetail {
                     cost.SupplierQuoteHistory.InventoryItem.reference ??
                     cost.SupplierQuoteHistory.InventoryItem.identifier,
                   reference: cost.SupplierQuoteHistory.InventoryItem.reference,
-                  identifier: cost.SupplierQuoteHistory.InventoryItem.identifier,
+                  identifier:
+                    cost.SupplierQuoteHistory.InventoryItem.identifier,
                   defaultSalePrice:
                     cost.SupplierQuoteHistory.InventoryItem.defaultSalePrice,
                   isActive: cost.SupplierQuoteHistory.InventoryItem.isActive,
@@ -1544,7 +1591,9 @@ function mapWorkOrderRecord(record: WorkOrderRecord): WorkOrderDetail {
   };
 }
 
-function mapEstimateRecord(record: WorkOrderEstimateRecord): WorkOrderEstimateDetail {
+function mapEstimateRecord(
+  record: WorkOrderEstimateRecord,
+): WorkOrderEstimateDetail {
   return {
     id: record.id,
     workOrderId: record.workOrderId,
@@ -1588,7 +1637,9 @@ function mapEstimateRecord(record: WorkOrderEstimateRecord): WorkOrderEstimateDe
   };
 }
 
-function mapActualCostRecord(record: ActualCostRecord): WorkOrderActualCostSummary {
+function mapActualCostRecord(
+  record: ActualCostRecord,
+): WorkOrderActualCostSummary {
   return {
     id: record.id,
     category: record.category,
@@ -1605,7 +1656,8 @@ function mapActualCostRecord(record: ActualCostRecord): WorkOrderActualCostSumma
       ? {
           id: record.InventoryItem.id,
           name: record.InventoryItem.name,
-          sku: record.InventoryItem.reference ?? record.InventoryItem.identifier,
+          sku:
+            record.InventoryItem.reference ?? record.InventoryItem.identifier,
           reference: record.InventoryItem.reference,
           identifier: record.InventoryItem.identifier,
           defaultSalePrice: record.InventoryItem.defaultSalePrice,
@@ -1630,7 +1682,8 @@ function mapActualCostRecord(record: ActualCostRecord): WorkOrderActualCostSumma
                   record.SupplierQuoteHistory.InventoryItem.reference ??
                   record.SupplierQuoteHistory.InventoryItem.identifier,
                 reference: record.SupplierQuoteHistory.InventoryItem.reference,
-                identifier: record.SupplierQuoteHistory.InventoryItem.identifier,
+                identifier:
+                  record.SupplierQuoteHistory.InventoryItem.identifier,
                 defaultSalePrice:
                   record.SupplierQuoteHistory.InventoryItem.defaultSalePrice,
                 isActive: record.SupplierQuoteHistory.InventoryItem.isActive,

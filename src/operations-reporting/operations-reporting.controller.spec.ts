@@ -120,7 +120,9 @@ describe('OperationsReportingController', () => {
 
     summaryService.getReport.mockResolvedValue(summaryResponse);
     pendingPaymentsService.getReport.mockResolvedValue(pendingPaymentsResponse);
-    workOrderProfitabilityService.getReport.mockResolvedValue(profitabilityResponse);
+    workOrderProfitabilityService.getReport.mockResolvedValue(
+      profitabilityResponse,
+    );
     mechanicsProductivityService.getReport.mockResolvedValue(mechanicsResponse);
     expensesBreakdownService.getReport.mockResolvedValue(expensesResponse);
 
@@ -140,13 +142,12 @@ describe('OperationsReportingController', () => {
       expensesResponse,
     );
 
-    expect(Reflect.getMetadata(PATH_METADATA, OperationsReportingController)).toBe(
-      'operations-reporting',
-    );
-    expect(Reflect.getMetadata(ROLES_KEY, OperationsReportingController)).toEqual([
-      'ADMIN',
-      'SALES',
-    ]);
+    expect(
+      Reflect.getMetadata(PATH_METADATA, OperationsReportingController),
+    ).toBe('operations-reporting');
+    expect(
+      Reflect.getMetadata(ROLES_KEY, OperationsReportingController),
+    ).toEqual(['ADMIN', 'SALES']);
     expect(
       Reflect.getMetadata(GUARDS_METADATA, OperationsReportingController),
     ).toEqual([JwtAuthGuard, RolesGuard]);
@@ -185,7 +186,10 @@ describe('OperationsReportingController', () => {
       Reflect.getMetadata(METHOD_METADATA, pendingPaymentsHandler as object),
     ).toBe(RequestMethod.GET);
     expect(
-      Reflect.getMetadata(PATH_METADATA, workOrderProfitabilityHandler as object),
+      Reflect.getMetadata(
+        PATH_METADATA,
+        workOrderProfitabilityHandler as object,
+      ),
     ).toBe('work-order-profitability');
     expect(
       Reflect.getMetadata(
@@ -202,9 +206,9 @@ describe('OperationsReportingController', () => {
     expect(Reflect.getMetadata(PATH_METADATA, expensesHandler as object)).toBe(
       'expenses',
     );
-    expect(Reflect.getMetadata(METHOD_METADATA, expensesHandler as object)).toBe(
-      RequestMethod.GET,
-    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, expensesHandler as object),
+    ).toBe(RequestMethod.GET);
 
     expect(summaryService.getReport.mock.calls[0]).toEqual([summaryQuery]);
     expect(pendingPaymentsService.getReport.mock.calls[0]).toEqual([

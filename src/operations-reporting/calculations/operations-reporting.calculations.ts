@@ -44,7 +44,10 @@ export function calculateBalance({
   return payableAmount - paidTotal;
 }
 
-export function isOverpaid({ payableAmount, paidTotal }: BalanceInput): boolean {
+export function isOverpaid({
+  payableAmount,
+  paidTotal,
+}: BalanceInput): boolean {
   return payableAmount !== null && paidTotal > payableAmount;
 }
 
@@ -59,9 +62,7 @@ export function calculateGrossUtility({
   return payableAmount - actualCostTotal;
 }
 
-export function calculateGrossMargin(
-  input: GrossUtilityInput,
-): number | null {
+export function calculateGrossMargin(input: GrossUtilityInput): number | null {
   if (input.payableAmount === null || input.payableAmount === 0) {
     return null;
   }
