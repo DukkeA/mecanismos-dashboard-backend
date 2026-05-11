@@ -10,6 +10,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { AppSettingsController } from './app-settings.controller';
 import { AppSettingsService } from './app-settings.service';
+import {
+  PricingLaborSettingsHistoryQueryDto,
+  PricingLaborSettingsHistoryResponseDto,
+} from './dto/pricing-labor-settings-history.dto';
 import { PricingLaborSettingsResponseDto } from './dto/pricing-labor-settings.response.dto';
 import { UpdatePricingLaborSettingsDto } from './dto/update-pricing-labor-settings.dto';
 
@@ -30,6 +34,7 @@ describe('AppSettingsController', () => {
   const service = {
     getCurrentPricingLaborSettings: jest.fn(),
     updateCurrentPricingLaborSettings: jest.fn(),
+    getPricingLaborSettingsHistory: jest.fn(),
   } as unknown as jest.Mocked<AppSettingsService>;
 
   let controller: AppSettingsController;
@@ -39,8 +44,9 @@ describe('AppSettingsController', () => {
     controller = new AppSettingsController(service);
   });
 
-  it('registers protected pricing/labor settings routes with ADMIN-only patch overrides', async () => {
+  it('registers protected pricing/labor settings routes with ADMIN-only patch overrides and history reads', async () => {
     const dto = {} as UpdatePricingLaborSettingsDto;
+    const query = new PricingLaborSettingsHistoryQueryDto();
 
     service.getCurrentPricingLaborSettings.mockResolvedValue({
       currencyCode: 'COP',
@@ -48,13 +54,26 @@ describe('AppSettingsController', () => {
     service.updateCurrentPricingLaborSettings.mockResolvedValue({
       currencyCode: 'USD',
     } as never);
+    service.getPricingLaborSettingsHistory.mockResolvedValue({
+      data: [],
+      meta: { page: 1, limit: 20, total: 0 },
+    } as never);
 
     await expect(controller.getCurrentPricingLaborSettings()).resolves.toEqual({
       currencyCode: 'COP',
     });
     await expect(
-      controller.updateCurrentPricingLaborSettings(dto),
+      controller.updateCurrentPricingLaborSettings(
+        { sub: 'seed-user-admin', role: 'ADMIN' },
+        dto,
+      ),
     ).resolves.toEqual({ currencyCode: 'USD' });
+    await expect(controller.getPricingLaborSettingsHistory(query)).resolves.toEqual(
+      {
+        data: [],
+        meta: { page: 1, limit: 20, total: 0 },
+      },
+    );
 
     expect(Reflect.getMetadata(PATH_METADATA, AppSettingsController)).toBe(
       'app-settings',
@@ -71,6 +90,7 @@ describe('AppSettingsController', () => {
     const patchHandler = getControllerMethod(
       'updateCurrentPricingLaborSettings',
     );
+    const historyHandler = getControllerMethod('getPricingLaborSettingsHistory');
 
     expect(Reflect.getMetadata(PATH_METADATA, getHandler)).toBe(
       'pricing-labor',
@@ -85,6 +105,12 @@ describe('AppSettingsController', () => {
       RequestMethod.PATCH,
     );
     expect(Reflect.getMetadata(ROLES_KEY, patchHandler)).toEqual(['ADMIN']);
+    expect(Reflect.getMetadata(PATH_METADATA, historyHandler)).toBe(
+      'pricing-labor/history',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, historyHandler)).toBe(
+      RequestMethod.GET,
+    );
 
     const getApiResponseMetadata = Reflect.getMetadata(
       DECORATORS.API_RESPONSE,
@@ -93,6 +119,10 @@ describe('AppSettingsController', () => {
     const patchApiResponseMetadata = Reflect.getMetadata(
       DECORATORS.API_RESPONSE,
       patchHandler,
+    ) as ApiResponseMetadata | undefined;
+    const historyApiResponseMetadata = Reflect.getMetadata(
+      DECORATORS.API_RESPONSE,
+      historyHandler,
     ) as ApiResponseMetadata | undefined;
 
     expect(getApiResponseMetadata?.['200']).toEqual(
@@ -105,5 +135,15 @@ describe('AppSettingsController', () => {
         type: PricingLaborSettingsResponseDto,
       }),
     );
+    expect(historyApiResponseMetadata?.['200']).toEqual(
+      expect.objectContaining({
+        type: PricingLaborSettingsHistoryResponseDto,
+      }),
+    );
+    expect(service.updateCurrentPricingLaborSettings).toHaveBeenCalledWith(
+      dto,
+      'seed-user-admin',
+    );
+    expect(service.getPricingLaborSettingsHistory).toHaveBeenCalledWith(query);
   });
 });

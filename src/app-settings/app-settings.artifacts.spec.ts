@@ -42,14 +42,15 @@ describe('app-settings reviewer artifacts', () => {
         'ADMIN | SALES',
       ],
     },
-    {
-      fileName: 'api-map.md',
-      expectedContent: [
-        '# App settings API map',
-        'GET /app-settings/pricing-labor',
-        'PATCH /app-settings/pricing-labor',
-      ],
-    },
+      {
+        fileName: 'api-map.md',
+        expectedContent: [
+          '# App settings API map',
+          'GET /app-settings/pricing-labor',
+          'PATCH /app-settings/pricing-labor',
+          'GET /app-settings/pricing-labor/history',
+        ],
+      },
     {
       fileName: 'validation-rules.md',
       expectedContent: [
@@ -58,14 +59,15 @@ describe('app-settings reviewer artifacts', () => {
         'defaultLaborHourlyRate',
       ],
     },
-    {
-      fileName: 'testing.md',
-      expectedContent: [
-        '# App settings testing guide',
-        'npm run test',
-        'no-retroactive snapshot semantics',
-      ],
-    },
+      {
+        fileName: 'testing.md',
+        expectedContent: [
+          '# App settings testing guide',
+          'npm run test',
+          'no-retroactive snapshot semantics',
+          'history route',
+        ],
+      },
   ])(
     'ships $fileName with app-settings reviewer guidance',
     ({ fileName, expectedContent }) => {
@@ -101,7 +103,10 @@ describe('app-settings reviewer artifacts', () => {
         'Login as Sales',
         'Login as Mechanic',
         'Get Pricing Labor Settings as Sales',
+        'Get Pricing Labor Settings History as Sales',
         'Patch Pricing Labor Settings as Admin',
+        'Patch Pricing Labor Settings with No Changes',
+        'Patch Pricing Labor Settings with Empty Payload',
         'Patch Pricing Labor Settings as Sales is Forbidden',
         'Patch Pricing Labor Settings with Invalid Payload',
         'Re-read Pricing Labor Settings as Sales',
@@ -122,6 +127,12 @@ describe('app-settings reviewer artifacts', () => {
     expect(
       findRawBody(collection, 'Patch Pricing Labor Settings as Admin'),
     ).toContain('"defaultLaborHourlyRate": 65000');
+    expect(
+      findRequest(collection, 'Get Pricing Labor Settings History as Sales'),
+    ).toMatchObject({
+      method: 'GET',
+      rawUrl: '{{baseUrl}}/app-settings/pricing-labor/history?page=1&limit=10',
+    });
   });
 });
 

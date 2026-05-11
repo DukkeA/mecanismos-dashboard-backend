@@ -2,7 +2,7 @@
   "info": {
     "name": "Mecanismos Dashboard App Settings",
     "_postman_id": "2d841ca8-f9cd-44bd-9b87-b9f8f8e96f02",
-    "description": "Runner-ready supplemental verification for the pricing/labor singleton: auth, read, admin update, validation rejection, forbidden patch, and re-read behavior.",
+    "description": "Runner-ready supplemental verification for the pricing/labor singleton: auth, read, admin update, audit history, validation rejection, forbidden patch, and re-read behavior.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -79,6 +79,21 @@
           }
         },
         {
+          "name": "Get Pricing Labor Settings History as Sales",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
           "name": "Re-read Pricing Labor Settings as Sales",
           "request": {
             "method": "GET",
@@ -134,6 +149,38 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"currencyCode\": \"US\",\n  \"monthlyWorkingHours\": 0,\n  \"defaultLaborHourlyRate\": -1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor"]
+            }
+          }
+        },
+        {
+          "name": "Patch Pricing Labor Settings with Empty Payload",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor"]
+            }
+          }
+        },
+        {
+          "name": "Patch Pricing Labor Settings with No Changes",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currencyCode\": \"{{currencyCode}}\",\n  \"defaultLaborHourlyRate\": 65000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/app-settings/pricing-labor",

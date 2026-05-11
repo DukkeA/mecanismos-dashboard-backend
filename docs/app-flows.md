@@ -13,7 +13,7 @@ Este documento resume cómo está funcionando hoy el backend y cómo debería pe
 | Órdenes de trabajo                      | Implementado              | Incluye estimaciones, costos reales y pagos.                                     |
 | Gastos / empleados / centros de costo   | Implementado              | Alimenta reportes operativos.                                                    |
 | Reportes operativos                     | Implementado              | Reporting aproximado, no contabilidad formal.                                    |
-| Pricing / labor settings               | Implementado              | Singleton backend con defaults para futuras cotizaciones y snapshots históricos. |
+| Pricing / labor settings               | Implementado              | Singleton backend con defaults para futuras cotizaciones, snapshots históricos y auditoría append-only de cambios. |
 | Próxima brecha fuerte                   | Inventario ↔ órdenes      | Falta el puente operativo para consumo/venta de inventario por orden.            |
 
 ## 1. Mapa funcional actual
@@ -190,7 +190,7 @@ journey
 | Prioridad | Brecha                         | Por qué importa                                                                           |
 | --------: | ------------------------------ | ----------------------------------------------------------------------------------------- |
 |         1 | Inventario ligado a órdenes    | Cierra trazabilidad de salidas/consumos/ventas y mejora utilidad real.                    |
-|         2 | Historial/auditoría de settings | Ya existe singleton actual, pero falta versionado explícito si negocio lo pide. |
+|         2 | Historial/auditoría de settings | Cubierto para pricing/labor con history append-only; falta extenderlo si negocio lo pide en otros settings. |
 |         3 | Nómina simple                  | V1 sólo pide proyección por salario base; conviene después de estabilizar reporting.      |
 |         4 | Toolchain Jest/ESM             | VM Modules warning no bloquea, pero es deuda de herramientas.                             |
 

@@ -17,6 +17,24 @@ type PricingLaborSettingsResponse = {
   updatedAt: string;
 };
 
+type PricingLaborSettingsAuditEntryResponse = {
+  id: string;
+  actorUserId: string;
+  changedFields: string[];
+  beforeValues: Record<string, string | number>;
+  afterValues: Record<string, string | number>;
+  createdAt: string;
+};
+
+type PricingLaborSettingsHistoryResponse = {
+  data: PricingLaborSettingsAuditEntryResponse[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+};
+
 describe('AppSettingsController (real db e2e)', () => {
   let app: INestApplication<App>;
 
@@ -93,6 +111,75 @@ describe('AppSettingsController (real db e2e)', () => {
       });
   });
 
+  it('creates audit history for changed admin updates and protects paginated history reads', async () => {
+    const adminCookies = await loginAsRole(app, 'ADMIN');
+    const salesCookies = await loginAsRole(app, 'SALES');
+    const mechanicCookies = await loginAsRole(app, 'MECHANIC');
+
+    const beforeSettingsResponse = await request(app.getHttpServer())
+      .get('/app-settings/pricing-labor')
+      .set('Cookie', adminCookies)
+      .expect(200);
+    const beforeSettings =
+      beforeSettingsResponse.body as PricingLaborSettingsResponse;
+
+    const beforeHistoryResponse = await request(app.getHttpServer())
+      .get('/app-settings/pricing-labor/history?page=1&limit=10')
+      .set('Cookie', adminCookies)
+      .expect(200);
+    const beforeHistory =
+      beforeHistoryResponse.body as PricingLaborSettingsHistoryResponse;
+
+    const nextCurrencyCode = beforeSettings.currencyCode === 'COP' ? 'USD' : 'COP';
+    const nextLaborRate =
+      beforeSettings.defaultLaborHourlyRate === 50000 ? 65000 : 50000;
+
+    await request(app.getHttpServer())
+      .patch('/app-settings/pricing-labor')
+      .set('Cookie', adminCookies)
+      .send({
+        currencyCode: nextCurrencyCode,
+        defaultLaborHourlyRate: nextLaborRate,
+      })
+      .expect(200)
+      .expect(({ body }: { body: PricingLaborSettingsResponse }) => {
+        expect(body.currencyCode).toBe(nextCurrencyCode);
+        expect(body.defaultLaborHourlyRate).toBe(nextLaborRate);
+      });
+
+    await request(app.getHttpServer())
+      .get('/app-settings/pricing-labor/history?page=1&limit=10')
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .get('/app-settings/pricing-labor/history?page=1&limit=10')
+      .set('Cookie', mechanicCookies)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/app-settings/pricing-labor/history?page=1&limit=10')
+      .set('Cookie', salesCookies)
+      .expect(200)
+      .expect(({ body }: { body: PricingLaborSettingsHistoryResponse }) => {
+        expect(body.meta.page).toBe(1);
+        expect(body.meta.limit).toBe(10);
+        expect(body.meta.total).toBe(beforeHistory.meta.total + 1);
+        expect(body.data.length).toBeGreaterThan(0);
+        expect(body.data[0]).toMatchObject({
+          actorUserId: 'seed-user-admin',
+          changedFields: ['currencyCode', 'defaultLaborHourlyRate'],
+          beforeValues: {
+            currencyCode: beforeSettings.currencyCode,
+            defaultLaborHourlyRate: beforeSettings.defaultLaborHourlyRate,
+          },
+          afterValues: {
+            currencyCode: nextCurrencyCode,
+            defaultLaborHourlyRate: nextLaborRate,
+          },
+        });
+      });
+  });
+
   it('rejects invalid or unauthorized updates without mutating persisted settings', async () => {
     const adminCookies = await loginAsRole(app, 'ADMIN');
     const salesCookies = await loginAsRole(app, 'SALES');
@@ -102,6 +189,12 @@ describe('AppSettingsController (real db e2e)', () => {
       .set('Cookie', adminCookies)
       .expect(200);
     const before = beforeResponse.body as PricingLaborSettingsResponse;
+    const beforeHistoryResponse = await request(app.getHttpServer())
+      .get('/app-settings/pricing-labor/history?page=1&limit=10')
+      .set('Cookie', adminCookies)
+      .expect(200);
+    const beforeHistory =
+      beforeHistoryResponse.body as PricingLaborSettingsHistoryResponse;
 
     await request(app.getHttpServer())
       .patch('/app-settings/pricing-labor')
@@ -120,6 +213,21 @@ describe('AppSettingsController (real db e2e)', () => {
       .expect(400);
 
     await request(app.getHttpServer())
+      .patch('/app-settings/pricing-labor')
+      .set('Cookie', adminCookies)
+      .send({})
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .patch('/app-settings/pricing-labor')
+      .set('Cookie', adminCookies)
+      .send({
+        currencyCode: before.currencyCode,
+        defaultLaborHourlyRate: before.defaultLaborHourlyRate,
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
       .get('/app-settings/pricing-labor')
       .set('Cookie', adminCookies)
       .expect(200)
@@ -127,6 +235,14 @@ describe('AppSettingsController (real db e2e)', () => {
         expect(body.currencyCode).toBe(before.currencyCode);
         expect(body.monthlyWorkingHours).toBe(before.monthlyWorkingHours);
         expect(body.defaultLaborHourlyRate).toBe(before.defaultLaborHourlyRate);
+      });
+
+    await request(app.getHttpServer())
+      .get('/app-settings/pricing-labor/history?page=1&limit=10')
+      .set('Cookie', adminCookies)
+      .expect(200)
+      .expect(({ body }: { body: PricingLaborSettingsHistoryResponse }) => {
+        expect(body.meta.total).toBe(beforeHistory.meta.total);
       });
   });
 });
