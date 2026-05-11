@@ -13,6 +13,7 @@ Este documento resume cómo está funcionando hoy el backend y cómo debería pe
 | Órdenes de trabajo                      | Implementado              | Incluye estimaciones, costos reales y pagos.                                     |
 | Gastos / empleados / centros de costo   | Implementado              | Alimenta reportes operativos.                                                    |
 | Reportes operativos                     | Implementado              | Reporting aproximado, no contabilidad formal.                                    |
+| Pricing / labor settings               | Implementado              | Singleton backend con defaults para futuras cotizaciones y snapshots históricos. |
 | Próxima brecha fuerte                   | Inventario ↔ órdenes      | Falta el puente operativo para consumo/venta de inventario por orden.            |
 
 ## 1. Mapa funcional actual
@@ -96,7 +97,8 @@ sequenceDiagram
   alt Trabajo de taller
     Admin->>WO: Agrega problema reportado y diagnóstico
   end
-  Admin->>Estimate: Carga estimación inicial
+  Admin->>Estimate: Lee pricing/labor settings vigentes
+  Admin->>Estimate: Carga estimación inicial con defaults snapshot
   Admin->>Estimate: Reemplaza estimación final cuando aplica
   Admin->>Cost: Registra compras, servicios, mano de obra u otros costos
   Admin->>Payment: Registra pagos parciales o totales
@@ -188,7 +190,7 @@ journey
 | Prioridad | Brecha                         | Por qué importa                                                                           |
 | --------: | ------------------------------ | ----------------------------------------------------------------------------------------- |
 |         1 | Inventario ligado a órdenes    | Cierra trazabilidad de salidas/consumos/ventas y mejora utilidad real.                    |
-|         2 | Configuración de pricing/labor | `AppSettings` existe en schema, pero falta API para márgenes, contingencias y horas base. |
+|         2 | Historial/auditoría de settings | Ya existe singleton actual, pero falta versionado explícito si negocio lo pide. |
 |         3 | Nómina simple                  | V1 sólo pide proyección por salario base; conviene después de estabilizar reporting.      |
 |         4 | Toolchain Jest/ESM             | VM Modules warning no bloquea, pero es deuda de herramientas.                             |
 

@@ -1,0 +1,148 @@
+{
+  "info": {
+    "name": "Mecanismos Dashboard App Settings",
+    "_postman_id": "2d841ca8-f9cd-44bd-9b87-b9f8f8e96f02",
+    "description": "Runner-ready supplemental verification for the pricing/labor singleton: auth, read, admin update, validation rejection, forbidden patch, and re-read behavior.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@mecanismos.test" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "salesEmail", "value": "ventas@mecanismos.test" },
+    { "key": "salesPassword", "value": "Ventas123!" },
+    { "key": "mechanicEmail", "value": "mecanico@mecanismos.test" },
+    { "key": "mechanicPassword", "value": "Mecanico123!" },
+    { "key": "currencyCode", "value": "USD" }
+  ],
+  "item": [
+    {
+      "name": "Runner Happy Path",
+      "item": [
+        {
+          "name": "Login as Sales",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{salesEmail}}\",\n  \"password\": \"{{salesPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Pricing Labor Settings as Sales",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor"]
+            }
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Patch Pricing Labor Settings as Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currencyCode\": \"{{currencyCode}}\",\n  \"monthlyWorkingHours\": 200,\n  \"defaultLaborHourlyRate\": 65000,\n  \"saleContingencyPct\": 7,\n  \"workshopContingencyPct\": 12,\n  \"diagnosticContingencyPct\": 25,\n  \"minimumMarkupPct\": 18,\n  \"recommendedMarkupPct\": 32,\n  \"highMarkupPct\": 48\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor"]
+            }
+          }
+        },
+        {
+          "name": "Re-read Pricing Labor Settings as Sales",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protection & Validation Checks",
+      "item": [
+        {
+          "name": "Login as Mechanic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mechanicEmail}}\",\n  \"password\": \"{{mechanicPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Patch Pricing Labor Settings as Sales is Forbidden",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"defaultLaborHourlyRate\": 99000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor"]
+            }
+          }
+        },
+        {
+          "name": "Patch Pricing Labor Settings with Invalid Payload",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currencyCode\": \"US\",\n  \"monthlyWorkingHours\": 0,\n  \"defaultLaborHourlyRate\": -1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/app-settings/pricing-labor",
+              "host": ["{{baseUrl}}"],
+              "path": ["app-settings", "pricing-labor"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
