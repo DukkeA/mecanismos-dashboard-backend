@@ -18,6 +18,7 @@ import { EmployeesModule } from './employees/employees.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
 import { OperationsReportingModule } from './operations-reporting/operations-reporting.module';
+import { CustomerAssetHistoryModule } from './customer-asset-history/customer-asset-history.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { OperationsReportingModule } from './operations-reporting/operations-rep
     ExpensesModule,
     WorkOrdersModule,
     OperationsReportingModule,
+    CustomerAssetHistoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
