@@ -83,6 +83,7 @@ model CostCenter {
   createdAt DateTime   @default(now())
   updatedAt DateTime
   Employee  Employee[]
+  EmployeeMonthlyPayrollLine EmployeeMonthlyPayrollLine[]
   Expense   Expense[]
 }
 
@@ -115,6 +116,7 @@ model Employee {
   updatedAt         DateTime
   CostCenter        CostCenter?     @relation(fields: [costCenterId], references: [id])
   EmployeeBonus     EmployeeBonus[]
+  EmployeeMonthlyPayrollLine EmployeeMonthlyPayrollLine[]
   WorkOrder         WorkOrder[]
 
   @@index([costCenterId])
@@ -134,6 +136,49 @@ model EmployeeBonus {
 
   @@index([employeeId])
   @@index([paidAt])
+}
+
+model EmployeeMonthlyPayroll {
+  id           String                       @id
+  year         Int
+  month        Int
+  status       EmployeeMonthlyPayrollStatus @default(DRAFT)
+  salaryTotal  Int                         @default(0)
+  bonusTotal   Int                         @default(0)
+  grandTotal   Int                         @default(0)
+  generatedAt  DateTime
+  finalizedAt  DateTime?
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime
+  lines        EmployeeMonthlyPayrollLine[]
+
+  @@unique([year, month], name: "year_month")
+  @@index([status, year, month])
+  @@index([generatedAt])
+}
+
+model EmployeeMonthlyPayrollLine {
+  id                        String                 @id
+  payrollId                 String
+  employeeId                String?
+  employeeName              String
+  employeeType              EmployeeType
+  costCenterId              String?
+  costCenterCode            String?
+  costCenterName            String?
+  baseSalaryMonthlySnapshot Int
+  bonusTotal                Int                    @default(0)
+  bonusCount                Int                    @default(0)
+  totalPay                  Int
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime
+  payroll                   EmployeeMonthlyPayroll @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  employee                  Employee?              @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  costCenter                CostCenter?            @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+
+  @@index([payrollId])
+  @@index([employeeId])
+  @@index([costCenterId])
 }
 
 model Expense {
@@ -513,6 +558,11 @@ enum EmployeeType {
   MECHANIC
   SALES
   ADMIN
+}
+
+enum EmployeeMonthlyPayrollStatus {
+  DRAFT
+  FINALIZED
 }
 
 enum EstimateLineType {
