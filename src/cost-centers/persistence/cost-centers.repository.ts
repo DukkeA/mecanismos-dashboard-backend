@@ -6,6 +6,11 @@ export const COST_CENTERS_PRISMA_CLIENT = Symbol('COST_CENTERS_PRISMA_CLIENT');
 
 export type CostCenterRecord = CostCenter;
 
+export type CostCenterOptionRecord = Pick<
+  CostCenter,
+  'id' | 'code' | 'name' | 'isActive'
+>;
+
 export type CreateCostCenterRecordInput = {
   code: string;
   name: string;
@@ -16,6 +21,12 @@ export type UpdateCostCenterRecordInput = Partial<CreateCostCenterRecordInput>;
 
 export type ListCostCentersQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  isActive?: boolean;
+};
+
+export type ListCostCenterOptionsQuery = {
   limit: number;
   search?: string;
   isActive?: boolean;
@@ -99,6 +110,36 @@ export class CostCentersRepository {
   findById(id: string) {
     return this.prisma.costCenter.findUnique({
       where: { id },
+    });
+  }
+
+  async findOptions(query: ListCostCenterOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      costCenter: {
+        findMany(args: {
+          where: CostCenterWhereInput;
+          orderBy: { name: 'asc' };
+          take: number;
+          select: {
+            id: true;
+            code: true;
+            name: true;
+            isActive: true;
+          };
+        }): Promise<CostCenterOptionRecord[]>;
+      };
+    };
+
+    return prisma.costCenter.findMany({
+      where: buildCostCenterWhere({ ...query, isActive: query.isActive ?? true }),
+      orderBy: { name: 'asc' },
+      take: query.limit,
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        isActive: true,
+      },
     });
   }
 

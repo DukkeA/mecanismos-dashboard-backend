@@ -8,6 +8,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -23,6 +27,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { ProcurementService } from '../procurement/procurement.service';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
+import { InventoryItemOptionsQueryDto } from './dto/inventory-item-options-query.dto';
 import { ListInventoryItemsQueryDto } from './dto/list-inventory-items-query.dto';
 import { InventoryService } from './inventory.service';
 
@@ -58,6 +63,35 @@ export class InventoryItemsController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListInventoryItemsQueryDto) {
     return this.inventoryService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight inventory item options for frontend comboboxes',
+  })
+  @ApiOkResponse({
+    description: 'Inventory item options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: InventoryItemOptionsQueryDto) {
+    return this.inventoryService.findItemOptions(query);
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary:
+      'Quick-create an inventory item without creating stock movements and return an option-compatible result',
+  })
+  @ApiCreatedResponse({
+    description: 'Inventory item quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  createQuick(@Body() createInventoryItemDto: CreateInventoryItemDto) {
+    return this.inventoryService.quickCreateItem(createInventoryItemDto);
   }
 
   @Get(':id')

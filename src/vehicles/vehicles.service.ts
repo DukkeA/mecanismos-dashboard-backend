@@ -4,9 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  buildQuickCreateResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
 import type { CreateVehicleDto } from './dto/create-vehicle.dto';
 import type { ListVehiclesQueryDto } from './dto/list-vehicles-query.dto';
 import type { UpdateVehicleDto } from './dto/update-vehicle.dto';
+import type { VehicleOptionsQueryDto } from './dto/vehicle-options-query.dto';
 import {
   VehicleDuplicatePlateError,
   VehiclesRepository,
@@ -43,6 +49,12 @@ export class VehiclesService {
     };
   }
 
+  async findOptions(query: VehicleOptionsQueryDto) {
+    const options = await this.vehiclesRepository.findOptions(query);
+
+    return buildOptionsResponse(options.map(mapVehicleOption), query.limit);
+  }
+
   async findOne(id: string) {
     const vehicle = await this.vehiclesRepository.findById(id);
 
@@ -63,6 +75,12 @@ export class VehiclesService {
     }
   }
 
+  async quickCreate(createVehicleDto: CreateVehicleDto) {
+    const vehicle = await this.create(createVehicleDto);
+
+    return buildQuickCreateResponse(mapVehicleOption(vehicle), vehicle);
+  }
+
   private rethrowKnownError(error: unknown): never {
     if (error instanceof VehicleDuplicatePlateError) {
       throw new ConflictException('Vehicle plate already exists');
@@ -70,4 +88,23 @@ export class VehiclesService {
 
     throw error;
   }
+}
+
+function mapVehicleOption(vehicle: {
+  id: string;
+  customerId: string;
+  brand: string;
+  modelReference: string;
+  plate: string;
+}): ReferenceOption {
+  return {
+    id: vehicle.id,
+    label: vehicle.plate,
+    description: `${vehicle.brand} ${vehicle.modelReference}`,
+    context: {
+      customerId: vehicle.customerId,
+      brand: vehicle.brand,
+      modelReference: vehicle.modelReference,
+    },
+  };
 }

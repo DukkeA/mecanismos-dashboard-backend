@@ -4,7 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  buildQuickCreateResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
 import type { CreateCustomerDto } from './dto/create-customer.dto';
+import type { CustomerOptionsQueryDto } from './dto/customer-options-query.dto';
 import type { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import type { UpdateCustomerDto } from './dto/update-customer.dto';
 import {
@@ -33,6 +39,12 @@ export class CustomersService {
     };
   }
 
+  async findOptions(query: CustomerOptionsQueryDto) {
+    const options = await this.customersRepository.findOptions(query);
+
+    return buildOptionsResponse(options.map(mapCustomerOption), query.limit);
+  }
+
   async findOne(id: string) {
     const customer = await this.customersRepository.findById(id);
 
@@ -53,6 +65,12 @@ export class CustomersService {
     }
   }
 
+  async quickCreate(createCustomerDto: CreateCustomerDto) {
+    const customer = await this.create(createCustomerDto);
+
+    return buildQuickCreateResponse(mapCustomerOption(customer), customer);
+  }
+
   private rethrowKnownError(error: unknown): never {
     if (error instanceof CustomerDuplicateDocumentError) {
       throw new ConflictException('Customer document already exists');
@@ -60,4 +78,23 @@ export class CustomersService {
 
     throw error;
   }
+}
+
+function mapCustomerOption(customer: {
+  id: string;
+  name: string;
+  phone: string;
+  documentType: string;
+  documentNumber: string;
+  email?: string | null;
+}): ReferenceOption {
+  return {
+    id: customer.id,
+    label: customer.name,
+    description: `${customer.documentType} ${customer.documentNumber}`,
+    context: {
+      phone: customer.phone,
+      email: customer.email ?? null,
+    },
+  };
 }

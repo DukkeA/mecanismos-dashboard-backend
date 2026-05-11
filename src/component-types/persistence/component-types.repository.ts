@@ -8,6 +8,11 @@ export const COMPONENT_TYPES_PRISMA_CLIENT = Symbol(
 
 export type ComponentTypeRecord = ComponentType;
 
+export type ComponentTypeOptionRecord = Pick<
+  ComponentType,
+  'id' | 'name' | 'description' | 'isActive'
+>;
+
 export type CreateComponentTypeRecordInput = {
   name: string;
   slug: string;
@@ -20,6 +25,12 @@ export type UpdateComponentTypeRecordInput =
 
 export type ListComponentTypesQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  isActive?: boolean;
+};
+
+export type ListComponentTypeOptionsQuery = {
   limit: number;
   search?: string;
   isActive?: boolean;
@@ -106,6 +117,36 @@ export class ComponentTypesRepository {
   findById(id: string) {
     return this.prisma.componentType.findUnique({
       where: { id },
+    });
+  }
+
+  async findOptions(query: ListComponentTypeOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      componentType: {
+        findMany(args: {
+          where: ComponentTypeWhereInput;
+          orderBy: { name: 'asc' };
+          take: number;
+          select: {
+            id: true;
+            name: true;
+            description: true;
+            isActive: true;
+          };
+        }): Promise<ComponentTypeOptionRecord[]>;
+      };
+    };
+
+    return prisma.componentType.findMany({
+      where: buildComponentTypeWhere({ ...query, isActive: query.isActive ?? true }),
+      orderBy: { name: 'asc' },
+      take: query.limit,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true,
+      },
     });
   }
 

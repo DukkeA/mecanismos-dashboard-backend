@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -25,6 +29,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { ListSuppliersQueryDto } from './dto/list-suppliers-query.dto';
+import { SupplierOptionsQueryDto } from './dto/supplier-options-query.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { SuppliersService } from './suppliers.service';
 
@@ -55,6 +60,34 @@ export class SuppliersController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListSuppliersQueryDto) {
     return this.suppliersService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight supplier options for frontend comboboxes',
+  })
+  @ApiOkResponse({
+    description: 'Supplier options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: SupplierOptionsQueryDto) {
+    return this.suppliersService.findOptions(query);
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary: 'Quick-create a supplier and return an option-compatible result',
+  })
+  @ApiCreatedResponse({
+    description: 'Supplier quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  createQuick(@Body() createSupplierDto: CreateSupplierDto) {
+    return this.suppliersService.quickCreate(createSupplierDto);
   }
 
   @Get(':id/quotes')

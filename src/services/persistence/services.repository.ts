@@ -6,6 +6,11 @@ export const SERVICES_PRISMA_CLIENT = Symbol('SERVICES_PRISMA_CLIENT');
 
 export type ServiceRecord = ServiceCatalog;
 
+export type ServiceOptionRecord = Pick<
+  ServiceCatalog,
+  'id' | 'name' | 'description' | 'isActive'
+>;
+
 export type CreateServiceRecordInput = {
   name: string;
   slug: string;
@@ -17,6 +22,12 @@ export type UpdateServiceRecordInput = Partial<CreateServiceRecordInput>;
 
 export type ListServicesQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  isActive?: boolean;
+};
+
+export type ListServiceOptionsQuery = {
   limit: number;
   search?: string;
   isActive?: boolean;
@@ -99,6 +110,36 @@ export class ServicesRepository {
   findById(id: string) {
     return this.prisma.serviceCatalog.findUnique({
       where: { id },
+    });
+  }
+
+  async findOptions(query: ListServiceOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      serviceCatalog: {
+        findMany(args: {
+          where: ServiceCatalogWhereInput;
+          orderBy: { name: 'asc' };
+          take: number;
+          select: {
+            id: true;
+            name: true;
+            description: true;
+            isActive: true;
+          };
+        }): Promise<ServiceOptionRecord[]>;
+      };
+    };
+
+    return prisma.serviceCatalog.findMany({
+      where: buildServiceWhere({ ...query, isActive: query.isActive ?? true }),
+      orderBy: { name: 'asc' },
+      take: query.limit,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true,
+      },
     });
   }
 

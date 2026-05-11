@@ -19,6 +19,7 @@ describe('ComponentTypesService', () => {
   const repository = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
   } as unknown as jest.Mocked<ComponentTypesRepository>;
@@ -82,6 +83,29 @@ describe('ComponentTypesService', () => {
         total: 1,
         totalPages: 1,
       },
+    });
+  });
+
+  it('returns active component type options', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'component-type-1',
+        name: 'Bomba de inyeccion',
+        description: 'Bombas de inyeccion diesel',
+        isActive: true,
+      },
+    ] as never);
+
+    await expect(service.findOptions({ limit: 10 })).resolves.toEqual({
+      data: [
+        {
+          id: 'component-type-1',
+          label: 'Bomba de inyeccion',
+          description: 'Bombas de inyeccion diesel',
+          isActive: true,
+        },
+      ],
+      meta: { limit: 10 },
     });
   });
 

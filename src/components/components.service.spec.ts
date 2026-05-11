@@ -31,6 +31,7 @@ describe('ComponentsService', () => {
     componentTypeExists: jest.fn(),
     findVehicleOwnership: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
   } as unknown as jest.Mocked<ComponentsRepository>;
@@ -170,6 +171,39 @@ describe('ComponentsService', () => {
     });
   });
 
+  it('returns component options with ownership context', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'component-1',
+        customerId: 'customer-1',
+        vehicleId: 'vehicle-1',
+        brand: 'Bosch',
+        reference: 'ALT-90A',
+        identifier: 'SER-100',
+        componentType: { id: 'component-type-1', name: 'Inyector' },
+      },
+    ] as never);
+
+    await expect(
+      service.findOptions({ limit: 10, customerId: 'customer-1' }),
+    ).resolves.toEqual({
+      data: [
+        {
+          id: 'component-1',
+          label: 'SER-100',
+          description: 'Bosch · ALT-90A',
+          context: {
+            customerId: 'customer-1',
+            vehicleId: 'vehicle-1',
+            componentTypeId: 'component-type-1',
+            componentTypeName: 'Inyector',
+          },
+        },
+      ],
+      meta: { limit: 10 },
+    });
+  });
+
   it('throws NotFoundException when the component does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 
@@ -248,5 +282,28 @@ describe('ComponentsService', () => {
         'Vehicle vehicle-2 does not belong to customer customer-1',
       ),
     );
+  });
+
+  it('quick-creates a component with option-compatible response data', async () => {
+    repository.customerExists.mockResolvedValue(true);
+    repository.componentTypeExists.mockResolvedValue(true);
+    repository.findVehicleOwnership.mockResolvedValue({
+      id: 'vehicle-1',
+      customerId: 'customer-1',
+    });
+    repository.create.mockResolvedValue(componentRecord);
+
+    await expect(
+      service.quickCreate({
+        customerId: 'customer-1',
+        vehicleId: 'vehicle-1',
+        componentTypeId: 'component-type-1',
+        brand: 'Bosch',
+        reference: 'ALT-90A',
+      }),
+    ).resolves.toMatchObject({
+      data: { id: 'component-1', label: 'SER-100' },
+      entity: componentRecord,
+    });
   });
 });

@@ -4,8 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
 
 import type { CreateComponentTypeDto } from './dto/create-component-type.dto';
+import type { ComponentTypeOptionsQueryDto } from './dto/component-type-options-query.dto';
 import type { ListComponentTypesQueryDto } from './dto/list-component-types-query.dto';
 import type { UpdateComponentTypeDto } from './dto/update-component-type.dto';
 import {
@@ -44,6 +49,12 @@ export class ComponentTypesService {
       data: result.items,
       meta: buildPaginationMeta(result),
     };
+  }
+
+  async findOptions(query: ComponentTypeOptionsQueryDto) {
+    const options = await this.componentTypesRepository.findOptions(query);
+
+    return buildOptionsResponse(options.map(mapComponentTypeOption), query.limit);
   }
 
   async findOne(id: string) {
@@ -93,6 +104,20 @@ export class ComponentTypesService {
 
     throw error;
   }
+}
+
+function mapComponentTypeOption(componentType: {
+  id: string;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+}): ReferenceOption {
+  return {
+    id: componentType.id,
+    label: componentType.name,
+    description: componentType.description ?? undefined,
+    isActive: componentType.isActive,
+  };
 }
 
 function normalizeOptionalString(value?: string) {

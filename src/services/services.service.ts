@@ -5,10 +5,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  buildQuickCreateResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
 
 import { slugify } from '../common/strings/slugify';
 import type { CreateServiceDto } from './dto/create-service.dto';
 import type { ListServicesQueryDto } from './dto/list-services-query.dto';
+import type { ServiceOptionsQueryDto } from './dto/service-options-query.dto';
 import type { UpdateServiceDto } from './dto/update-service.dto';
 import {
   ServiceCatalogSlugConflictError,
@@ -42,6 +48,12 @@ export class ServicesService {
       data: result.items,
       meta: buildPaginationMeta(result),
     };
+  }
+
+  async findOptions(query: ServiceOptionsQueryDto) {
+    const options = await this.servicesRepository.findOptions(query);
+
+    return buildOptionsResponse(options.map(mapServiceOption), query.limit);
   }
 
   async findOne(id: string) {
@@ -82,6 +94,12 @@ export class ServicesService {
     }
   }
 
+  async quickCreate(createServiceDto: CreateServiceDto) {
+    const service = await this.create(createServiceDto);
+
+    return buildQuickCreateResponse(mapServiceOption(service), service);
+  }
+
   private rethrowKnownError(error: unknown): never {
     if (error instanceof ServiceCatalogSlugConflictError) {
       throw new ConflictException('Service catalog slug already exists');
@@ -107,4 +125,18 @@ function ensureNonEmptySlug(value: string) {
   }
 
   return slug;
+}
+
+function mapServiceOption(service: {
+  id: string;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+}): ReferenceOption {
+  return {
+    id: service.id,
+    label: service.name,
+    description: service.description ?? undefined,
+    isActive: service.isActive,
+  };
 }

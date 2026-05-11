@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -21,6 +25,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { CustomerOptionsQueryDto } from './dto/customer-options-query.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomersService } from './customers.service';
@@ -49,6 +54,34 @@ export class CustomersController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListCustomersQueryDto) {
     return this.customersService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight customer options for frontend comboboxes',
+  })
+  @ApiOkResponse({
+    description: 'Customer options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: CustomerOptionsQueryDto) {
+    return this.customersService.findOptions(query);
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary: 'Quick-create a customer and return an option-compatible result',
+  })
+  @ApiCreatedResponse({
+    description: 'Customer quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  createQuick(@Body() createCustomerDto: CreateCustomerDto) {
+    return this.customersService.quickCreate(createCustomerDto);
   }
 
   @Get(':id')

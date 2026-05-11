@@ -6,6 +6,11 @@ export const VEHICLES_PRISMA_CLIENT = Symbol('VEHICLES_PRISMA_CLIENT');
 
 export type VehicleRecord = Vehicle;
 
+export type VehicleOptionRecord = Pick<
+  Vehicle,
+  'id' | 'customerId' | 'brand' | 'modelReference' | 'plate'
+>;
+
 export type CreateVehicleRecordInput = {
   customerId: string;
   brand: string;
@@ -20,6 +25,12 @@ export type UpdateVehicleRecordInput = Partial<
 
 export type ListVehiclesQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  customerId?: string;
+};
+
+export type ListVehicleOptionsQuery = {
   limit: number;
   search?: string;
   customerId?: string;
@@ -117,6 +128,38 @@ export class VehiclesRepository {
   findById(id: string) {
     return this.prisma.vehicle.findUnique({
       where: { id },
+    });
+  }
+
+  async findOptions(query: ListVehicleOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      vehicle: {
+        findMany(args: {
+          where: VehicleWhereInput;
+          orderBy: { plate: 'asc' };
+          take: number;
+          select: {
+            id: true;
+            customerId: true;
+            brand: true;
+            modelReference: true;
+            plate: true;
+          };
+        }): Promise<VehicleOptionRecord[]>;
+      };
+    };
+
+    return prisma.vehicle.findMany({
+      where: buildVehicleWhere(query),
+      orderBy: { plate: 'asc' },
+      take: query.limit,
+      select: {
+        id: true,
+        customerId: true,
+        brand: true,
+        modelReference: true,
+        plate: true,
+      },
     });
   }
 

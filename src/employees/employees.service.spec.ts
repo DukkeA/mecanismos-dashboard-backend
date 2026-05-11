@@ -51,6 +51,7 @@ describe('EmployeesService', () => {
   const repository = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
     createBonus: jest.fn(),
@@ -116,6 +117,39 @@ describe('EmployeesService', () => {
         total: 1,
         totalPages: 1,
       },
+    });
+  });
+
+  it('returns active employee options with cost-center context', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'employee-1',
+        name: 'Ana Torres',
+        type: EmployeeType.MECHANIC,
+        phone: '3001234567',
+        isActive: true,
+        costCenterId: 'cost-center-1',
+        CostCenter: { id: 'cost-center-1', code: 'TALLER', name: 'Taller' },
+      },
+    ] as never);
+
+    await expect(service.findOptions({ limit: 10 })).resolves.toEqual({
+      data: [
+        {
+          id: 'employee-1',
+          label: 'Ana Torres',
+          description: EmployeeType.MECHANIC,
+          isActive: true,
+          context: {
+            type: EmployeeType.MECHANIC,
+            phone: '3001234567',
+            costCenterId: 'cost-center-1',
+            costCenterCode: 'TALLER',
+            costCenterName: 'Taller',
+          },
+        },
+      ],
+      meta: { limit: 10 },
     });
   });
 
@@ -196,8 +230,19 @@ describe('EmployeesService', () => {
     ] as never);
 
     await expect(service.listCostCenterOptions()).resolves.toEqual([
-      costCenterOptionRecord,
-    ]);
+      {
+        data: [
+          {
+            id: 'cost-center-1',
+            label: 'TALLER · Taller',
+            description: 'Taller',
+            isActive: true,
+            context: { code: 'TALLER' },
+          },
+        ],
+        meta: { limit: 10 },
+      },
+    ][0]);
   });
 
   it('creates employee bonuses only for existing employees and trims optional fields', async () => {
@@ -284,5 +329,24 @@ describe('EmployeesService', () => {
 
     expect(repository.createBonus.mock.calls).toHaveLength(0);
     expect(repository.findBonusesByEmployeeId.mock.calls).toHaveLength(0);
+  });
+
+  it('quick-creates employees with salary default 0 and incomplete-profile metadata', async () => {
+    repository.findCostCenterById.mockResolvedValue(costCenterRecord);
+    repository.create.mockResolvedValue({
+      ...employeeRecord,
+      baseSalaryMonthly: 0,
+    });
+
+    await expect(
+      service.quickCreate({
+        name: 'Ana Torres',
+        type: EmployeeType.MECHANIC,
+        costCenterId: 'cost-center-1',
+      }),
+    ).resolves.toMatchObject({
+      data: { id: 'employee-1', label: 'Ana Torres' },
+      meta: { incompleteProfile: true },
+    });
   });
 });

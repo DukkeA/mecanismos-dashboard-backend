@@ -10,6 +10,11 @@ export const CUSTOMERS_PRISMA_CLIENT = Symbol('CUSTOMERS_PRISMA_CLIENT');
 
 export type CustomerRecord = Customer;
 
+export type CustomerOptionRecord = Pick<
+  Customer,
+  'id' | 'name' | 'phone' | 'documentType' | 'documentNumber' | 'email'
+>;
+
 export type CreateCustomerRecordInput = {
   name: string;
   phone: string;
@@ -23,6 +28,12 @@ export type UpdateCustomerRecordInput = Partial<CreateCustomerRecordInput>;
 
 export type ListCustomersQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  documentType?: CustomerDocumentType;
+};
+
+export type ListCustomerOptionsQuery = {
   limit: number;
   search?: string;
   documentType?: CustomerDocumentType;
@@ -107,6 +118,40 @@ export class CustomersRepository {
   findById(id: string) {
     return this.prisma.customer.findUnique({
       where: { id },
+    });
+  }
+
+  async findOptions(query: ListCustomerOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      customer: {
+        findMany(args: {
+          where: CustomerWhereInput;
+          orderBy: { name: 'asc' };
+          take: number;
+          select: {
+            id: true;
+            name: true;
+            phone: true;
+            documentType: true;
+            documentNumber: true;
+            email: true;
+          };
+        }): Promise<CustomerOptionRecord[]>;
+      };
+    };
+
+    return prisma.customer.findMany({
+      where: buildCustomerWhere(query),
+      orderBy: { name: 'asc' },
+      take: query.limit,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        documentType: true,
+        documentNumber: true,
+        email: true,
+      },
     });
   }
 

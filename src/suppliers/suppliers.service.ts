@@ -4,8 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  buildQuickCreateResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
 import type { CreateSupplierDto } from './dto/create-supplier.dto';
 import type { ListSuppliersQueryDto } from './dto/list-suppliers-query.dto';
+import type { SupplierOptionsQueryDto } from './dto/supplier-options-query.dto';
 import type { SupplierPhoneDto } from './dto/supplier-phone.dto';
 import type { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { SuppliersRepository } from './persistence/suppliers.repository';
@@ -30,6 +36,12 @@ export class SuppliersService {
     };
   }
 
+  async findOptions(query: SupplierOptionsQueryDto) {
+    const options = await this.suppliersRepository.findOptions(query);
+
+    return buildOptionsResponse(options.map(mapSupplierOption), query.limit);
+  }
+
   async findOne(id: string) {
     const supplier = await this.suppliersRepository.findById(id);
 
@@ -49,6 +61,12 @@ export class SuppliersService {
         ? { phones: normalizeSupplierPhones(updateSupplierDto.phones) }
         : {}),
     });
+  }
+
+  async quickCreate(createSupplierDto: CreateSupplierDto) {
+    const supplier = await this.create(createSupplierDto);
+
+    return buildQuickCreateResponse(mapSupplierOption(supplier), supplier);
   }
 }
 
@@ -76,4 +94,31 @@ function normalizeSupplierPhones(phones: SupplierPhoneDto[]) {
     ...phone,
     isPrimary: primaryPhones[0] === phone,
   }));
+}
+
+function mapSupplierOption(supplier: {
+  id: string;
+  name: string;
+  contactName?: string | null;
+  email?: string | null;
+  isActive: boolean;
+  type: string;
+  phones: Array<{ phone: string; isPrimary: boolean }>;
+}): ReferenceOption {
+  const primaryPhone =
+    supplier.phones.find((phone) => phone.isPrimary)?.phone ??
+    supplier.phones[0]?.phone ??
+    null;
+
+  return {
+    id: supplier.id,
+    label: supplier.name,
+    description: supplier.contactName ?? undefined,
+    isActive: supplier.isActive,
+    context: {
+      type: supplier.type,
+      phone: primaryPhone,
+      email: supplier.email ?? null,
+    },
+  };
 }

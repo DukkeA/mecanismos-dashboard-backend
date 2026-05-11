@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiConflictResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
@@ -24,6 +28,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
+import { ServiceOptionsQueryDto } from './dto/service-options-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServicesService } from './services.service';
 
@@ -56,6 +61,35 @@ export class ServicesController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListServicesQueryDto) {
     return this.servicesService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight service options for frontend comboboxes',
+  })
+  @ApiOkResponse({
+    description: 'Service options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: ServiceOptionsQueryDto) {
+    return this.servicesService.findOptions(query);
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary: 'Quick-create a service and return an option-compatible result',
+  })
+  @ApiCreatedResponse({
+    description: 'Service quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  @ApiConflictResponse({ description: 'Canonical slug already exists.' })
+  createQuick(@Body() createServiceDto: CreateServiceDto) {
+    return this.servicesService.quickCreate(createServiceDto);
   }
 
   @Get(':id')

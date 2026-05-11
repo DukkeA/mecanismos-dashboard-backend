@@ -14,6 +14,13 @@ export type SupplierRecord = Supplier & {
   phones: SupplierPhone[];
 };
 
+export type SupplierOptionRecord = Pick<
+  Supplier,
+  'id' | 'name' | 'contactName' | 'email' | 'isActive' | 'type'
+> & {
+  phones: Array<Pick<SupplierPhone, 'phone' | 'isPrimary'>>;
+};
+
 export type SupplierPhoneRecordInput = {
   label?: string;
   phone: string;
@@ -42,6 +49,13 @@ export type UpdateSupplierRecordInput = Partial<
 
 export type ListSuppliersQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  isActive?: boolean;
+  type?: SupplierType;
+};
+
+export type ListSupplierOptionsQuery = {
   limit: number;
   search?: string;
   isActive?: boolean;
@@ -159,6 +173,30 @@ export class SuppliersRepository {
     return this.prisma.supplier.findUnique({
       where: { id },
       include: supplierInclude,
+    });
+  }
+
+  async findOptions(query: ListSupplierOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      supplier: {
+        findMany(args: {
+          where: SupplierWhereInput;
+          orderBy: { name: 'asc' };
+          take: number;
+          include: {
+            phones: { select: { phone: true; isPrimary: true } };
+          };
+        }): Promise<SupplierOptionRecord[]>;
+      };
+    };
+
+    return prisma.supplier.findMany({
+      where: buildSupplierWhere({ ...query, isActive: query.isActive ?? true }),
+      orderBy: { name: 'asc' },
+      take: query.limit,
+      include: {
+        phones: { select: { phone: true, isPrimary: true } },
+      },
     });
   }
 

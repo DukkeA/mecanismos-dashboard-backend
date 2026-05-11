@@ -22,6 +22,11 @@ export const INVENTORY_PRISMA_CLIENT = Symbol('INVENTORY_PRISMA_CLIENT');
 export type InventoryItemRecord = InventoryItem;
 export type InventoryMovementRecord = InventoryMovement;
 
+export type InventoryItemOptionRecord = Pick<
+  InventoryItem,
+  'id' | 'name' | 'brand' | 'reference' | 'itemType' | 'condition' | 'isActive'
+>;
+
 export type CreateInventoryItemRecordInput = {
   name: string;
   itemType: InventoryItemType;
@@ -37,6 +42,14 @@ export type CreateInventoryItemRecordInput = {
 
 export type ListInventoryItemsQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  isActive?: boolean;
+  itemType?: InventoryItemType;
+  condition?: InventoryCondition;
+};
+
+export type ListInventoryItemOptionsQuery = {
   limit: number;
   search?: string;
   isActive?: boolean;
@@ -186,6 +199,45 @@ export class InventoryRepository {
   findItemById(id: string) {
     return this.prisma.inventoryItem.findUnique({
       where: { id },
+    });
+  }
+
+  async findItemOptions(query: ListInventoryItemOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      inventoryItem: {
+        findMany(args: {
+          where: InventoryItemWhereInput;
+          orderBy: [{ name: 'asc' }, { createdAt: 'desc' }];
+          take: number;
+          select: {
+            id: true;
+            name: true;
+            brand: true;
+            reference: true;
+            itemType: true;
+            condition: true;
+            isActive: true;
+          };
+        }): Promise<InventoryItemOptionRecord[]>;
+      };
+    };
+
+    return prisma.inventoryItem.findMany({
+      where: buildInventoryItemWhere({
+        ...query,
+        isActive: query.isActive ?? true,
+      }),
+      orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+      take: query.limit,
+      select: {
+        id: true,
+        name: true,
+        brand: true,
+        reference: true,
+        itemType: true,
+        condition: true,
+        isActive: true,
+      },
     });
   }
 

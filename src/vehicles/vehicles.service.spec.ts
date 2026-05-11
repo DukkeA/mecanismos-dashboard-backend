@@ -21,6 +21,7 @@ describe('VehiclesService', () => {
     create: jest.fn(),
     customerExists: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
   } as unknown as jest.Mocked<VehiclesRepository>;
@@ -97,6 +98,36 @@ describe('VehiclesService', () => {
     });
   });
 
+  it('returns customer-scoped vehicle options', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'vehicle-1',
+        customerId: 'customer-1',
+        brand: 'Mazda',
+        modelReference: 'CX5',
+        plate: 'ABC123',
+      },
+    ] as never);
+
+    await expect(
+      service.findOptions({ limit: 10, customerId: 'customer-1' }),
+    ).resolves.toEqual({
+      data: [
+        {
+          id: 'vehicle-1',
+          label: 'ABC123',
+          description: 'Mazda CX5',
+          context: {
+            customerId: 'customer-1',
+            brand: 'Mazda',
+            modelReference: 'CX5',
+          },
+        },
+      ],
+      meta: { limit: 10 },
+    });
+  });
+
   it('throws NotFoundException when the vehicle does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 
@@ -134,5 +165,22 @@ describe('VehiclesService', () => {
     await expect(
       service.update('vehicle-1', { plate: 'ABC123' }),
     ).rejects.toThrow(new ConflictException('Vehicle plate already exists'));
+  });
+
+  it('quick-creates a vehicle with option-compatible response data', async () => {
+    repository.customerExists.mockResolvedValue(true);
+    repository.create.mockResolvedValue(vehicleRecord);
+
+    await expect(
+      service.quickCreate({
+        customerId: 'customer-1',
+        brand: 'Mazda',
+        modelReference: 'CX5',
+        plate: 'ABC123',
+      }),
+    ).resolves.toMatchObject({
+      data: { id: 'vehicle-1', label: 'ABC123' },
+      entity: vehicleRecord,
+    });
   });
 });

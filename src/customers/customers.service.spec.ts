@@ -22,6 +22,7 @@ describe('CustomersService', () => {
   const repository = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
   } as unknown as jest.Mocked<CustomersRepository>;
@@ -84,6 +85,34 @@ describe('CustomersService', () => {
     });
   });
 
+  it('returns lightweight customer options', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'customer-1',
+        name: 'Ana Gomez',
+        phone: '3001234567',
+        documentType: CustomerDocumentType.CEDULA,
+        documentNumber: '123456789',
+        email: 'ana@mecanismos.test',
+      },
+    ] as never);
+
+    await expect(service.findOptions({ limit: 10, search: 'ana' })).resolves.toEqual({
+      data: [
+        {
+          id: 'customer-1',
+          label: 'Ana Gomez',
+          description: 'CEDULA 123456789',
+          context: {
+            phone: '3001234567',
+            email: 'ana@mecanismos.test',
+          },
+        },
+      ],
+      meta: { limit: 10 },
+    });
+  });
+
   it('throws NotFoundException when the customer does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 
@@ -122,5 +151,24 @@ describe('CustomersService', () => {
     ).rejects.toThrow(
       new ConflictException('Customer document already exists'),
     );
+  });
+
+  it('quick-creates a customer with option-compatible response data', async () => {
+    repository.create.mockResolvedValue(customerRecord);
+
+    await expect(
+      service.quickCreate({
+        name: 'Ana Gomez',
+        phone: '3001234567',
+        documentType: CustomerDocumentType.CEDULA,
+        documentNumber: '123456789',
+      }),
+    ).resolves.toMatchObject({
+      data: {
+        id: 'customer-1',
+        label: 'Ana Gomez',
+      },
+      entity: customerRecord,
+    });
   });
 });

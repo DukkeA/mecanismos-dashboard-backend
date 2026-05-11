@@ -33,6 +33,7 @@ describe('InventoryService', () => {
 
   const repository = {
     createItem: jest.fn(),
+    findItemOptions: jest.fn(),
     findManyItems: jest.fn(),
     calculateCurrentStocks: jest.fn(),
     findItemById: jest.fn(),
@@ -86,6 +87,36 @@ describe('InventoryService', () => {
     await expect(service.findOne('item-1')).resolves.toEqual({
       ...itemRecord,
       currentStock: 0,
+    });
+  });
+
+  it('returns active inventory options without current stock payloads', async () => {
+    repository.findItemOptions.mockResolvedValue([
+      {
+        id: 'item-1',
+        name: 'Inyector Bosch',
+        brand: 'Bosch',
+        reference: '0445120231',
+        itemType: InventoryItemType.STOCK_OWNED,
+        condition: InventoryCondition.NEW,
+        isActive: true,
+      },
+    ] as never);
+
+    await expect(service.findItemOptions({ limit: 10 })).resolves.toEqual({
+      data: [
+        {
+          id: 'item-1',
+          label: 'Inyector Bosch',
+          description: 'Bosch · 0445120231',
+          isActive: true,
+          context: {
+            itemType: InventoryItemType.STOCK_OWNED,
+            condition: InventoryCondition.NEW,
+          },
+        },
+      ],
+      meta: { limit: 10 },
     });
   });
 
@@ -178,5 +209,21 @@ describe('InventoryService', () => {
     await expect(service.findMovement('missing-movement')).rejects.toThrow(
       new NotFoundException('Inventory movement missing-movement not found'),
     );
+  });
+
+  it('quick-creates inventory items without writing stock movements', async () => {
+    repository.createItem.mockResolvedValue(itemRecord);
+
+    await expect(
+      service.quickCreateItem({
+        name: 'Inyector Bosch',
+        itemType: InventoryItemType.STOCK_OWNED,
+      }),
+    ).resolves.toMatchObject({
+      data: { id: 'item-1', label: 'Inyector Bosch' },
+      entity: itemRecord,
+    });
+
+    expect(repository.createMovement).not.toHaveBeenCalled();
   });
 });

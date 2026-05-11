@@ -18,6 +18,7 @@ describe('CostCentersService', () => {
   const repository = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
   } as unknown as jest.Mocked<CostCentersRepository>;
@@ -74,6 +75,30 @@ describe('CostCentersService', () => {
     });
   });
 
+  it('returns active cost-center options', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'cost-center-1',
+        code: 'GENERAL',
+        name: 'General',
+        isActive: true,
+      },
+    ] as never);
+
+    await expect(service.findOptions({ limit: 10 })).resolves.toEqual({
+      data: [
+        {
+          id: 'cost-center-1',
+          label: 'GENERAL · General',
+          description: 'General',
+          isActive: true,
+          context: { code: 'GENERAL' },
+        },
+      ],
+      meta: { limit: 10 },
+    });
+  });
+
   it('rejects duplicate canonical codes with a 409 conflict', async () => {
     repository.create.mockRejectedValue(new CostCenterCodeConflictError());
 
@@ -122,5 +147,16 @@ describe('CostCentersService', () => {
         isActive: false,
       },
     ]);
+  });
+
+  it('quick-creates a cost center with option-compatible response data', async () => {
+    repository.create.mockResolvedValue(costCenterRecord);
+
+    await expect(
+      service.quickCreate({ code: 'GENERAL', name: 'General' }),
+    ).resolves.toMatchObject({
+      data: { id: 'cost-center-1', label: 'GENERAL · General' },
+      entity: costCenterRecord,
+    });
   });
 });

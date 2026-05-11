@@ -20,6 +20,13 @@ export type CostCenterOptionRecord = Pick<
   'id' | 'code' | 'name' | 'isActive'
 >;
 
+export type EmployeeOptionRecord = Pick<
+  Employee,
+  'id' | 'name' | 'type' | 'phone' | 'isActive' | 'costCenterId'
+> & {
+  CostCenter: Pick<CostCenter, 'id' | 'code' | 'name'> | null;
+};
+
 export type EmployeeBonusRecord = EmployeeBonus;
 
 export type CreateEmployeeRecordInput = {
@@ -54,6 +61,14 @@ export type ListEmployeeBonusesQuery = {
   limit: number;
   from?: Date;
   to?: Date;
+};
+
+export type ListEmployeeOptionsQuery = {
+  limit: number;
+  search?: string;
+  type?: EmployeeType;
+  isActive?: boolean;
+  costCenterId?: string;
 };
 
 type EmployeeWhereInput = Prisma.EmployeeWhereInput;
@@ -156,6 +171,32 @@ export class EmployeesRepository {
     return this.prisma.employee.findUnique({
       where: { id },
       include: { CostCenter: true },
+    });
+  }
+
+  async findOptions(query: ListEmployeeOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      employee: {
+        findMany(args: {
+          where: EmployeeWhereInput;
+          orderBy: { name: 'asc' };
+          take: number;
+          include: {
+            CostCenter: { select: { id: true; code: true; name: true } };
+          };
+        }): Promise<EmployeeOptionRecord[]>;
+      };
+    };
+
+    return prisma.employee.findMany({
+      where: buildEmployeeWhere({ ...query, isActive: query.isActive ?? true }),
+      orderBy: { name: 'asc' },
+      take: query.limit,
+      include: {
+        CostCenter: {
+          select: { id: true, code: true, name: true },
+        },
+      },
     });
   }
 

@@ -4,7 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  buildQuickCreateResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
 
+import type { ComponentOptionsQueryDto } from './dto/component-options-query.dto';
 import type { CreateComponentDto } from './dto/create-component.dto';
 import type { ListComponentsQueryDto } from './dto/list-components-query.dto';
 import type { UpdateComponentDto } from './dto/update-component.dto';
@@ -34,6 +40,12 @@ export class ComponentsService {
     };
   }
 
+  async findOptions(query: ComponentOptionsQueryDto) {
+    const options = await this.componentsRepository.findOptions(query);
+
+    return buildOptionsResponse(options.map(mapComponentOption), query.limit);
+  }
+
   async findOne(id: string) {
     const component = await this.componentsRepository.findById(id);
 
@@ -55,6 +67,12 @@ export class ComponentsService {
     );
 
     return this.componentsRepository.update(id, updateComponentDto);
+  }
+
+  async quickCreate(createComponentDto: CreateComponentDto) {
+    const component = await this.create(createComponentDto);
+
+    return buildQuickCreateResponse(mapComponentOption(component), component);
   }
 
   private async assertCustomerExists(customerId: string) {
@@ -102,4 +120,26 @@ export class ComponentsService {
       );
     }
   }
+}
+
+function mapComponentOption(component: {
+  id: string;
+  customerId: string;
+  vehicleId?: string | null;
+  brand: string;
+  reference: string;
+  identifier?: string | null;
+  componentType: { id: string; name: string };
+}): ReferenceOption {
+  return {
+    id: component.id,
+    label: component.identifier ?? `${component.componentType.name} ${component.reference}`,
+    description: `${component.brand} · ${component.reference}`,
+    context: {
+      customerId: component.customerId,
+      vehicleId: component.vehicleId ?? null,
+      componentTypeId: component.componentType.id,
+      componentTypeName: component.componentType.name,
+    },
+  };
 }

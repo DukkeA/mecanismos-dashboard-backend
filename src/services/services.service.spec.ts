@@ -23,6 +23,7 @@ describe('ServicesService', () => {
   const repository = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
   } as unknown as jest.Mocked<ServicesRepository>;
@@ -103,6 +104,29 @@ describe('ServicesService', () => {
     });
   });
 
+  it('returns active service options', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'service-1',
+        name: 'Diagnóstico electrónico',
+        description: 'Lectura de fallas y validación inicial.',
+        isActive: true,
+      },
+    ] as never);
+
+    await expect(service.findOptions({ limit: 10 })).resolves.toEqual({
+      data: [
+        {
+          id: 'service-1',
+          label: 'Diagnóstico electrónico',
+          description: 'Lectura de fallas y validación inicial.',
+          isActive: true,
+        },
+      ],
+      meta: { limit: 10 },
+    });
+  });
+
   it('throws NotFoundException when the service does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 
@@ -156,5 +180,16 @@ describe('ServicesService', () => {
     );
 
     expect(repository.update.mock.calls).toHaveLength(0);
+  });
+
+  it('quick-creates a service with option-compatible response data', async () => {
+    repository.create.mockResolvedValue(serviceRecord);
+
+    await expect(
+      service.quickCreate({ name: 'Diagnóstico electrónico' }),
+    ).resolves.toMatchObject({
+      data: { id: 'service-1', label: 'Diagnóstico electrónico' },
+      entity: serviceRecord,
+    });
   });
 });

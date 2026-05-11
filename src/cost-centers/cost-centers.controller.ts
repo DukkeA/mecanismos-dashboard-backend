@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiConflictResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
@@ -23,6 +27,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CostCentersService } from './cost-centers.service';
+import { CostCenterOptionsQueryDto } from './dto/cost-center-options-query.dto';
 import { CreateCostCenterDto } from './dto/create-cost-center.dto';
 import { ListCostCentersQueryDto } from './dto/list-cost-centers-query.dto';
 import { UpdateCostCenterDto } from './dto/update-cost-center.dto';
@@ -56,6 +61,35 @@ export class CostCentersController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListCostCentersQueryDto) {
     return this.costCentersService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight cost-center options for frontend comboboxes',
+  })
+  @ApiOkResponse({
+    description: 'Cost-center options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: CostCenterOptionsQueryDto) {
+    return this.costCentersService.findOptions(query);
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary: 'Quick-create a cost center and return an option-compatible result',
+  })
+  @ApiCreatedResponse({
+    description: 'Cost center quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  @ApiConflictResponse({ description: 'Canonical code already exists.' })
+  createQuick(@Body() createCostCenterDto: CreateCostCenterDto) {
+    return this.costCentersService.quickCreate(createCostCenterDto);
   }
 
   @Get(':id')

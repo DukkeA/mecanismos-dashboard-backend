@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -23,6 +27,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { ListVehiclesQueryDto } from './dto/list-vehicles-query.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
+import { VehicleOptionsQueryDto } from './dto/vehicle-options-query.dto';
 import { VehiclesService } from './vehicles.service';
 
 @ApiTags('vehicles')
@@ -49,6 +54,34 @@ export class VehiclesController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListVehiclesQueryDto) {
     return this.vehiclesService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight vehicle options with optional customer scoping',
+  })
+  @ApiOkResponse({
+    description: 'Vehicle options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: VehicleOptionsQueryDto) {
+    return this.vehiclesService.findOptions(query);
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary: 'Quick-create a vehicle and return an option-compatible result',
+  })
+  @ApiCreatedResponse({
+    description: 'Vehicle quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  createQuick(@Body() createVehicleDto: CreateVehicleDto) {
+    return this.vehiclesService.quickCreate(createVehicleDto);
   }
 
   @Get(':id')

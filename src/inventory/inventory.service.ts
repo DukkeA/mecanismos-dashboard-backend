@@ -5,8 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  buildQuickCreateResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
 import type { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import type { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
+import type { InventoryItemOptionsQueryDto } from './dto/inventory-item-options-query.dto';
 import type { ListInventoryItemsQueryDto } from './dto/list-inventory-items-query.dto';
 import {
   InventoryItemNotFoundError,
@@ -22,6 +28,12 @@ export class InventoryService {
 
   createItem(createInventoryItemDto: CreateInventoryItemDto) {
     return this.inventoryRepository.createItem(createInventoryItemDto);
+  }
+
+  async findItemOptions(query: InventoryItemOptionsQueryDto) {
+    const options = await this.inventoryRepository.findItemOptions(query);
+
+    return buildOptionsResponse(options.map(mapInventoryItemOption), query.limit);
   }
 
   async findAll(query: ListInventoryItemsQueryDto) {
@@ -119,4 +131,31 @@ export class InventoryService {
 
     return movement;
   }
+
+  async quickCreateItem(createInventoryItemDto: CreateInventoryItemDto) {
+    const item = await this.createItem(createInventoryItemDto);
+
+    return buildQuickCreateResponse(mapInventoryItemOption(item), item);
+  }
+}
+
+function mapInventoryItemOption(item: {
+  id: string;
+  name: string;
+  brand?: string | null;
+  reference?: string | null;
+  itemType: string;
+  condition: string;
+  isActive: boolean;
+}): ReferenceOption {
+  return {
+    id: item.id,
+    label: item.name,
+    description: [item.brand, item.reference].filter(Boolean).join(' · ') || undefined,
+    isActive: item.isActive,
+    context: {
+      itemType: item.itemType,
+      condition: item.condition,
+    },
+  };
 }

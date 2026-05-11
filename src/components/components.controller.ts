@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -21,6 +25,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ComponentsService } from './components.service';
+import { ComponentOptionsQueryDto } from './dto/component-options-query.dto';
 import { CreateComponentDto } from './dto/create-component.dto';
 import { ListComponentsQueryDto } from './dto/list-components-query.dto';
 import { UpdateComponentDto } from './dto/update-component.dto';
@@ -49,6 +54,34 @@ export class ComponentsController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListComponentsQueryDto) {
     return this.componentsService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight component options with customer and vehicle filters',
+  })
+  @ApiOkResponse({
+    description: 'Component options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: ComponentOptionsQueryDto) {
+    return this.componentsService.findOptions(query);
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary: 'Quick-create a component and return an option-compatible result',
+  })
+  @ApiCreatedResponse({
+    description: 'Component quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  createQuick(@Body() createComponentDto: CreateComponentDto) {
+    return this.componentsService.quickCreate(createComponentDto);
   }
 
   @Get(':id')

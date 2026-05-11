@@ -10,6 +10,19 @@ export type ComponentRecord = Prisma.ComponentGetPayload<{
 
 export type VehicleOwnershipRecord = Pick<Vehicle, 'id' | 'customerId'>;
 
+export type ComponentOptionRecord = {
+  id: string;
+  customerId: string;
+  vehicleId: string | null;
+  brand: string;
+  reference: string;
+  identifier: string | null;
+  componentType: {
+    id: string;
+    name: string;
+  };
+};
+
 export type CreateComponentRecordInput = {
   customerId: string;
   componentTypeId: string;
@@ -28,6 +41,14 @@ export type UpdateComponentRecordInput = Partial<
 
 export type ListComponentsQuery = {
   page: number;
+  limit: number;
+  search?: string;
+  customerId?: string;
+  vehicleId?: string;
+  componentTypeId?: string;
+};
+
+export type ListComponentOptionsQuery = {
   limit: number;
   search?: string;
   customerId?: string;
@@ -152,6 +173,42 @@ export class ComponentsRepository {
     return this.prisma.component.findUnique({
       where: { id },
       include: { componentType: true },
+    });
+  }
+
+  async findOptions(query: ListComponentOptionsQuery) {
+    const prisma = this.prisma as unknown as {
+      component: {
+        findMany(args: {
+          where: ComponentWhereInput;
+          orderBy: { createdAt: 'desc' };
+          take: number;
+          select: {
+            id: true;
+            customerId: true;
+            vehicleId: true;
+            brand: true;
+            reference: true;
+            identifier: true;
+            componentType: { select: { id: true; name: true } };
+          };
+        }): Promise<ComponentOptionRecord[]>;
+      };
+    };
+
+    return prisma.component.findMany({
+      where: buildComponentWhere(query),
+      orderBy: { createdAt: 'desc' },
+      take: query.limit,
+      select: {
+        id: true,
+        customerId: true,
+        vehicleId: true,
+        brand: true,
+        reference: true,
+        identifier: true,
+        componentType: { select: { id: true, name: true } },
+      },
     });
   }
 

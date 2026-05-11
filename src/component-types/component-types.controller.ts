@@ -9,6 +9,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -21,6 +24,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ComponentTypesService } from './component-types.service';
+import { ComponentTypeOptionsQueryDto } from './dto/component-type-options-query.dto';
 import { CreateComponentTypeDto } from './dto/create-component-type.dto';
 import { ListComponentTypesQueryDto } from './dto/list-component-types-query.dto';
 import { UpdateComponentTypeDto } from './dto/update-component-type.dto';
@@ -49,6 +53,20 @@ export class ComponentTypesController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   findAll(@Query() query: ListComponentTypesQueryDto) {
     return this.componentTypesService.findAll(query);
+  }
+
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight component type options for frontend comboboxes',
+  })
+  @ApiOkResponse({
+    description: 'Component type options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: ComponentTypeOptionsQueryDto) {
+    return this.componentTypesService.findOptions(query);
   }
 
   @Get(':id')

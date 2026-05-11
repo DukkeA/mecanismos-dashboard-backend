@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  QuickCreateResponseDto,
+  ReferenceOptionsResponseDto,
+} from '../common/reference-data';
+import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -22,9 +26,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateEmployeeBonusDto } from './dto/create-employee-bonus.dto';
+import { EmployeeOptionsQueryDto } from './dto/employee-options-query.dto';
 import { ListEmployeeBonusesQueryDto } from './dto/list-employee-bonuses-query.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { ListEmployeesQueryDto } from './dto/list-employees-query.dto';
+import { QuickCreateEmployeeDto } from './dto/quick-create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesService } from './employees.service';
 
@@ -59,6 +65,20 @@ export class EmployeesController {
     return this.employeesService.findAll(query);
   }
 
+  @Get('options')
+  @ApiOperation({
+    summary: 'List lightweight employee options for frontend comboboxes',
+  })
+  @ApiOkResponse({
+    description: 'Employee options returned.',
+    type: ReferenceOptionsResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  findOptions(@Query() query: EmployeeOptionsQueryDto) {
+    return this.employeesService.findOptions(query);
+  }
+
   @Get('cost-center-options')
   @ApiOperation({
     summary: 'List read-only cost-center options for employee forms',
@@ -68,6 +88,22 @@ export class EmployeesController {
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
   listCostCenterOptions() {
     return this.employeesService.listCostCenterOptions();
+  }
+
+  @Post('quick-create')
+  @ApiOperation({
+    summary:
+      'Quick-create an employee with salary default 0 and incomplete-profile semantics when omitted',
+  })
+  @ApiCreatedResponse({
+    description: 'Employee quick-created.',
+    type: QuickCreateResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })
+  @ApiNotFoundResponse({ description: 'Referenced cost center not found.' })
+  createQuick(@Body() createEmployeeDto: QuickCreateEmployeeDto) {
+    return this.employeesService.quickCreate(createEmployeeDto);
   }
 
   @Get(':id')

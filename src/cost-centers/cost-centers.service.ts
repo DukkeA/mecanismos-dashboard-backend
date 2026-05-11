@@ -4,6 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginationMeta } from '../common/pagination/pagination-meta';
+import {
+  buildOptionsResponse,
+  buildQuickCreateResponse,
+  type ReferenceOption,
+} from '../common/reference-data';
+import type { CostCenterOptionsQueryDto } from './dto/cost-center-options-query.dto';
 import type { CreateCostCenterDto } from './dto/create-cost-center.dto';
 import type { ListCostCentersQueryDto } from './dto/list-cost-centers-query.dto';
 import type { UpdateCostCenterDto } from './dto/update-cost-center.dto';
@@ -37,6 +43,12 @@ export class CostCentersService {
     };
   }
 
+  async findOptions(query: CostCenterOptionsQueryDto) {
+    const options = await this.costCentersRepository.findOptions(query);
+
+    return buildOptionsResponse(options.map(mapCostCenterOption), query.limit);
+  }
+
   async findOne(id: string) {
     const costCenter = await this.costCentersRepository.findById(id);
 
@@ -67,6 +79,15 @@ export class CostCentersService {
     }
   }
 
+  async quickCreate(createCostCenterDto: CreateCostCenterDto) {
+    const costCenter = await this.create(createCostCenterDto);
+
+    return buildQuickCreateResponse(
+      mapCostCenterOption(costCenter),
+      costCenter,
+    );
+  }
+
   private rethrowKnownError(error: unknown): never {
     if (error instanceof CostCenterCodeConflictError) {
       throw new ConflictException('Cost center code already exists');
@@ -78,4 +99,21 @@ export class CostCentersService {
 
 function normalizeCostCenterCode(value: string) {
   return value.trim().toUpperCase();
+}
+
+function mapCostCenterOption(costCenter: {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+}): ReferenceOption {
+  return {
+    id: costCenter.id,
+    label: `${costCenter.code} · ${costCenter.name}`,
+    description: costCenter.name,
+    isActive: costCenter.isActive,
+    context: {
+      code: costCenter.code,
+    },
+  };
 }

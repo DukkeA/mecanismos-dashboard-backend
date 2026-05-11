@@ -48,6 +48,7 @@ describe('SuppliersService', () => {
   const repository = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
   } as unknown as jest.Mocked<SuppliersRepository>;
@@ -151,6 +152,37 @@ describe('SuppliersService', () => {
     });
   });
 
+  it('returns active supplier options', async () => {
+    repository.findOptions.mockResolvedValue([
+      {
+        id: 'supplier-1',
+        name: 'Repuestos Central',
+        contactName: 'Laura Perez',
+        email: 'compras@repuestos.test',
+        isActive: true,
+        type: SupplierType.COMPANY,
+        phones: [{ phone: '3001234567', isPrimary: true }],
+      },
+    ] as never);
+
+    await expect(service.findOptions({ limit: 10 })).resolves.toEqual({
+      data: [
+        {
+          id: 'supplier-1',
+          label: 'Repuestos Central',
+          description: 'Laura Perez',
+          isActive: true,
+          context: {
+            type: SupplierType.COMPANY,
+            phone: '3001234567',
+            email: 'compras@repuestos.test',
+          },
+        },
+      ],
+      meta: { limit: 10 },
+    });
+  });
+
   it('throws NotFoundException when the supplier does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 
@@ -223,5 +255,20 @@ describe('SuppliersService', () => {
     await expect(service.update('supplier-1', { phones: [] })).rejects.toThrow(
       new BadRequestException('Suppliers require at least one phone'),
     );
+  });
+
+  it('quick-creates a supplier with option-compatible response data', async () => {
+    repository.create.mockResolvedValue(supplierRecord);
+
+    await expect(
+      service.quickCreate({
+        name: 'Repuestos Central',
+        type: SupplierType.COMPANY,
+        phones: [{ phone: '3001234567', isPrimary: true }],
+      }),
+    ).resolves.toMatchObject({
+      data: { id: 'supplier-1', label: 'Repuestos Central' },
+      entity: supplierRecord,
+    });
   });
 });
