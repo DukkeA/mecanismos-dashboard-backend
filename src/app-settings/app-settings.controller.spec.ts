@@ -57,7 +57,7 @@ describe('AppSettingsController', () => {
     service.getPricingLaborSettingsHistory.mockResolvedValue({
       data: [],
       meta: { page: 1, limit: 20, total: 0 },
-    } as never);
+    });
 
     await expect(controller.getCurrentPricingLaborSettings()).resolves.toEqual({
       currencyCode: 'COP',
@@ -68,12 +68,12 @@ describe('AppSettingsController', () => {
         dto,
       ),
     ).resolves.toEqual({ currencyCode: 'USD' });
-    await expect(controller.getPricingLaborSettingsHistory(query)).resolves.toEqual(
-      {
-        data: [],
-        meta: { page: 1, limit: 20, total: 0 },
-      },
-    );
+    await expect(
+      controller.getPricingLaborSettingsHistory(query),
+    ).resolves.toEqual({
+      data: [],
+      meta: { page: 1, limit: 20, total: 0 },
+    });
 
     expect(Reflect.getMetadata(PATH_METADATA, AppSettingsController)).toBe(
       'app-settings',
@@ -90,7 +90,9 @@ describe('AppSettingsController', () => {
     const patchHandler = getControllerMethod(
       'updateCurrentPricingLaborSettings',
     );
-    const historyHandler = getControllerMethod('getPricingLaborSettingsHistory');
+    const historyHandler = getControllerMethod(
+      'getPricingLaborSettingsHistory',
+    );
 
     expect(Reflect.getMetadata(PATH_METADATA, getHandler)).toBe(
       'pricing-labor',
@@ -140,10 +142,11 @@ describe('AppSettingsController', () => {
         type: PricingLaborSettingsHistoryResponseDto,
       }),
     );
-    expect(service.updateCurrentPricingLaborSettings).toHaveBeenCalledWith(
-      dto,
-      'seed-user-admin',
-    );
-    expect(service.getPricingLaborSettingsHistory).toHaveBeenCalledWith(query);
+    expect(service.updateCurrentPricingLaborSettings.mock.calls).toEqual([
+      [dto, 'seed-user-admin'],
+    ]);
+    expect(service.getPricingLaborSettingsHistory.mock.calls).toEqual([
+      [query],
+    ]);
   });
 });

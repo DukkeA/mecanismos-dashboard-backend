@@ -94,16 +94,17 @@ export function buildPricingLaborSettingsDiff(
   const updatedValues: UpdatePricingLaborSettingsDto = {};
 
   for (const field of PRICING_LABOR_AUDITED_FIELDS) {
+    const currentValue = current[field];
     const nextValue = dto[field];
 
-    if (nextValue === undefined || nextValue === current[field]) {
+    if (nextValue === undefined || nextValue === currentValue) {
       continue;
     }
 
     changedFields.push(field);
-    beforeValues[field] = current[field];
-    afterValues[field] = nextValue;
-    updatedValues[field] = nextValue;
+    assignAuditValue(beforeValues, field, currentValue);
+    assignAuditValue(afterValues, field, nextValue);
+    assignUpdatedValue(updatedValues, field, nextValue);
   }
 
   return {
@@ -117,13 +118,31 @@ export function buildPricingLaborSettingsDiff(
 export function isEmptyPricingLaborSettingsPatch(
   dto: UpdatePricingLaborSettingsDto,
 ): boolean {
-  return PRICING_LABOR_AUDITED_FIELDS.every((field) => dto[field] === undefined);
+  return PRICING_LABOR_AUDITED_FIELDS.every(
+    (field) => dto[field] === undefined,
+  );
 }
 
 export function asPricingLaborAuditJson(
   values: PricingLaborAuditValueMap,
 ): Prisma.InputJsonObject {
-  return values as Prisma.InputJsonObject;
+  return values;
+}
+
+function assignAuditValue<K extends PricingLaborAuditedField>(
+  target: PricingLaborAuditValueMap,
+  field: K,
+  value: PricingLaborSettings[K],
+): void {
+  target[field] = value;
+}
+
+function assignUpdatedValue<K extends PricingLaborAuditedField>(
+  target: UpdatePricingLaborSettingsDto,
+  field: K,
+  value: NonNullable<UpdatePricingLaborSettingsDto[K]>,
+): void {
+  target[field] = value;
 }
 
 export function resolveDefaultContingencyPct(

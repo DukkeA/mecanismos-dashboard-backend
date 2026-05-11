@@ -42,15 +42,15 @@ describe('app-settings reviewer artifacts', () => {
         'ADMIN | SALES',
       ],
     },
-      {
-        fileName: 'api-map.md',
-        expectedContent: [
-          '# App settings API map',
-          'GET /app-settings/pricing-labor',
-          'PATCH /app-settings/pricing-labor',
-          'GET /app-settings/pricing-labor/history',
-        ],
-      },
+    {
+      fileName: 'api-map.md',
+      expectedContent: [
+        '# App settings API map',
+        'GET /app-settings/pricing-labor',
+        'PATCH /app-settings/pricing-labor',
+        'GET /app-settings/pricing-labor/history',
+      ],
+    },
     {
       fileName: 'validation-rules.md',
       expectedContent: [
@@ -59,15 +59,15 @@ describe('app-settings reviewer artifacts', () => {
         'defaultLaborHourlyRate',
       ],
     },
-      {
-        fileName: 'testing.md',
-        expectedContent: [
-          '# App settings testing guide',
-          'npm run test',
-          'no-retroactive snapshot semantics',
-          'history route',
-        ],
-      },
+    {
+      fileName: 'testing.md',
+      expectedContent: [
+        '# App settings testing guide',
+        'npm run test',
+        'no-retroactive snapshot semantics',
+        'history route',
+      ],
+    },
   ])(
     'ships $fileName with app-settings reviewer guidance',
     ({ fileName, expectedContent }) => {

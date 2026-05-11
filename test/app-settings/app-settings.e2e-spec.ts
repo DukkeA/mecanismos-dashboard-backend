@@ -130,7 +130,8 @@ describe('AppSettingsController (real db e2e)', () => {
     const beforeHistory =
       beforeHistoryResponse.body as PricingLaborSettingsHistoryResponse;
 
-    const nextCurrencyCode = beforeSettings.currencyCode === 'COP' ? 'USD' : 'COP';
+    const nextCurrencyCode =
+      beforeSettings.currencyCode === 'COP' ? 'USD' : 'COP';
     const nextLaborRate =
       beforeSettings.defaultLaborHourlyRate === 50000 ? 65000 : 50000;
 

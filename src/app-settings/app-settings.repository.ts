@@ -6,6 +6,7 @@ import {
   asPricingLaborAuditJson,
   buildPricingLaborSettingsCreateDefaults,
   type PricingLaborAuditEntry,
+  type PricingLaborAuditValueMap,
   type PricingLaborSettings,
 } from './app-settings.contract';
 import type { UpdatePricingLaborSettingsDto } from './dto/update-pricing-labor-settings.dto';
@@ -27,7 +28,9 @@ const pricingLaborAuditHistorySelect = {
 } satisfies Prisma.AppSettingsAuditHistorySelect;
 
 type AppSettingsPrismaClient = {
-  $transaction<T>(callback: (tx: AppSettingsTransactionClient) => Promise<T>): Promise<T>;
+  $transaction<T>(
+    callback: (tx: AppSettingsTransactionClient) => Promise<T>,
+  ): Promise<T>;
   appSettings: {
     upsert(args: Prisma.AppSettingsUpsertArgs): Promise<AppSettingsRecord>;
     update(args: Prisma.AppSettingsUpdateArgs): Promise<AppSettingsRecord>;
@@ -181,13 +184,15 @@ export class AppSettingsRepository {
     page: number;
     limit: number;
   }): Promise<PricingLaborAuditEntry[]> {
-    return this.prisma.appSettingsAuditHistory.findMany({
-      where: { appSettingsId: APP_SETTINGS_SINGLETON_ID },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      skip: (page - 1) * limit,
-      take: limit,
-      select: pricingLaborAuditHistorySelect,
-    });
+    return this.prisma.appSettingsAuditHistory
+      .findMany({
+        where: { appSettingsId: APP_SETTINGS_SINGLETON_ID },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        select: pricingLaborAuditHistorySelect,
+      })
+      .then((records) => records.map(mapPricingLaborAuditEntry));
   }
 
   countPricingLaborHistory(): Promise<number> {
@@ -213,4 +218,33 @@ function mapPricingLaborSettings(
     highMarkupPct: record.highMarkupPct,
     updatedAt: record.updatedAt,
   };
+}
+
+function mapPricingLaborAuditEntry(
+  record: AppSettingsAuditHistoryRecord,
+): PricingLaborAuditEntry {
+  return {
+    id: record.id,
+    actorUserId: record.actorUserId,
+    changedFields:
+      record.changedFields as PricingLaborAuditEntry['changedFields'],
+    beforeValues: mapPricingLaborAuditValueMap(record.beforeValues),
+    afterValues: mapPricingLaborAuditValueMap(record.afterValues),
+    createdAt: record.createdAt,
+  };
+}
+
+function mapPricingLaborAuditValueMap(
+  value: Prisma.JsonValue,
+): PricingLaborAuditValueMap {
+  if (!value || Array.isArray(value) || typeof value !== 'object') {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [keyof PricingLaborAuditValueMap, string | number] =>
+        typeof entry[1] === 'string' || typeof entry[1] === 'number',
+    ),
+  );
 }
