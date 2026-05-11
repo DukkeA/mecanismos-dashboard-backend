@@ -22,6 +22,21 @@ model AppSettings {
   highMarkupPct            Int      @default(50)
   createdAt                DateTime @default(now())
   updatedAt                DateTime
+  auditHistory             AppSettingsAuditHistory[]
+}
+
+model AppSettingsAuditHistory {
+  id            String   @id
+  appSettingsId Int      @default(1)
+  actorUserId   String
+  changedFields String[]
+  beforeValues  Json
+  afterValues   Json
+  createdAt     DateTime @default(now())
+  appSettings   AppSettings @relation(fields: [appSettingsId], references: [id], onDelete: Restrict)
+
+  @@index([appSettingsId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model Component {

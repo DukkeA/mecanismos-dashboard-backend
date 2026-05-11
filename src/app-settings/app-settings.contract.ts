@@ -1,4 +1,6 @@
+import type { Prisma } from '../../generated/prisma/client';
 import { WorkOrderType } from '../../generated/prisma/enums';
+import type { UpdatePricingLaborSettingsDto } from './dto/update-pricing-labor-settings.dto';
 
 export const APP_SETTINGS_SINGLETON_ID = 1;
 
@@ -29,6 +31,50 @@ export type PricingLaborSettings = {
   updatedAt: Date;
 };
 
+export const PRICING_LABOR_AUDITED_FIELDS = [
+  'currencyCode',
+  'monthlyWorkingHours',
+  'defaultLaborHourlyRate',
+  'saleContingencyPct',
+  'workshopContingencyPct',
+  'diagnosticContingencyPct',
+  'minimumMarkupPct',
+  'recommendedMarkupPct',
+  'highMarkupPct',
+] as const satisfies readonly (keyof UpdatePricingLaborSettingsDto)[];
+
+export type PricingLaborAuditedField =
+  (typeof PRICING_LABOR_AUDITED_FIELDS)[number];
+
+export type PricingLaborAuditValueMap = Partial<
+  Pick<PricingLaborSettings, PricingLaborAuditedField>
+>;
+
+export type PricingLaborAuditEntry = {
+  id: string;
+  actorUserId: string;
+  changedFields: PricingLaborAuditedField[];
+  beforeValues: PricingLaborAuditValueMap;
+  afterValues: PricingLaborAuditValueMap;
+  createdAt: Date;
+};
+
+export type PricingLaborAuditHistoryPage = {
+  data: PricingLaborAuditEntry[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+};
+
+export type PricingLaborSettingsDiff = {
+  changedFields: PricingLaborAuditedField[];
+  beforeValues: PricingLaborAuditValueMap;
+  afterValues: PricingLaborAuditValueMap;
+  updatedValues: UpdatePricingLaborSettingsDto;
+};
+
 export function buildPricingLaborSettingsCreateDefaults(now = new Date()) {
   return {
     id: APP_SETTINGS_SINGLETON_ID,
@@ -36,6 +82,48 @@ export function buildPricingLaborSettingsCreateDefaults(now = new Date()) {
     createdAt: now,
     updatedAt: now,
   };
+}
+
+export function buildPricingLaborSettingsDiff(
+  current: PricingLaborSettings,
+  dto: UpdatePricingLaborSettingsDto,
+): PricingLaborSettingsDiff {
+  const changedFields: PricingLaborAuditedField[] = [];
+  const beforeValues: PricingLaborAuditValueMap = {};
+  const afterValues: PricingLaborAuditValueMap = {};
+  const updatedValues: UpdatePricingLaborSettingsDto = {};
+
+  for (const field of PRICING_LABOR_AUDITED_FIELDS) {
+    const nextValue = dto[field];
+
+    if (nextValue === undefined || nextValue === current[field]) {
+      continue;
+    }
+
+    changedFields.push(field);
+    beforeValues[field] = current[field];
+    afterValues[field] = nextValue;
+    updatedValues[field] = nextValue;
+  }
+
+  return {
+    changedFields,
+    beforeValues,
+    afterValues,
+    updatedValues,
+  };
+}
+
+export function isEmptyPricingLaborSettingsPatch(
+  dto: UpdatePricingLaborSettingsDto,
+): boolean {
+  return PRICING_LABOR_AUDITED_FIELDS.every((field) => dto[field] === undefined);
+}
+
+export function asPricingLaborAuditJson(
+  values: PricingLaborAuditValueMap,
+): Prisma.InputJsonObject {
+  return values as Prisma.InputJsonObject;
 }
 
 export function resolveDefaultContingencyPct(

@@ -1,8 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client';
 import {
   APP_SETTINGS_SINGLETON_ID,
+  asPricingLaborAuditJson,
   buildPricingLaborSettingsCreateDefaults,
+  type PricingLaborAuditEntry,
   type PricingLaborSettings,
 } from './app-settings.contract';
 import type { UpdatePricingLaborSettingsDto } from './dto/update-pricing-labor-settings.dto';
@@ -10,12 +13,48 @@ import type { UpdatePricingLaborSettingsDto } from './dto/update-pricing-labor-s
 export const APP_SETTINGS_PRISMA_CLIENT = Symbol('APP_SETTINGS_PRISMA_CLIENT');
 
 type AppSettingsRecord = Prisma.AppSettingsGetPayload<object>;
+type AppSettingsAuditHistoryRecord = Prisma.AppSettingsAuditHistoryGetPayload<{
+  select: typeof pricingLaborAuditHistorySelect;
+}>;
+
+const pricingLaborAuditHistorySelect = {
+  id: true,
+  actorUserId: true,
+  changedFields: true,
+  beforeValues: true,
+  afterValues: true,
+  createdAt: true,
+} satisfies Prisma.AppSettingsAuditHistorySelect;
 
 type AppSettingsPrismaClient = {
+  $transaction<T>(callback: (tx: AppSettingsTransactionClient) => Promise<T>): Promise<T>;
   appSettings: {
     upsert(args: Prisma.AppSettingsUpsertArgs): Promise<AppSettingsRecord>;
     update(args: Prisma.AppSettingsUpdateArgs): Promise<AppSettingsRecord>;
+    findUniqueOrThrow(
+      args: Prisma.AppSettingsFindUniqueOrThrowArgs,
+    ): Promise<AppSettingsRecord>;
   };
+  appSettingsAuditHistory: {
+    create(args: Prisma.AppSettingsAuditHistoryCreateArgs): Promise<unknown>;
+    findMany(
+      args: Prisma.AppSettingsAuditHistoryFindManyArgs,
+    ): Promise<AppSettingsAuditHistoryRecord[]>;
+    count(args: Prisma.AppSettingsAuditHistoryCountArgs): Promise<number>;
+  };
+};
+
+type AppSettingsTransactionClient = Pick<
+  AppSettingsPrismaClient,
+  'appSettings' | 'appSettingsAuditHistory'
+>;
+
+type UpdateCurrentWithAuditInput = {
+  actorUserId: string;
+  dto: UpdatePricingLaborSettingsDto;
+  changedFields: PricingLaborAuditEntry['changedFields'];
+  beforeValues: PricingLaborAuditEntry['beforeValues'];
+  afterValues: PricingLaborAuditEntry['afterValues'];
 };
 
 @Injectable()
@@ -76,6 +115,85 @@ export class AppSettingsRepository {
     });
 
     return mapPricingLaborSettings(record);
+  }
+
+  async updateCurrentWithAudit(
+    input: UpdateCurrentWithAuditInput,
+  ): Promise<PricingLaborSettings> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.appSettings.findUniqueOrThrow({
+        where: { id: APP_SETTINGS_SINGLETON_ID },
+      });
+
+      const record = await tx.appSettings.update({
+        where: { id: APP_SETTINGS_SINGLETON_ID },
+        data: {
+          ...(input.dto.currencyCode !== undefined
+            ? { currencyCode: input.dto.currencyCode }
+            : {}),
+          ...(input.dto.monthlyWorkingHours !== undefined
+            ? { monthlyWorkingHours: input.dto.monthlyWorkingHours }
+            : {}),
+          ...(input.dto.defaultLaborHourlyRate !== undefined
+            ? { defaultLaborHourlyRate: input.dto.defaultLaborHourlyRate }
+            : {}),
+          ...(input.dto.saleContingencyPct !== undefined
+            ? { saleContingencyPct: input.dto.saleContingencyPct }
+            : {}),
+          ...(input.dto.workshopContingencyPct !== undefined
+            ? { workshopContingencyPct: input.dto.workshopContingencyPct }
+            : {}),
+          ...(input.dto.diagnosticContingencyPct !== undefined
+            ? { diagnosticContingencyPct: input.dto.diagnosticContingencyPct }
+            : {}),
+          ...(input.dto.minimumMarkupPct !== undefined
+            ? { minimumMarkupPct: input.dto.minimumMarkupPct }
+            : {}),
+          ...(input.dto.recommendedMarkupPct !== undefined
+            ? { recommendedMarkupPct: input.dto.recommendedMarkupPct }
+            : {}),
+          ...(input.dto.highMarkupPct !== undefined
+            ? { highMarkupPct: input.dto.highMarkupPct }
+            : {}),
+          updatedAt: new Date(),
+        },
+      });
+
+      await tx.appSettingsAuditHistory.create({
+        data: {
+          id: randomUUID(),
+          appSettingsId: APP_SETTINGS_SINGLETON_ID,
+          actorUserId: input.actorUserId,
+          changedFields: input.changedFields,
+          beforeValues: asPricingLaborAuditJson(input.beforeValues),
+          afterValues: asPricingLaborAuditJson(input.afterValues),
+        },
+      });
+
+      return mapPricingLaborSettings(record);
+    });
+  }
+
+  findPricingLaborHistory({
+    page,
+    limit,
+  }: {
+    page: number;
+    limit: number;
+  }): Promise<PricingLaborAuditEntry[]> {
+    return this.prisma.appSettingsAuditHistory.findMany({
+      where: { appSettingsId: APP_SETTINGS_SINGLETON_ID },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: (page - 1) * limit,
+      take: limit,
+      select: pricingLaborAuditHistorySelect,
+    });
+  }
+
+  countPricingLaborHistory(): Promise<number> {
+    return this.prisma.appSettingsAuditHistory.count({
+      where: { appSettingsId: APP_SETTINGS_SINGLETON_ID },
+    });
   }
 }
 
