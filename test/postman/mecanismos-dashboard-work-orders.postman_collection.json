@@ -15,6 +15,7 @@
     { "key": "seedWorkshopWorkOrderId", "value": "seed-work-order-workshop-injector-repair" },
     { "key": "unboundSupplierQuoteId", "value": "seed-supplier-quote-bosch-central-v1" },
     { "key": "createdWorkOrderId", "value": "" },
+    { "key": "createdInventoryMovementId", "value": "" },
     { "key": "createdActualCostId", "value": "" },
     { "key": "createdPaymentId", "value": "" },
     { "key": "estimatePhase", "value": "INITIAL" },
@@ -52,6 +53,7 @@
                   "const runId = `${now.slice(-6)}${random}`;",
                   "pm.collectionVariables.set('runId', runId);",
                   "pm.collectionVariables.set('createdWorkOrderId', '');",
+                  "pm.collectionVariables.set('createdInventoryMovementId', '');",
                   "pm.collectionVariables.set('createdActualCostId', '');",
                   "pm.collectionVariables.set('createdPaymentId', '');",
                   "pm.collectionVariables.set('estimatePhase', 'INITIAL');",
@@ -172,6 +174,81 @@
               ]
             }
           }]
+        },
+        {
+          "name": "Reserve Inventory",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n  \"quantity\": 2,\n  \"occurredAt\": \"2026-05-11T10:00:00.000Z\",\n  \"reason\": \"WORK_ORDER_PURCHASE\",\n  \"supplierId\": \"seed-supplier-repuestos-central-main\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/inventory/reservations",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}", "inventory", "reservations"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('reserve inventory returns 201', function () { pm.response.to.have.status(201); });",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('createdInventoryMovementId', body.movement.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Release Inventory",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n  \"quantity\": 1,\n  \"occurredAt\": \"2026-05-11T10:10:00.000Z\",\n  \"reason\": \"RETURN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/inventory/releases",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}", "inventory", "releases"]
+            }
+          }
+        },
+        {
+          "name": "Consume Inventory",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n  \"quantity\": 1,\n  \"occurredAt\": \"2026-05-11T10:20:00.000Z\",\n  \"reason\": \"WORK_ORDER_CONSUMPTION\",\n  \"unitCost\": 182000,\n  \"actualCostAmount\": 182000,\n  \"actualCostPaymentMethod\": \"TRANSFER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/inventory/consumptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}", "inventory", "consumptions"]
+            }
+          }
+        },
+        {
+          "name": "Sell Inventory",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n  \"quantity\": 1,\n  \"occurredAt\": \"2026-05-11T10:30:00.000Z\",\n  \"reason\": \"SALE\",\n  \"actualCostAmount\": 182000,\n  \"actualCostDescription\": \"Venta runner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/inventory/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-orders", "{{createdWorkOrderId}}", "inventory", "sales"]
+            }
+          }
         },
         {
           "name": "Create Payment",

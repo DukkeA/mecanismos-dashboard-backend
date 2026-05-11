@@ -24,6 +24,8 @@ type WorkOrderActualCostCreateManyArgs =
 type WorkOrderPaymentDeleteManyArgs = Prisma.WorkOrderPaymentDeleteManyArgs;
 type WorkOrderPaymentCreateManyArgs = Prisma.WorkOrderPaymentCreateManyArgs;
 type InventoryMovementUpdateManyArgs = Prisma.InventoryMovementUpdateManyArgs;
+type InventoryMovementDeleteManyArgs = Prisma.InventoryMovementDeleteManyArgs;
+type InventoryMovementCreateManyArgs = Prisma.InventoryMovementCreateManyArgs;
 type SupplierQuoteHistoryUpdateManyArgs =
   Prisma.SupplierQuoteHistoryUpdateManyArgs;
 
@@ -70,6 +72,12 @@ describe('work-order seeds', () => {
     const inventoryMovementUpdateMany = jest
       .fn<Promise<unknown>, [InventoryMovementUpdateManyArgs]>()
       .mockResolvedValue(undefined);
+    const inventoryMovementDeleteMany = jest
+      .fn<Promise<unknown>, [InventoryMovementDeleteManyArgs]>()
+      .mockResolvedValue(undefined);
+    const inventoryMovementCreateMany = jest
+      .fn<Promise<unknown>, [InventoryMovementCreateManyArgs]>()
+      .mockResolvedValue(undefined);
     const supplierQuoteHistoryUpdateMany = jest
       .fn<Promise<unknown>, [SupplierQuoteHistoryUpdateManyArgs]>()
       .mockResolvedValue(undefined);
@@ -95,6 +103,8 @@ describe('work-order seeds', () => {
       },
       inventoryMovement: {
         updateMany: inventoryMovementUpdateMany,
+        deleteMany: inventoryMovementDeleteMany,
+        createMany: inventoryMovementCreateMany,
       },
       supplierQuoteHistory: {
         updateMany: supplierQuoteHistoryUpdateMany,
@@ -261,6 +271,36 @@ describe('work-order seeds', () => {
         isReservedForWorkOrder: true,
       },
     });
+    expect(inventoryMovementDeleteMany).toHaveBeenCalledWith({
+      where: {
+        id: {
+          in: [
+            'seed-work-order-inventory-release',
+            'seed-work-order-inventory-consumption',
+            'seed-work-order-inventory-sale',
+          ],
+        },
+      },
+    });
+    expect(inventoryMovementCreateMany.mock.calls[0]?.[0].data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'seed-work-order-inventory-release',
+          movementType: 'IN',
+          reason: 'RETURN',
+        }),
+        expect.objectContaining({
+          id: 'seed-work-order-inventory-consumption',
+          movementType: 'OUT',
+          reason: 'WORK_ORDER_CONSUMPTION',
+        }),
+        expect.objectContaining({
+          id: 'seed-work-order-inventory-sale',
+          movementType: 'OUT',
+          reason: 'SALE',
+        }),
+      ]),
+    );
     expect(supplierQuoteHistoryUpdateMany).toHaveBeenNthCalledWith(1, {
       where: { id: 'seed-supplier-quote-bosch-central-v2' },
       data: {

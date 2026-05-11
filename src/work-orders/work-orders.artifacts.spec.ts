@@ -40,6 +40,7 @@ describe('work-order reviewer artifacts', () => {
         '# Work orders overview',
         'seed-work-order-sale-counter-quote',
         'seed-work-order-workshop-injector-repair',
+        'inventoryActivity',
       ],
     },
     {
@@ -48,6 +49,7 @@ describe('work-order reviewer artifacts', () => {
         '# Work orders API map',
         'PUT /work-orders/:id/estimates/:phase',
         'POST /work-orders/:id/payments',
+        'POST /work-orders/:id/inventory/reservations',
       ],
     },
     {
@@ -56,6 +58,7 @@ describe('work-order reviewer artifacts', () => {
         '# Work orders validation rules',
         'WORKSHOP',
         'generated IDs',
+        'Demand-purchased items do not allow physical stock movements',
       ],
     },
     {
@@ -64,6 +67,7 @@ describe('work-order reviewer artifacts', () => {
         '# Work orders testing guide',
         'npm run test',
         'Postman',
+        'inventory reserve/release/consume/sell',
       ],
     },
   ])(
@@ -92,6 +96,7 @@ describe('work-order reviewer artifacts', () => {
         'seedSaleWorkOrderId',
         'seedWorkshopWorkOrderId',
         'createdWorkOrderId',
+        'createdInventoryMovementId',
         'estimatePhase',
         'unboundSupplierQuoteId',
       ]),
@@ -104,6 +109,10 @@ describe('work-order reviewer artifacts', () => {
         'Create Workshop Work Order',
         'Upsert Initial Estimate',
         'Create Actual Cost',
+        'Reserve Inventory',
+        'Release Inventory',
+        'Consume Inventory',
+        'Sell Inventory',
         'Create Payment',
         'Work Orders list forbidden for Mechanic',
       ]),
@@ -130,6 +139,14 @@ describe('work-order reviewer artifacts', () => {
     );
     expect(findRawBody(collection, 'Create Actual Cost')).not.toContain(
       'seed-supplier-quote-bosch-central-v2',
+    );
+    expect(findRequest(collection, 'Reserve Inventory')).toMatchObject({
+      method: 'POST',
+      rawUrl:
+        '{{baseUrl}}/work-orders/{{createdWorkOrderId}}/inventory/reservations',
+    });
+    expect(findRawBody(collection, 'Consume Inventory')).toContain(
+      '"actualCostAmount": 182000',
     );
   });
 });

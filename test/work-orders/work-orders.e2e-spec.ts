@@ -40,6 +40,19 @@ type WorkOrderResponse = {
     id: string;
     amount: number;
   }>;
+  inventoryActivity: Array<{
+    inventoryItemId: string;
+    activeReservedQuantity: number;
+    consumedQuantity: number;
+    soldQuantity: number;
+    actualCostIds: string[];
+    movements: Array<{
+      id: string;
+      reason: string;
+      quantity: number;
+      actualCostId: string | null;
+    }>;
+  }>;
 };
 
 type WorkOrderListResponse = {
@@ -384,6 +397,124 @@ describe('WorkOrdersController (real db e2e)', () => {
       .expect(({ body }: { body: WorkOrderResponse }) => {
         expect(body.id).toBe(workOrderId);
         expect(body.actualCosts).toHaveLength(0);
+      });
+  });
+
+  it('supports reserve, release, consume, and sell inventory actions with rollback and read-model traces', async () => {
+    const cookies = await loginAsRole(app, 'ADMIN');
+    const workOrderId = await createSaleWorkOrder(
+      app,
+      cookies,
+      `inventory-${Date.now()}`,
+    );
+
+    const reserveResponse = await request(app.getHttpServer())
+      .post(`/work-orders/${workOrderId}/inventory/reservations`)
+      .set('Cookie', cookies)
+      .send({
+        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        quantity: 2,
+        occurredAt: '2026-05-11T10:00:00.000Z',
+        reason: 'WORK_ORDER_PURCHASE',
+        supplierId: 'seed-supplier-repuestos-central-main',
+      })
+      .expect(201);
+
+    expect(readBody<{ currentStockAfter: number }>(reserveResponse).currentStockAfter).toBe(2);
+
+    await request(app.getHttpServer())
+      .post(`/work-orders/${workOrderId}/inventory/releases`)
+      .set('Cookie', cookies)
+      .send({
+        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        quantity: 1,
+        occurredAt: '2026-05-11T10:10:00.000Z',
+        reason: 'RETURN',
+      })
+      .expect(201);
+
+    const consumeResponse = await request(app.getHttpServer())
+      .post(`/work-orders/${workOrderId}/inventory/consumptions`)
+      .set('Cookie', cookies)
+      .send({
+        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        quantity: 1,
+        occurredAt: '2026-05-11T10:20:00.000Z',
+        reason: 'WORK_ORDER_CONSUMPTION',
+        unitCost: 182000,
+        actualCostPaymentMethod: 'TRANSFER',
+      })
+      .expect(201);
+
+    expect(
+      readBody<{ actualCost?: { amount: number } }>(consumeResponse).actualCost,
+    ).toMatchObject({ amount: 182000 });
+
+    await request(app.getHttpServer())
+      .post(`/work-orders/${workOrderId}/inventory/sales`)
+      .set('Cookie', cookies)
+      .send({
+        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        quantity: 1,
+        occurredAt: '2026-05-11T10:30:00.000Z',
+        reason: 'SALE',
+        actualCostAmount: 182000,
+        actualCostDescription: 'Venta directa de mostrador',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/work-orders/${workOrderId}/inventory/consumptions`)
+      .set('Cookie', cookies)
+      .send({
+        inventoryItemId: 'seed-inventory-item-cotizable-tobera',
+        quantity: 1,
+        occurredAt: '2026-05-11T10:40:00.000Z',
+        reason: 'WORK_ORDER_CONSUMPTION',
+      })
+      .expect(400)
+      .expect(({ body }: { body: { message: string | string[] } }) => {
+        expect(body.message).toContain(
+          'Demand-purchased items do not allow physical stock movements',
+        );
+      });
+
+    await request(app.getHttpServer())
+      .post(`/work-orders/${workOrderId}/inventory/consumptions`)
+      .set('Cookie', cookies)
+      .send({
+        inventoryItemId: 'seed-inventory-item-bosch-inyector',
+        quantity: 1,
+        occurredAt: '2026-05-11T10:50:00.000Z',
+        reason: 'WORK_ORDER_CONSUMPTION',
+        actualCostAmount: 0,
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get(`/work-orders/${workOrderId}`)
+      .set('Cookie', cookies)
+      .expect(200)
+      .expect(({ body }: { body: WorkOrderResponse }) => {
+        const inventoryActivity = body.inventoryActivity.find(
+          (item) => item.inventoryItemId === 'seed-inventory-item-bosch-inyector',
+        );
+
+        expect(inventoryActivity).toBeDefined();
+        expect(inventoryActivity).toMatchObject({
+          activeReservedQuantity: 0,
+          consumedQuantity: 1,
+          soldQuantity: 1,
+        });
+        expect(inventoryActivity?.actualCostIds).toHaveLength(2);
+        expect(inventoryActivity?.movements.map((movement) => movement.reason)).toEqual(
+          expect.arrayContaining([
+            'WORK_ORDER_PURCHASE',
+            'RETURN',
+            'WORK_ORDER_CONSUMPTION',
+            'SALE',
+          ]),
+        );
       });
   });
 

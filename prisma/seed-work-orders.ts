@@ -46,6 +46,8 @@ export type WorkOrderSeedPrismaTransactionClient = {
   };
   inventoryMovement: {
     updateMany(args: Prisma.InventoryMovementUpdateManyArgs): Promise<unknown>;
+    deleteMany?(args: Prisma.InventoryMovementDeleteManyArgs): Promise<unknown>;
+    createMany?(args: Prisma.InventoryMovementCreateManyArgs): Promise<unknown>;
   };
   supplierQuoteHistory: {
     updateMany(
@@ -338,6 +340,48 @@ const payments = [
   },
 ] as const;
 
+const workOrderInventoryMovements = [
+  {
+    id: 'seed-work-order-inventory-release',
+    inventoryItemId: 'seed-inventory-item-bosch-inyector',
+    movementType: 'IN',
+    reason: 'RETURN',
+    quantity: 1,
+    unitCost: 182000,
+    supplierId: null,
+    workOrderId: workshopWorkOrderId,
+    isReservedForWorkOrder: false,
+    occurredAt: new Date('2026-05-08T11:00:00.000Z'),
+    notes: 'Liberación parcial de la reserva del caso taller.',
+  },
+  {
+    id: 'seed-work-order-inventory-consumption',
+    inventoryItemId: 'seed-inventory-item-bosch-inyector',
+    movementType: 'OUT',
+    reason: 'WORK_ORDER_CONSUMPTION',
+    quantity: 1,
+    unitCost: 182000,
+    supplierId: 'seed-supplier-repuestos-central-main',
+    workOrderId: workshopWorkOrderId,
+    isReservedForWorkOrder: false,
+    occurredAt: new Date('2026-05-08T12:00:00.000Z'),
+    notes: 'Consumo real del inyector reservado.',
+  },
+  {
+    id: 'seed-work-order-inventory-sale',
+    inventoryItemId: 'seed-inventory-item-bosch-inyector',
+    movementType: 'OUT',
+    reason: 'SALE',
+    quantity: 1,
+    unitCost: 182000,
+    supplierId: null,
+    workOrderId: workshopWorkOrderId,
+    isReservedForWorkOrder: false,
+    occurredAt: new Date('2026-05-09T09:00:00.000Z'),
+    notes: 'Venta del remanente asociada a la misma orden.',
+  },
+] as const;
+
 export async function seedWorkOrders(
   prisma: WorkOrderSeedPrismaClient,
   now: Date,
@@ -479,6 +523,24 @@ export async function seedWorkOrders(
         isReservedForWorkOrder: true,
       },
     });
+    if (
+      transaction.inventoryMovement.deleteMany &&
+      transaction.inventoryMovement.createMany
+    ) {
+      await transaction.inventoryMovement.deleteMany({
+        where: {
+          id: {
+            in: workOrderInventoryMovements.map((movement) => movement.id),
+          },
+        },
+      });
+      await transaction.inventoryMovement.createMany({
+        data: workOrderInventoryMovements.map((movement) => ({
+          ...movement,
+          createdAt: now,
+        })),
+      });
+    }
 
     await transaction.supplierQuoteHistory.updateMany({
       where: { id: 'seed-supplier-quote-bosch-central-v2' },
