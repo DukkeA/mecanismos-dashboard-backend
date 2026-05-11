@@ -129,9 +129,15 @@ describe('DashboardController (real db e2e)', () => {
             pendingExpensesDue: 1,
             unknownPayables: 1,
           });
-          expect(body.alerts.previews.pendingReceivables.length).toBeLessThanOrEqual(3);
-          expect(body.alerts.previews.pendingExpenses.length).toBeLessThanOrEqual(3);
-          expect(body.alerts.previews.lowStockItems.length).toBeLessThanOrEqual(3);
+          expect(
+            body.alerts.previews.pendingReceivables.length,
+          ).toBeLessThanOrEqual(3);
+          expect(
+            body.alerts.previews.pendingExpenses.length,
+          ).toBeLessThanOrEqual(3);
+          expect(body.alerts.previews.lowStockItems.length).toBeLessThanOrEqual(
+            3,
+          );
           expect(body.recentActivity).toHaveLength(5);
           expect(body.metadata.approximate).toBe(true);
           expect(body.metadata.basis).toBe('dashboard-overview');
@@ -191,7 +197,9 @@ describe('DashboardController (real db e2e)', () => {
       .set('Cookie', cookies)
       .expect(400)
       .expect(({ body }: { body: { message: string[] } }) => {
-        expect(body.message).toContain('to must be greater than or equal to from');
+        expect(body.message).toContain(
+          'to must be greater than or equal to from',
+        );
       });
   });
 });

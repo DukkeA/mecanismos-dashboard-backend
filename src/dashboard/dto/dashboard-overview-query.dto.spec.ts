@@ -40,9 +40,7 @@ describe('DashboardOverviewQueryDto', () => {
     const reversedErrors = await validate(reversedQuery);
 
     expect(invalidDateErrors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ property: 'from' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ property: 'from' })]),
     );
     expect(reversedErrors).toHaveLength(1);
     expect(reversedErrors[0]?.property).toBe('to');

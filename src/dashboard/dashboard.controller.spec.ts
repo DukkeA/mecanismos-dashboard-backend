@@ -25,8 +25,9 @@ import { DashboardOverviewService } from './dashboard.service';
 type ApiResponseMetadata = Record<string, { type?: unknown }>;
 
 describe('DashboardController', () => {
+  const getOverview = jest.fn();
   const service = {
-    getOverview: jest.fn(),
+    getOverview,
   } as unknown as jest.Mocked<DashboardOverviewService>;
 
   let controller: DashboardController;
@@ -121,7 +122,7 @@ describe('DashboardController', () => {
       },
     };
 
-    service.getOverview.mockResolvedValue(response);
+    getOverview.mockResolvedValue(response);
 
     await expect(controller.getOverview(query)).resolves.toEqual(response);
 
@@ -136,8 +137,8 @@ describe('DashboardController', () => {
       }),
     ).rejects.toMatchObject({ status: 400 });
 
-    expect(service.getOverview).toHaveBeenCalledWith(query);
-    expect(service.getOverview).toHaveBeenCalledTimes(1);
+    expect(getOverview).toHaveBeenCalledWith(query);
+    expect(getOverview).toHaveBeenCalledTimes(1);
 
     expect(Reflect.getMetadata(PATH_METADATA, DashboardController)).toBe(
       'dashboard',
@@ -153,7 +154,9 @@ describe('DashboardController', () => {
 
     const overviewHandler = getControllerMethod('getOverview');
 
-    expect(Reflect.getMetadata(PATH_METADATA, overviewHandler)).toBe('overview');
+    expect(Reflect.getMetadata(PATH_METADATA, overviewHandler)).toBe(
+      'overview',
+    );
     expect(Reflect.getMetadata(METHOD_METADATA, overviewHandler)).toBe(
       RequestMethod.GET,
     );

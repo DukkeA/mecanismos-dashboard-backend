@@ -7,7 +7,6 @@ import {
 import { DashboardOverviewQueryDto } from './dto/dashboard-overview-query.dto';
 import { DashboardOverviewResponseDto } from './dto/dashboard-overview-response.dto';
 import {
-  DashboardExpenseRecord,
   DashboardInventoryItemRecord,
   DashboardRepository,
   DashboardWorkOrderRecord,
@@ -45,8 +44,14 @@ export class DashboardOverviewService {
       this.repository.findLatestPayrollSnapshot(query),
       this.repository.findRecentPayments(query, RECENT_ACTIVITY_LIMIT),
       this.repository.findRecentExpenses(query, RECENT_ACTIVITY_LIMIT),
-      this.repository.findRecentCompletedWorkOrders(query, RECENT_ACTIVITY_LIMIT),
-      this.repository.findRecentInventoryMovements(query, RECENT_ACTIVITY_LIMIT),
+      this.repository.findRecentCompletedWorkOrders(
+        query,
+        RECENT_ACTIVITY_LIMIT,
+      ),
+      this.repository.findRecentInventoryMovements(
+        query,
+        RECENT_ACTIVITY_LIMIT,
+      ),
     ]);
 
     const paidExpensesTotal = sumAmounts(paidExpenses);
@@ -55,20 +60,22 @@ export class DashboardOverviewService {
     const receivables = summarizeReceivables(workOrders);
     const lowStockItems = findLowStockItems(inventoryItems);
     const pendingReceivablePreview = buildPendingReceivablePreview(workOrders);
-    const pendingExpensePreview = pendingExpenses.slice(0, ALERT_PREVIEW_LIMIT).map(
-      (expense) => ({
+    const pendingExpensePreview = pendingExpenses
+      .slice(0, ALERT_PREVIEW_LIMIT)
+      .map((expense) => ({
         id: expense.id,
         label: expense.name,
         amount: expense.amount,
         occurredAt: expense.expectedAt.toISOString(),
-      }),
-    );
-    const lowStockPreview = lowStockItems.slice(0, ALERT_PREVIEW_LIMIT).map((item) => ({
-      id: item.id,
-      label: `${item.name} · stock ${item.currentStock}/${item.minimumStock}`,
-      amount: item.currentStock,
-      occurredAt: null,
-    }));
+      }));
+    const lowStockPreview = lowStockItems
+      .slice(0, ALERT_PREVIEW_LIMIT)
+      .map((item) => ({
+        id: item.id,
+        label: `${item.name} · stock ${item.currentStock}/${item.minimumStock}`,
+        amount: item.currentStock,
+        occurredAt: null,
+      }));
     const recentActivity = buildRecentActivity({
       recentPayments,
       recentExpenseRows,
@@ -182,7 +189,8 @@ function countByStatus(workOrders: DashboardWorkOrderRecord[], status: string) {
 }
 
 function countOpenWorkOrders(workOrders: DashboardWorkOrderRecord[]) {
-  return workOrders.filter((workOrder) => workOrder.status === 'IN_PROGRESS').length;
+  return workOrders.filter((workOrder) => workOrder.status === 'IN_PROGRESS')
+    .length;
 }
 
 function summarizeReceivables(workOrders: DashboardWorkOrderRecord[]) {
@@ -193,7 +201,8 @@ function summarizeReceivables(workOrders: DashboardWorkOrderRecord[]) {
       const balance = calculateBalance({ payableAmount, paidTotal });
       const isCollectionTracked = workOrder.paymentStatus !== 'PENDING';
       const isPendingReceivable =
-        workOrder.paymentStatus === 'PENDING' || workOrder.paymentStatus === 'PARTIAL';
+        workOrder.paymentStatus === 'PENDING' ||
+        workOrder.paymentStatus === 'PARTIAL';
 
       if (payableAmount !== null && isCollectionTracked) {
         summary.knownPayableTotal += payableAmount;
@@ -245,7 +254,8 @@ function buildPendingReceivablePreview(workOrders: DashboardWorkOrderRecord[]) {
   return workOrders
     .filter(
       (workOrder) =>
-        workOrder.paymentStatus === 'PENDING' || workOrder.paymentStatus === 'PARTIAL',
+        workOrder.paymentStatus === 'PENDING' ||
+        workOrder.paymentStatus === 'PARTIAL',
     )
     .map((workOrder) => {
       const payableAmount = resolvePayableAmount(workOrder.WorkOrderEstimate);
@@ -260,8 +270,12 @@ function buildPendingReceivablePreview(workOrders: DashboardWorkOrderRecord[]) {
       };
     })
     .sort((left, right) => {
-      const leftTime = left.occurredAt ? Date.parse(left.occurredAt) : Number.MAX_SAFE_INTEGER;
-      const rightTime = right.occurredAt ? Date.parse(right.occurredAt) : Number.MAX_SAFE_INTEGER;
+      const leftTime = left.occurredAt
+        ? Date.parse(left.occurredAt)
+        : Number.MAX_SAFE_INTEGER;
+      const rightTime = right.occurredAt
+        ? Date.parse(right.occurredAt)
+        : Number.MAX_SAFE_INTEGER;
 
       return leftTime - rightTime;
     })
@@ -273,7 +287,11 @@ function buildRecentActivity(input: {
     id: string;
     amount: number;
     paidAt: Date;
-    WorkOrder: { id: string; number: number; Customer: { name: string } | null };
+    WorkOrder: {
+      id: string;
+      number: number;
+      Customer: { name: string } | null;
+    };
   }>;
   recentExpenseRows: Array<{
     id: string;
@@ -326,7 +344,10 @@ function buildRecentActivity(input: {
       amount: null,
     })),
   ]
-    .sort((left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt))
+    .sort(
+      (left, right) =>
+        Date.parse(right.occurredAt) - Date.parse(left.occurredAt),
+    )
     .slice(0, RECENT_ACTIVITY_LIMIT);
 }
 

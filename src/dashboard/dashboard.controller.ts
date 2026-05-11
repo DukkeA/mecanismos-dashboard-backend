@@ -20,10 +20,14 @@ import { DashboardOverviewService } from './dashboard.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN', 'SALES')
 export class DashboardController {
-  constructor(private readonly dashboardOverviewService: DashboardOverviewService) {}
+  constructor(
+    private readonly dashboardOverviewService: DashboardOverviewService,
+  ) {}
 
   @Get('overview')
-  @ApiOperation({ summary: 'Get dashboard overview KPIs for a flexible date range' })
+  @ApiOperation({
+    summary: 'Get dashboard overview KPIs for a flexible date range',
+  })
   @ApiOkResponse({ type: DashboardOverviewResponseDto })
   @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
   @ApiForbiddenResponse({ description: 'Allowed roles: ADMIN | SALES' })

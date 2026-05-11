@@ -3,6 +3,7 @@ import {
   EstimatePhase,
   InventoryMovementType,
   PaymentStatus,
+  WorkOrderCostCategory,
   WorkOrderStatus,
 } from '../../generated/prisma/enums';
 import { DashboardRepository } from './dashboard.repository';
@@ -230,13 +231,21 @@ describe('DashboardOverviewService', () => {
         id: 'payment-1',
         amount: 620000,
         paidAt: new Date('2026-05-09T15:10:00.000Z'),
-        WorkOrder: { id: 'wo-paid', number: 1001, Customer: { name: 'Acme Industrial SAS' } },
+        WorkOrder: {
+          id: 'wo-paid',
+          number: 1001,
+          Customer: { name: 'Acme Industrial SAS' },
+        },
       },
       {
         id: 'payment-2',
         amount: 100000,
         paidAt: new Date('2026-05-18T12:00:00.000Z'),
-        WorkOrder: { id: 'wo-partial', number: 1002, Customer: { name: 'Ana Gomez' } },
+        WorkOrder: {
+          id: 'wo-partial',
+          number: 1002,
+          Customer: { name: 'Ana Gomez' },
+        },
       },
     ]);
     repository.findRecentExpenses.mockResolvedValue([
@@ -394,7 +403,7 @@ function buildWorkOrder({
     WorkOrderActualCost: actualCosts.map((amount, index) => ({
       id: `${id}-cost-${index}`,
       amount,
-      category: 'OTHER',
+      category: WorkOrderCostCategory.OTHER,
       incurredAt: new Date(`2026-05-${12 + index}T10:00:00.000Z`),
     })),
   };

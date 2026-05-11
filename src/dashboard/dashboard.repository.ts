@@ -1,8 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type {
-  EmployeeMonthlyPayrollStatus,
-  InventoryMovementType,
-} from '../../generated/prisma/enums';
+import type { InventoryMovementType } from '../../generated/prisma/enums';
 import type { Prisma } from '../../generated/prisma/client';
 
 export const DASHBOARD_PRISMA_CLIENT = Symbol('DASHBOARD_PRISMA_CLIENT');
@@ -54,19 +51,34 @@ const inventorySelect = {
   },
 } satisfies Prisma.InventoryItemSelect;
 
+const recentExpenseSelect = {
+  id: true,
+  name: true,
+  amount: true,
+  paidAt: true,
+} satisfies Prisma.ExpenseSelect;
+
+const recentCompletedWorkOrderSelect = {
+  id: true,
+  number: true,
+  summary: true,
+  completedAt: true,
+  Customer: { select: { name: true } },
+} satisfies Prisma.WorkOrderSelect;
+
 type DashboardPrismaClient = {
   workOrder: {
-    findMany(
-      args: Prisma.WorkOrderFindManyArgs,
-    ): Promise<DashboardWorkOrderRecord[]>;
+    findMany<T extends Prisma.WorkOrderFindManyArgs>(
+      args: T,
+    ): Promise<Prisma.WorkOrderGetPayload<T>[]>;
   };
   workOrderPayment: {
     aggregate(args: Prisma.WorkOrderPaymentAggregateArgs): Promise<{
       _sum: { amount: number | null };
     }>;
-    findMany(
-      args: Prisma.WorkOrderPaymentFindManyArgs,
-    ): Promise<RecentPaymentRecord[]>;
+    findMany<T extends Prisma.WorkOrderPaymentFindManyArgs>(
+      args: T,
+    ): Promise<Prisma.WorkOrderPaymentGetPayload<T>[]>;
   };
   workOrderActualCost: {
     aggregate(args: Prisma.WorkOrderActualCostAggregateArgs): Promise<{
@@ -74,22 +86,24 @@ type DashboardPrismaClient = {
     }>;
   };
   expense: {
-    findMany(args: Prisma.ExpenseFindManyArgs): Promise<DashboardExpenseRecord[]>;
+    findMany<T extends Prisma.ExpenseFindManyArgs>(
+      args: T,
+    ): Promise<Prisma.ExpenseGetPayload<T>[]>;
   };
   inventoryItem: {
-    findMany(
-      args: Prisma.InventoryItemFindManyArgs,
-    ): Promise<DashboardInventoryItemRecord[]>;
+    findMany<T extends Prisma.InventoryItemFindManyArgs>(
+      args: T,
+    ): Promise<Prisma.InventoryItemGetPayload<T>[]>;
   };
   employeeMonthlyPayroll: {
-    findFirst(
-      args: Prisma.EmployeeMonthlyPayrollFindFirstArgs,
-    ): Promise<DashboardPayrollRecord | null>;
+    findFirst<T extends Prisma.EmployeeMonthlyPayrollFindFirstArgs>(
+      args: T,
+    ): Promise<Prisma.EmployeeMonthlyPayrollGetPayload<T> | null>;
   };
   inventoryMovement: {
-    findMany(
-      args: Prisma.InventoryMovementFindManyArgs,
-    ): Promise<RecentInventoryMovementRecord[]>;
+    findMany<T extends Prisma.InventoryMovementFindManyArgs>(
+      args: T,
+    ): Promise<Prisma.InventoryMovementGetPayload<T>[]>;
   };
 };
 
@@ -256,8 +270,8 @@ export class DashboardRepository {
       },
       orderBy: { paidAt: 'desc' },
       take,
-      select: { id: true, name: true, amount: true, paidAt: true },
-    }) as Promise<RecentExpenseRecord[]>;
+      select: recentExpenseSelect,
+    });
   }
 
   findRecentCompletedWorkOrders(range: DashboardDateRange, take = 5) {
@@ -271,14 +285,8 @@ export class DashboardRepository {
       },
       orderBy: { completedAt: 'desc' },
       take,
-      select: {
-        id: true,
-        number: true,
-        summary: true,
-        completedAt: true,
-        Customer: { select: { name: true } },
-      },
-    }) as Promise<RecentCompletedWorkOrderRecord[]>;
+      select: recentCompletedWorkOrderSelect,
+    });
   }
 
   findRecentInventoryMovements(range: DashboardDateRange, take = 5) {
@@ -313,7 +321,9 @@ function buildInclusiveWindow(
   };
 }
 
-function buildPayrollWhere(range: DashboardDateRange): Prisma.EmployeeMonthlyPayrollWhereInput {
+function buildPayrollWhere(
+  range: DashboardDateRange,
+): Prisma.EmployeeMonthlyPayrollWhereInput {
   if (!range.from && !range.to) {
     return {};
   }
