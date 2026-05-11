@@ -22,6 +22,7 @@ import { CustomerAssetHistoryModule } from './customer-asset-history/customer-as
 import { AppSettingsModule } from './app-settings/app-settings.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { EmployeeMonthlyPayrollModule } from './employee-monthly-payroll/employee-monthly-payroll.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { EmployeeMonthlyPayrollModule } from './employee-monthly-payroll/employe
     AppSettingsModule,
     AdminUsersModule,
     EmployeeMonthlyPayrollModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
