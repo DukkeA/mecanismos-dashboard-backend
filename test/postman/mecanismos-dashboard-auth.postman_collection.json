@@ -57,6 +57,22 @@
     {
       "key": "managedUserNewPassword",
       "value": "NewSecure123!"
+    },
+    {
+      "key": "recoveryUserEmail",
+      "value": "postman-recovery-sales@mecanismos.test"
+    },
+    {
+      "key": "recoveryUserPassword",
+      "value": "RecoveryTemp123!"
+    },
+    {
+      "key": "recoveryUserNewPassword",
+      "value": "RecoveryNew123!"
+    },
+    {
+      "key": "recoveryPhrase",
+      "value": ""
     }
   ],
   "item": [
@@ -79,13 +95,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
             }
           },
           "event": [
@@ -124,13 +135,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
             }
           },
           "event": [
@@ -162,14 +168,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/admin/smoke",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "admin",
-                "smoke"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "admin", "smoke"]
             }
           },
           "event": [
@@ -199,13 +199,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/refresh",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "refresh"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
             }
           },
           "event": [
@@ -235,13 +230,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "logout"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
             }
           },
           "event": [
@@ -275,13 +265,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
             }
           },
           "event": [
@@ -319,13 +304,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/admin/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "admin",
-                "users"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"]
             }
           },
           "event": [
@@ -359,13 +339,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "admin",
-                "users"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
               "query": [
                 {
                   "key": "search",
@@ -411,15 +386,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/admin/users/{{managedUserId}}/reset-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "admin",
-                "users",
-                "{{managedUserId}}",
-                "reset-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{managedUserId}}", "reset-password"]
             }
           },
           "event": [
@@ -460,13 +428,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
             }
           },
           "event": [
@@ -505,13 +468,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "change-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
             }
           },
           "event": [
@@ -556,13 +514,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
             }
           },
           "event": [
@@ -592,13 +545,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
             }
           },
           "event": [
@@ -627,14 +575,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/admin/smoke",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "admin",
-                "smoke"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "admin", "smoke"]
             }
           },
           "event": [
@@ -658,13 +600,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "logout"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
             }
           },
           "event": [
@@ -697,13 +634,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
             }
           },
           "event": [
@@ -733,13 +665,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
             }
           },
           "event": [
@@ -768,14 +695,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/admin/smoke",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "admin",
-                "smoke"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "admin", "smoke"]
             }
           },
           "event": [
@@ -799,13 +720,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "logout"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
             }
           },
           "event": [
@@ -838,13 +754,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
             }
           },
           "event": [
@@ -860,6 +771,217 @@
                   "const setCookies = pm.response.headers.all().filter((header) => header.key.toLowerCase() === 'set-cookie');",
                   "pm.test('invalid login does not issue auth cookies', function () {",
                   "  pm.expect(setCookies.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Recovery Phrase Flow",
+      "description": "Supplemental manual flow. The phrase is captured at runtime into a collection variable; do not commit real recovery phrases.",
+      "item": [
+        {
+          "name": "Recovery Setup Create Sales User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{recoveryUserEmail}}\",\n  \"name\": \"Postman Recovery User\",\n  \"role\": \"SALES\",\n  \"temporaryPassword\": \"{{recoveryUserPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('recovery user setup returns 201 or already exists conflict', function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recovery User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{recoveryUserEmail}}\",\n  \"password\": \"{{recoveryUserPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('recovery user login returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recovery Generate Phrase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{recoveryUserPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/recovery-phrase/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "recovery-phrase", "generate"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('generate returns 8 words', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.words).to.have.length(8);",
+                  "  pm.expect(body.phrase.split(' ')).to.eql(body.words);",
+                  "  pm.collectionVariables.set('recoveryPhrase', body.phrase);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recovery Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/recovery-phrase/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "recovery-phrase", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is metadata only', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.enabled).to.eql(true);",
+                  "  pm.expect(body.phrase).to.eql(undefined);",
+                  "  pm.expect(body.recoveryPhraseHash).to.eql(undefined);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recovery With Captured Phrase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{recoveryUserEmail}}\",\n  \"recoveryPhrase\": \"{{recoveryPhrase}}\",\n  \"newPassword\": \"{{recoveryUserNewPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/recovery-phrase/recover",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "recovery-phrase", "recover"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('recovery returns success', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recovery Reuse Fails",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{recoveryUserEmail}}\",\n  \"recoveryPhrase\": \"{{recoveryPhrase}}\",\n  \"newPassword\": \"ShouldNotWork123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/recovery-phrase/recover",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "recovery-phrase", "recover"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('reused phrase fails generically', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.eql('Recovery failed');",
                   "});"
                 ]
               }
