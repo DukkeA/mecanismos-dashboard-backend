@@ -12,10 +12,13 @@ export type DashboardDateRange = {
 const workOrderSelect = {
   id: true,
   number: true,
+  summary: true,
   status: true,
   paymentStatus: true,
+  externalLink: true,
   createdAt: true,
   completedAt: true,
+  estimatedCompletionAt: true,
   estimatedCollectionAt: true,
   Customer: { select: { name: true } },
   WorkOrderEstimate: {
@@ -48,6 +51,15 @@ const inventorySelect = {
   InventoryMovement: {
     select: { movementType: true, quantity: true },
     orderBy: { occurredAt: 'asc' },
+  },
+} satisfies Prisma.InventoryItemSelect;
+
+const actionInventorySelect = {
+  ...inventorySelect,
+  defaultSalePrice: true,
+  SupplierQuoteHistory: {
+    select: { status: true, quotedCost: true, quotedAt: true },
+    orderBy: { quotedAt: 'desc' },
   },
 } satisfies Prisma.InventoryItemSelect;
 
@@ -119,6 +131,11 @@ export type DashboardInventoryItemRecord = Prisma.InventoryItemGetPayload<{
   select: typeof inventorySelect;
 }>;
 
+export type DashboardActionInventoryItemRecord =
+  Prisma.InventoryItemGetPayload<{
+    select: typeof actionInventorySelect;
+  }>;
+
 export type DashboardPayrollRecord = Pick<
   Prisma.EmployeeMonthlyPayrollGetPayload<object>,
   'id' | 'year' | 'month' | 'status' | 'grandTotal'
@@ -167,6 +184,28 @@ export class DashboardRepository {
     });
   }
 
+  findOpenWorkOrdersForActions(range: DashboardDateRange) {
+    return this.prisma.workOrder.findMany({
+      where: {
+        status: { in: ['IN_PROGRESS', 'PAUSED'] },
+        ...buildDueByWindow('estimatedCompletionAt', range),
+      },
+      orderBy: [{ estimatedCompletionAt: 'asc' }, { number: 'asc' }],
+      select: workOrderSelect,
+    });
+  }
+
+  findReceivableWorkOrdersForActions(range: DashboardDateRange) {
+    return this.prisma.workOrder.findMany({
+      where: {
+        paymentStatus: { in: ['PENDING', 'PARTIAL'] },
+        ...buildDueByWindow('estimatedCollectionAt', range),
+      },
+      orderBy: [{ estimatedCollectionAt: 'asc' }, { number: 'asc' }],
+      select: workOrderSelect,
+    });
+  }
+
   async aggregatePaymentsCollected(range: DashboardDateRange) {
     const result = await this.prisma.workOrderPayment.aggregate({
       where: buildInclusiveWindow('paidAt', range),
@@ -210,6 +249,17 @@ export class DashboardRepository {
     });
   }
 
+  findPendingExpensesForActions(range: DashboardDateRange) {
+    return this.prisma.expense.findMany({
+      where: {
+        paidAt: null,
+        ...buildDueByWindow('expectedAt', range),
+      },
+      orderBy: { expectedAt: 'asc' },
+      select: expenseSelect,
+    });
+  }
+
   findInventoryItemsWithMovements(range: DashboardDateRange) {
     return this.prisma.inventoryItem.findMany({
       where: { isActive: true },
@@ -220,6 +270,26 @@ export class DashboardRepository {
           select: { movementType: true, quantity: true },
           where: range.to ? { occurredAt: { lte: range.to } } : undefined,
           orderBy: { occurredAt: 'asc' },
+        },
+      },
+    });
+  }
+
+  findInventoryItemsForActions(range: DashboardDateRange) {
+    return this.prisma.inventoryItem.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: {
+        ...actionInventorySelect,
+        InventoryMovement: {
+          select: { movementType: true, quantity: true },
+          where: range.to ? { occurredAt: { lte: range.to } } : undefined,
+          orderBy: { occurredAt: 'asc' },
+        },
+        SupplierQuoteHistory: {
+          select: { status: true, quotedCost: true, quotedAt: true },
+          where: range.to ? { quotedAt: { lte: range.to } } : undefined,
+          orderBy: { quotedAt: 'desc' },
         },
       },
     });
@@ -317,6 +387,19 @@ function buildInclusiveWindow(
     [field]: {
       ...(range.from ? { gte: range.from } : {}),
       ...(range.to ? { lte: range.to } : {}),
+    },
+  };
+}
+
+function buildDueByWindow(
+  field: 'estimatedCompletionAt' | 'estimatedCollectionAt' | 'expectedAt',
+  range: DashboardDateRange,
+) {
+  return {
+    [field]: {
+      ...(field === 'expectedAt' ? {} : { not: null }),
+      ...(range.to ? { lte: range.to } : {}),
+      ...(!range.to && range.from ? { gte: range.from } : {}),
     },
   };
 }

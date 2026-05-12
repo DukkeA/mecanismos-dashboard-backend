@@ -3,20 +3,29 @@ import {
   EstimatePhase,
   InventoryMovementType,
   PaymentStatus,
+  SupplierQuoteStatus,
   WorkOrderCostCategory,
   WorkOrderStatus,
 } from '../../generated/prisma/enums';
+import {
+  DashboardActionItemCategory,
+  DashboardActionItemDateBasis,
+} from './dto/dashboard-action-items-response.dto';
 import { DashboardRepository } from './dashboard.repository';
 import { DashboardOverviewService } from './dashboard.service';
 
 describe('DashboardOverviewService', () => {
   const repository = {
     findWorkOrders: jest.fn(),
+    findOpenWorkOrdersForActions: jest.fn(),
+    findReceivableWorkOrdersForActions: jest.fn(),
     aggregatePaymentsCollected: jest.fn(),
     aggregateActualCosts: jest.fn(),
     findPaidExpenses: jest.fn(),
     findPendingExpenses: jest.fn(),
+    findPendingExpensesForActions: jest.fn(),
     findInventoryItemsWithMovements: jest.fn(),
+    findInventoryItemsForActions: jest.fn(),
     findLatestPayrollSnapshot: jest.fn(),
     findRecentPayments: jest.fn(),
     findRecentExpenses: jest.fn(),
@@ -103,6 +112,223 @@ describe('DashboardOverviewService', () => {
           payroll: 'year-month overlap',
           recentActivity: 'occurredAt',
         },
+      },
+    });
+  });
+
+  it('returns a safe empty action-items shell that echoes date-only range metadata', async () => {
+    repository.findOpenWorkOrdersForActions.mockResolvedValue([]);
+    repository.findReceivableWorkOrdersForActions.mockResolvedValue([]);
+    repository.findPendingExpensesForActions.mockResolvedValue([]);
+    repository.findInventoryItemsForActions.mockResolvedValue([]);
+    repository.aggregatePaymentsCollected.mockResolvedValue(0);
+    repository.findLatestPayrollSnapshot.mockResolvedValue(null);
+
+    await expect(
+      service.getActionItems({
+        from: new Date('2026-05-01T00:00:00.000Z'),
+        to: new Date('2026-05-31T00:00:00.000Z'),
+      }),
+    ).resolves.toEqual({
+      range: { from: '2026-05-01', to: '2026-05-31' },
+      items: [],
+      metadata: {
+        approximate: false,
+        generatedAt: expect.any(String) as string,
+        itemCount: 0,
+        categoryCounts: {
+          [DashboardActionItemCategory.WORK_ORDER_OVERDUE]: 0,
+          [DashboardActionItemCategory.RECEIVABLE]: 0,
+          [DashboardActionItemCategory.EXPENSE]: 0,
+          [DashboardActionItemCategory.LOW_STOCK]: 0,
+          [DashboardActionItemCategory.PRICE_RISK]: 0,
+          [DashboardActionItemCategory.CASH_RISK]: 0,
+        },
+        dateBasis: {
+          [DashboardActionItemCategory.WORK_ORDER_OVERDUE]:
+            DashboardActionItemDateBasis.ESTIMATED_COMPLETION_AT,
+          [DashboardActionItemCategory.RECEIVABLE]:
+            DashboardActionItemDateBasis.ESTIMATED_COLLECTION_AT,
+          [DashboardActionItemCategory.EXPENSE]:
+            DashboardActionItemDateBasis.EXPECTED_AT,
+          [DashboardActionItemCategory.LOW_STOCK]:
+            DashboardActionItemDateBasis.STOCK_AS_OF_TO,
+          [DashboardActionItemCategory.PRICE_RISK]:
+            DashboardActionItemDateBasis.ACTIVE_QUOTE_STATE_AS_OF_TO,
+          [DashboardActionItemCategory.CASH_RISK]:
+            DashboardActionItemDateBasis.SELECTED_RANGE_COLLECTIONS_VS_PENDING_EXPENSES,
+        },
+        notes: ['Nullable amounts represent unknown values, not zero.'],
+      },
+    });
+  });
+
+  it('maps action categories with date bases, conservative unknown amounts, and severity order', async () => {
+    repository.findOpenWorkOrdersForActions.mockResolvedValue([
+      buildWorkOrder({
+        id: 'wo-overdue',
+        number: 2001,
+        status: WorkOrderStatus.IN_PROGRESS,
+        paymentStatus: PaymentStatus.PENDING,
+        customerName: 'Motores Andinos',
+        createdAt: '2026-04-20T10:00:00.000Z',
+        estimatedCompletionAt: '2026-05-10T00:00:00.000Z',
+        estimatedCollectionAt: '2026-05-20T00:00:00.000Z',
+        payableAmount: 900000,
+        payments: [],
+        actualCosts: [],
+        externalLink: 'https://example.test/ot-2001',
+      }),
+      buildWorkOrder({
+        id: 'wo-paused',
+        number: 2002,
+        status: WorkOrderStatus.PAUSED,
+        paymentStatus: PaymentStatus.PENDING,
+        customerName: 'Taller Central',
+        createdAt: '2026-05-01T10:00:00.000Z',
+        estimatedCompletionAt: '2026-05-29T00:00:00.000Z',
+        payableAmount: 300000,
+        payments: [],
+        actualCosts: [],
+      }),
+    ]);
+    repository.findReceivableWorkOrdersForActions.mockResolvedValue([
+      buildWorkOrder({
+        id: 'wo-receivable-known',
+        number: 2003,
+        status: WorkOrderStatus.IN_PROGRESS,
+        paymentStatus: PaymentStatus.PARTIAL,
+        customerName: 'Acme SAS',
+        createdAt: '2026-05-02T10:00:00.000Z',
+        estimatedCollectionAt: '2026-05-14T00:00:00.000Z',
+        payableAmount: 500000,
+        payments: [125000],
+        actualCosts: [],
+      }),
+      buildWorkOrder({
+        id: 'wo-receivable-unknown',
+        number: 2004,
+        status: WorkOrderStatus.IN_PROGRESS,
+        paymentStatus: PaymentStatus.PENDING,
+        customerName: 'Sin estimado',
+        createdAt: '2026-05-03T10:00:00.000Z',
+        estimatedCollectionAt: '2026-05-16T00:00:00.000Z',
+        payableAmount: null,
+        payments: [],
+        actualCosts: [],
+      }),
+    ]);
+    repository.findPendingExpensesForActions.mockResolvedValue([
+      {
+        id: 'expense-pending',
+        name: 'Arriendo sede mayo',
+        amount: 1500000,
+        expectedAt: new Date('2026-05-13T00:00:00.000Z'),
+        paidAt: null,
+        CostCenter: { id: 'office', code: 'OFFICE', name: 'Oficina' },
+      },
+    ]);
+    repository.findInventoryItemsForActions.mockResolvedValue([
+      {
+        id: 'inventory-low',
+        name: 'Inyector Bosch',
+        minimumStock: 5,
+        defaultSalePrice: null,
+        InventoryMovement: [
+          { movementType: InventoryMovementType.IN, quantity: 4 },
+          { movementType: InventoryMovementType.OUT, quantity: 1 },
+        ],
+        SupplierQuoteHistory: [
+          {
+            status: SupplierQuoteStatus.VOIDED,
+            quotedCost: 180000,
+            quotedAt: new Date('2026-05-01T00:00:00.000Z'),
+          },
+        ],
+      },
+    ]);
+    repository.aggregatePaymentsCollected.mockResolvedValue(100000);
+    repository.findLatestPayrollSnapshot.mockResolvedValue({
+      id: 'payroll-2026-05',
+      year: 2026,
+      month: 5,
+      status: EmployeeMonthlyPayrollStatus.DRAFT,
+      grandTotal: 900000,
+    });
+
+    const result = await service.getActionItems({
+      from: new Date('2026-05-01T00:00:00.000Z'),
+      to: new Date('2026-05-31T23:59:59.999Z'),
+    });
+
+    expect(result.items.map((item) => item.category)).toEqual([
+      DashboardActionItemCategory.WORK_ORDER_OVERDUE,
+      DashboardActionItemCategory.EXPENSE,
+      DashboardActionItemCategory.RECEIVABLE,
+      DashboardActionItemCategory.RECEIVABLE,
+      DashboardActionItemCategory.WORK_ORDER_OVERDUE,
+      DashboardActionItemCategory.LOW_STOCK,
+      DashboardActionItemCategory.PRICE_RISK,
+      DashboardActionItemCategory.CASH_RISK,
+    ]);
+    expect(result.items[0]).toMatchObject({
+      id: 'WORK_ORDER_OVERDUE:wo-overdue',
+      severity: 'critical',
+      status: 'overdue',
+      dueAt: '2026-05-10',
+      amount: null,
+      dateBasis: DashboardActionItemDateBasis.ESTIMATED_COMPLETION_AT,
+      entity: {
+        type: 'workOrder',
+        id: 'wo-overdue',
+        label: 'OT 2001 · Motores Andinos',
+        href: 'https://example.test/ot-2001',
+      },
+    });
+    expect(
+      result.items.find((item) => item.id === 'RECEIVABLE:wo-receivable-known'),
+    ).toMatchObject({
+      amount: 375000,
+      riskFlags: [],
+      dateBasis: DashboardActionItemDateBasis.ESTIMATED_COLLECTION_AT,
+    });
+    expect(
+      result.items.find(
+        (item) => item.id === 'RECEIVABLE:wo-receivable-unknown',
+      ),
+    ).toMatchObject({
+      amount: null,
+      riskFlags: ['unknownPayable'],
+      notes: [
+        'Payable amount is unknown; this is not a zero-value receivable.',
+      ],
+    });
+    expect(
+      result.items.find((item) => item.id === 'PRICE_RISK:inventory-low'),
+    ).toMatchObject({
+      amount: null,
+      riskFlags: ['unknownPrice'],
+      severity: 'info',
+    });
+    expect(
+      result.items.find((item) => item.id === 'CASH_RISK:selected-range'),
+    ).toMatchObject({
+      amount: null,
+      riskFlags: ['cashPressureApproximate'],
+      notes: expect.arrayContaining([
+        'Advisory only: selected-range collections are below known pending expenses/payroll pressure.',
+      ]) as string[],
+    });
+    expect(result.metadata).toMatchObject({
+      approximate: true,
+      itemCount: 8,
+      categoryCounts: {
+        WORK_ORDER_OVERDUE: 2,
+        RECEIVABLE: 2,
+        EXPENSE: 1,
+        LOW_STOCK: 1,
+        PRICE_RISK: 1,
+        CASH_RISK: 1,
       },
     });
   });
@@ -363,10 +589,12 @@ function buildWorkOrder({
   customerName,
   createdAt,
   completedAt,
+  estimatedCompletionAt,
   estimatedCollectionAt,
   payableAmount,
   payments,
   actualCosts,
+  externalLink,
 }: {
   id: string;
   number: number;
@@ -375,21 +603,28 @@ function buildWorkOrder({
   customerName: string;
   createdAt: string;
   completedAt?: string;
+  estimatedCompletionAt?: string;
   estimatedCollectionAt?: string;
   payableAmount: number | null;
   payments: number[];
   actualCosts: number[];
+  externalLink?: string;
 }) {
   return {
     id,
     number,
+    summary: `OT ${number}`,
     status,
     paymentStatus,
     createdAt: new Date(createdAt),
     completedAt: completedAt ? new Date(completedAt) : null,
+    estimatedCompletionAt: estimatedCompletionAt
+      ? new Date(estimatedCompletionAt)
+      : null,
     estimatedCollectionAt: estimatedCollectionAt
       ? new Date(estimatedCollectionAt)
       : null,
+    externalLink: externalLink ?? null,
     Customer: { name: customerName },
     WorkOrderEstimate:
       payableAmount === null

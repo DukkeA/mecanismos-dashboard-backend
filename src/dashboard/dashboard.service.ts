@@ -4,9 +4,19 @@ import {
   calculateBalance,
   resolvePayableAmount,
 } from '../operations-reporting/calculations/operations-reporting.calculations';
+import { DashboardActionItemsQueryDto } from './dto/dashboard-action-items-query.dto';
+import {
+  DashboardActionItemDto,
+  DashboardActionItemCategory,
+  DashboardActionItemDateBasis,
+  DashboardActionItemSeverity,
+  DashboardActionItemsResponseDto,
+} from './dto/dashboard-action-items-response.dto';
 import { DashboardOverviewQueryDto } from './dto/dashboard-overview-query.dto';
 import { DashboardOverviewResponseDto } from './dto/dashboard-overview-response.dto';
 import {
+  DashboardActionInventoryItemRecord,
+  DashboardExpenseRecord,
   DashboardInventoryItemRecord,
   DashboardRepository,
   DashboardWorkOrderRecord,
@@ -18,6 +28,54 @@ const RECENT_ACTIVITY_LIMIT = 5;
 @Injectable()
 export class DashboardOverviewService {
   constructor(private readonly repository: DashboardRepository) {}
+
+  async getActionItems(
+    query: DashboardActionItemsQueryDto,
+  ): Promise<DashboardActionItemsResponseDto> {
+    const [
+      workOrders,
+      receivables,
+      expenses,
+      inventoryItems,
+      collected,
+      payroll,
+    ] = await Promise.all([
+      this.repository.findOpenWorkOrdersForActions(query),
+      this.repository.findReceivableWorkOrdersForActions(query),
+      this.repository.findPendingExpensesForActions(query),
+      this.repository.findInventoryItemsForActions(query),
+      this.repository.aggregatePaymentsCollected(query),
+      this.repository.findLatestPayrollSnapshot(query),
+    ]);
+
+    const lowStockItems = findLowStockActionItems(inventoryItems);
+    const items = sortActionItems([
+      ...workOrders.map((workOrder) => buildWorkOrderActionItem(workOrder)),
+      ...receivables.map((workOrder) => buildReceivableActionItem(workOrder)),
+      ...expenses.map((expense) => buildExpenseActionItem(expense)),
+      ...lowStockItems.map((item) => buildLowStockActionItem(item)),
+      ...lowStockItems
+        .filter((item) => hasUnknownPriceRisk(item))
+        .map((item) => buildPriceRiskActionItem(item)),
+      ...buildCashRiskActionItems({ collected, expenses, payroll }),
+    ]);
+
+    return {
+      range: {
+        from: formatDateOnly(query.from),
+        to: formatDateOnly(query.to),
+      },
+      items,
+      metadata: {
+        approximate: items.some((item) => item.riskFlags.length > 0),
+        generatedAt: new Date().toISOString(),
+        itemCount: items.length,
+        categoryCounts: buildActionItemCategoryCounts(items),
+        dateBasis: buildActionItemDateBasis(),
+        notes: buildActionItemNotes(items),
+      },
+    };
+  }
 
   async getOverview(
     query: DashboardOverviewQueryDto,
@@ -182,6 +240,316 @@ export class DashboardOverviewService {
       },
     };
   }
+}
+
+function formatDateOnly(value: Date | undefined) {
+  return value ? value.toISOString().slice(0, 10) : null;
+}
+
+function buildEmptyActionItemCategoryCounts() {
+  return {
+    [DashboardActionItemCategory.WORK_ORDER_OVERDUE]: 0,
+    [DashboardActionItemCategory.RECEIVABLE]: 0,
+    [DashboardActionItemCategory.EXPENSE]: 0,
+    [DashboardActionItemCategory.LOW_STOCK]: 0,
+    [DashboardActionItemCategory.PRICE_RISK]: 0,
+    [DashboardActionItemCategory.CASH_RISK]: 0,
+  };
+}
+
+function buildActionItemDateBasis() {
+  return {
+    [DashboardActionItemCategory.WORK_ORDER_OVERDUE]:
+      DashboardActionItemDateBasis.ESTIMATED_COMPLETION_AT,
+    [DashboardActionItemCategory.RECEIVABLE]:
+      DashboardActionItemDateBasis.ESTIMATED_COLLECTION_AT,
+    [DashboardActionItemCategory.EXPENSE]:
+      DashboardActionItemDateBasis.EXPECTED_AT,
+    [DashboardActionItemCategory.LOW_STOCK]:
+      DashboardActionItemDateBasis.STOCK_AS_OF_TO,
+    [DashboardActionItemCategory.PRICE_RISK]:
+      DashboardActionItemDateBasis.ACTIVE_QUOTE_STATE_AS_OF_TO,
+    [DashboardActionItemCategory.CASH_RISK]:
+      DashboardActionItemDateBasis.SELECTED_RANGE_COLLECTIONS_VS_PENDING_EXPENSES,
+  };
+}
+
+function buildActionItemCategoryCounts(items: DashboardActionItemDto[]) {
+  const counts = buildEmptyActionItemCategoryCounts();
+
+  for (const item of items) {
+    counts[item.category] += 1;
+  }
+
+  return counts;
+}
+
+function buildActionItemNotes(items: DashboardActionItemDto[]) {
+  const notes = ['Nullable amounts represent unknown values, not zero.'];
+
+  if (items.some((item) => item.riskFlags.includes('unknownPayable'))) {
+    notes.push(
+      'Some receivable amounts are unknown because no reliable payable amount is available.',
+    );
+  }
+
+  if (items.some((item) => item.riskFlags.includes('unknownPrice'))) {
+    notes.push(
+      'Price-risk items are advisory and do not claim exact margin or loss.',
+    );
+  }
+
+  if (
+    items.some((item) => item.riskFlags.includes('cashPressureApproximate'))
+  ) {
+    notes.push(
+      'Cash-risk items compare selected-range collections against known pending expenses and payroll pressure only.',
+    );
+  }
+
+  return notes;
+}
+
+function buildWorkOrderActionItem(
+  workOrder: DashboardWorkOrderRecord,
+): DashboardActionItemDto {
+  const dueAt = formatDateOnly(workOrder.estimatedCompletionAt ?? undefined);
+
+  return {
+    id: `${DashboardActionItemCategory.WORK_ORDER_OVERDUE}:${workOrder.id}`,
+    category: DashboardActionItemCategory.WORK_ORDER_OVERDUE,
+    severity: DashboardActionItemSeverity.CRITICAL,
+    status: 'overdue',
+    title: `Work order OT ${workOrder.number} needs completion follow-up`,
+    entity: buildWorkOrderEntity(workOrder),
+    dueAt,
+    amount: null,
+    riskFlags: [],
+    dateBasis: DashboardActionItemDateBasis.ESTIMATED_COMPLETION_AT,
+    notes: ['Anchored to estimatedCompletionAt; no workflow state is changed.'],
+  };
+}
+
+function buildReceivableActionItem(
+  workOrder: DashboardWorkOrderRecord,
+): DashboardActionItemDto {
+  const payableAmount = resolvePayableAmount(workOrder.WorkOrderEstimate);
+  const paidTotal = sumAmounts(workOrder.WorkOrderPayment);
+  const balance = calculateBalance({ payableAmount, paidTotal });
+  const isUnknown = balance === null;
+
+  return {
+    id: `${DashboardActionItemCategory.RECEIVABLE}:${workOrder.id}`,
+    category: DashboardActionItemCategory.RECEIVABLE,
+    severity: DashboardActionItemSeverity.CRITICAL,
+    status: workOrder.paymentStatus.toLowerCase(),
+    title: `Receivable follow-up for OT ${workOrder.number}`,
+    entity: buildWorkOrderEntity(workOrder),
+    dueAt: formatDateOnly(workOrder.estimatedCollectionAt ?? undefined),
+    amount: balance === null ? null : Math.max(balance, 0),
+    riskFlags: isUnknown ? ['unknownPayable'] : [],
+    dateBasis: DashboardActionItemDateBasis.ESTIMATED_COLLECTION_AT,
+    notes: isUnknown
+      ? ['Payable amount is unknown; this is not a zero-value receivable.']
+      : ['Amount is remaining known payable after recorded payments.'],
+  };
+}
+
+function buildExpenseActionItem(
+  expense: DashboardExpenseRecord,
+): DashboardActionItemDto {
+  return {
+    id: `${DashboardActionItemCategory.EXPENSE}:${expense.id}`,
+    category: DashboardActionItemCategory.EXPENSE,
+    severity: DashboardActionItemSeverity.CRITICAL,
+    status: 'pending',
+    title: `Pending expense: ${expense.name}`,
+    entity: {
+      type: 'expense',
+      id: expense.id,
+      label: expense.CostCenter
+        ? `${expense.name} · ${expense.CostCenter.name}`
+        : expense.name,
+      href: null,
+    },
+    dueAt: formatDateOnly(expense.expectedAt),
+    amount: expense.amount,
+    riskFlags: [],
+    dateBasis: DashboardActionItemDateBasis.EXPECTED_AT,
+    notes: ['Anchored to expectedAt and included only while paidAt is null.'],
+  };
+}
+
+function buildLowStockActionItem(
+  item: LowStockActionInventoryItem,
+): DashboardActionItemDto {
+  return {
+    id: `${DashboardActionItemCategory.LOW_STOCK}:${item.id}`,
+    category: DashboardActionItemCategory.LOW_STOCK,
+    severity: DashboardActionItemSeverity.MEDIUM,
+    status: 'low-stock',
+    title: `Low stock: ${item.name}`,
+    entity: {
+      type: 'inventoryItem',
+      id: item.id,
+      label: `${item.name} · stock ${item.currentStock}/${item.minimumStock}`,
+      href: null,
+    },
+    dueAt: null,
+    amount: item.currentStock,
+    riskFlags: [],
+    dateBasis: DashboardActionItemDateBasis.STOCK_AS_OF_TO,
+    notes: ['Stock is calculated from movements up to range.to.'],
+  };
+}
+
+function buildPriceRiskActionItem(
+  item: LowStockActionInventoryItem,
+): DashboardActionItemDto {
+  return {
+    id: `${DashboardActionItemCategory.PRICE_RISK}:${item.id}`,
+    category: DashboardActionItemCategory.PRICE_RISK,
+    severity: DashboardActionItemSeverity.INFO,
+    status: 'advisory',
+    title: `Unknown price risk: ${item.name}`,
+    entity: {
+      type: 'inventoryItem',
+      id: item.id,
+      label: item.name,
+      href: null,
+    },
+    dueAt: null,
+    amount: null,
+    riskFlags: ['unknownPrice'],
+    dateBasis: DashboardActionItemDateBasis.ACTIVE_QUOTE_STATE_AS_OF_TO,
+    notes: [
+      'No active/default price signal was found as of range.to; this is advisory, not a loss estimate.',
+    ],
+  };
+}
+
+function buildCashRiskActionItems(input: {
+  collected: number;
+  expenses: DashboardExpenseRecord[];
+  payroll: { grandTotal: number | null } | null;
+}): DashboardActionItemDto[] {
+  const knownPressure =
+    sumAmounts(input.expenses) + (input.payroll?.grandTotal ?? 0);
+
+  if (knownPressure <= input.collected) {
+    return [];
+  }
+
+  return [
+    {
+      id: `${DashboardActionItemCategory.CASH_RISK}:selected-range`,
+      category: DashboardActionItemCategory.CASH_RISK,
+      severity: DashboardActionItemSeverity.INFO,
+      status: 'advisory',
+      title: 'Possible cash pressure in selected range',
+      entity: {
+        type: 'dashboard',
+        id: 'selected-range',
+        label: 'Selected dashboard range',
+        href: null,
+      },
+      dueAt: null,
+      amount: null,
+      riskFlags: ['cashPressureApproximate'],
+      dateBasis:
+        DashboardActionItemDateBasis.SELECTED_RANGE_COLLECTIONS_VS_PENDING_EXPENSES,
+      notes: [
+        'Advisory only: selected-range collections are below known pending expenses/payroll pressure.',
+        'This is not a ledger-grade cash forecast.',
+      ],
+    },
+  ];
+}
+
+function buildWorkOrderEntity(workOrder: DashboardWorkOrderRecord) {
+  return {
+    type: 'workOrder',
+    id: workOrder.id,
+    label: `OT ${workOrder.number} · ${workOrder.Customer?.name ?? 'Sin cliente'}`,
+    href: workOrder.externalLink ?? null,
+  };
+}
+
+type LowStockActionInventoryItem = DashboardActionInventoryItemRecord & {
+  currentStock: number;
+};
+
+function findLowStockActionItems(items: DashboardActionInventoryItemRecord[]) {
+  return items
+    .map((item) => ({
+      ...item,
+      currentStock: calculateCurrentStock(
+        item.InventoryMovement.map((movement) => ({
+          inventoryItemId: item.id,
+          movementType: movement.movementType,
+          _sum: { quantity: movement.quantity },
+        })),
+      ),
+    }))
+    .filter((item) => item.currentStock <= item.minimumStock);
+}
+
+function hasUnknownPriceRisk(item: LowStockActionInventoryItem) {
+  const hasActiveQuote = item.SupplierQuoteHistory.some(
+    (quote) => quote.status === 'ACTIVE' && quote.quotedCost > 0,
+  );
+
+  return item.defaultSalePrice === null && !hasActiveQuote;
+}
+
+function sortActionItems(items: DashboardActionItemDto[]) {
+  return [...items].sort((left, right) => {
+    const severityDiff =
+      severityRank(left.severity) - severityRank(right.severity);
+
+    if (severityDiff !== 0) {
+      return severityDiff;
+    }
+
+    const dueDiff = toDueTime(left.dueAt) - toDueTime(right.dueAt);
+
+    if (dueDiff !== 0) {
+      return dueDiff;
+    }
+
+    const categoryDiff =
+      categoryRank(left.category) - categoryRank(right.category);
+
+    if (categoryDiff !== 0) {
+      return categoryDiff;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+}
+
+function categoryRank(category: DashboardActionItemCategory) {
+  return {
+    [DashboardActionItemCategory.WORK_ORDER_OVERDUE]: 0,
+    [DashboardActionItemCategory.EXPENSE]: 1,
+    [DashboardActionItemCategory.RECEIVABLE]: 2,
+    [DashboardActionItemCategory.LOW_STOCK]: 3,
+    [DashboardActionItemCategory.PRICE_RISK]: 4,
+    [DashboardActionItemCategory.CASH_RISK]: 5,
+  }[category];
+}
+
+function severityRank(severity: DashboardActionItemSeverity) {
+  return {
+    [DashboardActionItemSeverity.CRITICAL]: 0,
+    [DashboardActionItemSeverity.HIGH]: 1,
+    [DashboardActionItemSeverity.MEDIUM]: 2,
+    [DashboardActionItemSeverity.INFO]: 3,
+  }[severity];
+}
+
+function toDueTime(value: string | null) {
+  return value ? Date.parse(`${value}T00:00:00.000Z`) : Number.MAX_SAFE_INTEGER;
 }
 
 function countByStatus(workOrders: DashboardWorkOrderRecord[], status: string) {

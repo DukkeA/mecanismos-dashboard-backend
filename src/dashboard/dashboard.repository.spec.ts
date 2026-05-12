@@ -1,6 +1,141 @@
 import { DashboardRepository } from './dashboard.repository';
 
 describe('DashboardRepository', () => {
+  it('reads open work orders for actions by estimated completion date and open statuses', async () => {
+    let receivedArgs: Record<string, unknown> | undefined;
+    const prisma = {
+      workOrder: {
+        findMany: jest.fn((args: Record<string, unknown>) => {
+          receivedArgs = args;
+          return Promise.resolve([]);
+        }),
+      },
+    };
+
+    const repository = new DashboardRepository(prisma as never);
+
+    await repository.findOpenWorkOrdersForActions({
+      from: new Date('2026-05-01T00:00:00.000Z'),
+      to: new Date('2026-05-31T23:59:59.999Z'),
+    });
+
+    expect(receivedArgs).toMatchObject({
+      where: {
+        status: { in: ['IN_PROGRESS', 'PAUSED'] },
+        estimatedCompletionAt: {
+          not: null,
+          lte: new Date('2026-05-31T23:59:59.999Z'),
+        },
+      },
+      orderBy: [{ estimatedCompletionAt: 'asc' }, { number: 'asc' }],
+    });
+    expect(receivedArgs).toHaveProperty('select.estimatedCompletionAt', true);
+    expect(receivedArgs).toHaveProperty('select.externalLink', true);
+  });
+
+  it('reads receivable work orders for actions by estimated collection and payment status', async () => {
+    let receivedArgs: Record<string, unknown> | undefined;
+    const prisma = {
+      workOrder: {
+        findMany: jest.fn((args: Record<string, unknown>) => {
+          receivedArgs = args;
+          return Promise.resolve([]);
+        }),
+      },
+    };
+
+    const repository = new DashboardRepository(prisma as never);
+
+    await repository.findReceivableWorkOrdersForActions({
+      to: new Date('2026-05-31T23:59:59.999Z'),
+    });
+
+    expect(receivedArgs).toMatchObject({
+      where: {
+        paymentStatus: { in: ['PENDING', 'PARTIAL'] },
+        estimatedCollectionAt: {
+          not: null,
+          lte: new Date('2026-05-31T23:59:59.999Z'),
+        },
+      },
+      orderBy: [{ estimatedCollectionAt: 'asc' }, { number: 'asc' }],
+    });
+    expect(receivedArgs).toHaveProperty(
+      'select.WorkOrderEstimate.select.totalPriceAmount',
+      true,
+    );
+    expect(receivedArgs).toHaveProperty(
+      'select.WorkOrderPayment.select.amount',
+      true,
+    );
+  });
+
+  it('reads pending expenses and action inventory by their action date bases', async () => {
+    let expenseArgs: Record<string, unknown> | undefined;
+    let inventoryArgs: Record<string, unknown> | undefined;
+    const prisma = {
+      expense: {
+        findMany: jest.fn((args: Record<string, unknown>) => {
+          expenseArgs = args;
+          return Promise.resolve([]);
+        }),
+      },
+      inventoryItem: {
+        findMany: jest.fn((args: Record<string, unknown>) => {
+          inventoryArgs = args;
+          return Promise.resolve([]);
+        }),
+      },
+    };
+
+    const repository = new DashboardRepository(prisma as never);
+    const range = { to: new Date('2026-05-31T23:59:59.999Z') };
+
+    await repository.findPendingExpensesForActions(range);
+    await repository.findInventoryItemsForActions(range);
+
+    expect(expenseArgs).toEqual({
+      where: {
+        paidAt: null,
+        expectedAt: {
+          lte: new Date('2026-05-31T23:59:59.999Z'),
+        },
+      },
+      orderBy: { expectedAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        amount: true,
+        expectedAt: true,
+        paidAt: true,
+        CostCenter: { select: { id: true, code: true, name: true } },
+      },
+    });
+    expect(inventoryArgs).toMatchObject({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        minimumStock: true,
+        defaultSalePrice: true,
+        InventoryMovement: {
+          select: { movementType: true, quantity: true },
+          where: { occurredAt: { lte: new Date('2026-05-31T23:59:59.999Z') } },
+          orderBy: { occurredAt: 'asc' },
+        },
+      },
+    });
+    expect(inventoryArgs).toHaveProperty(
+      'select.SupplierQuoteHistory.select.status',
+      true,
+    );
+    expect(inventoryArgs).toHaveProperty(
+      'select.SupplierQuoteHistory.where.quotedAt.lte',
+      new Date('2026-05-31T23:59:59.999Z'),
+    );
+  });
+
   it('reads work orders with financial relations inside the flexible createdAt range', async () => {
     let receivedArgs: Record<string, unknown> | undefined;
 
@@ -31,10 +166,13 @@ describe('DashboardRepository', () => {
       select: {
         id: true,
         number: true,
+        summary: true,
         status: true,
         paymentStatus: true,
+        externalLink: true,
         createdAt: true,
         completedAt: true,
+        estimatedCompletionAt: true,
         estimatedCollectionAt: true,
         Customer: { select: { name: true } },
         WorkOrderEstimate: {
