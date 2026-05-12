@@ -488,13 +488,16 @@ model WorkshopWorkOrderDetails {
 }
 
 model account {
-  id                String    @id
-  userId            String    @unique
-  passwordHash      String
-  passwordUpdatedAt DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime
-  user              user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                        String    @id
+  userId                    String    @unique
+  passwordHash              String
+  passwordUpdatedAt         DateTime?
+  recoveryPhraseHash        String?
+  recoveryPhraseGeneratedAt DateTime?
+  recoveryPhraseConsumedAt  DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime
+  user                      user      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model session {
@@ -524,6 +527,7 @@ model user {
   email              String    @unique
   role               UserRole  @default(ADMIN)
   isActive           Boolean   @default(true)
+  authVersion        Int       @default(0)
   mustChangePassword Boolean   @default(false)
   lastLoginAt        DateTime?
   createdAt          DateTime  @default(now())

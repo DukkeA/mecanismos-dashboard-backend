@@ -13,6 +13,8 @@ import {
   AUTH_PRISMA_CLIENT,
   AuthSessionRepository,
 } from './persistence/auth-session.repository';
+import { RecoveryPhraseGenerator } from './recovery-phrase.generator';
+import { RecoveryPhraseRateLimiter } from './recovery-phrase-rate-limiter';
 import { RolesGuard } from './roles.guard';
 
 @Module({
@@ -25,6 +27,8 @@ import { RolesGuard } from './roles.guard';
   providers: [
     AuthService,
     AuthOriginGuard,
+    RecoveryPhraseGenerator,
+    RecoveryPhraseRateLimiter,
     AuthSessionRepository,
     JwtStrategy,
     JwtAuthGuard,
@@ -38,6 +42,10 @@ import { RolesGuard } from './roles.guard';
       useFactory: () => authConfigFromEnv(process.env),
     },
   ],
-  exports: [AuthSessionRepository],
+  exports: [
+    AuthSessionRepository,
+    RecoveryPhraseGenerator,
+    RecoveryPhraseRateLimiter,
+  ],
 })
 export class AuthModule {}

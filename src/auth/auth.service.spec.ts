@@ -1,8 +1,13 @@
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import type { AuthRuntimeConfig } from './config/auth.config';
+import { RecoveryPhraseGenerator } from './recovery-phrase.generator';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
@@ -10,6 +15,10 @@ jest.mock('bcrypt', () => ({
 }));
 
 describe('AuthService', () => {
+  const recoveryPhrase = new RecoveryPhraseGenerator({
+    randomInt: (max) => Math.min(1, max - 1),
+  }).generate();
+  const recoveryPhraseWords = recoveryPhrase.split(' ');
   const authConfig: AuthRuntimeConfig = {
     accessTokenSecret: 'access-secret',
     refreshTokenSecret: 'refresh-secret',
@@ -35,8 +44,18 @@ describe('AuthService', () => {
     revokeRefreshFamily: jest.Mock;
     revokeRefreshSession: jest.Mock;
     updatePasswordCredential: jest.Mock;
+    findActiveRecoveryCredentialByUserId: jest.Mock;
+    findActiveRecoveryCredentialByEmail: jest.Mock;
+    storeRecoveryPhraseHash: jest.Mock;
+    recoverPasswordWithPhrase: jest.Mock;
     touchUserLastLoginAt: jest.Mock;
   };
+  let recoveryPhraseRateLimiter: {
+    assertAllowed: jest.Mock;
+    recordFailure: jest.Mock;
+    recordSuccess: jest.Mock;
+  };
+  let recoveryPhraseGenerator: { generate: jest.Mock };
   let jwtService: { signAsync: jest.Mock };
   let service: AuthService;
 
@@ -53,7 +72,21 @@ describe('AuthService', () => {
       revokeRefreshFamily: jest.fn(),
       revokeRefreshSession: jest.fn(),
       updatePasswordCredential: jest.fn(),
+      findActiveRecoveryCredentialByUserId: jest.fn(),
+      findActiveRecoveryCredentialByEmail: jest.fn(),
+      storeRecoveryPhraseHash: jest.fn(),
+      recoverPasswordWithPhrase: jest.fn(),
       touchUserLastLoginAt: jest.fn(),
+    };
+
+    recoveryPhraseGenerator = {
+      generate: jest.fn().mockReturnValue(recoveryPhrase),
+    };
+
+    recoveryPhraseRateLimiter = {
+      assertAllowed: jest.fn(),
+      recordFailure: jest.fn(),
+      recordSuccess: jest.fn(),
     };
 
     jwtService = {
@@ -64,6 +97,8 @@ describe('AuthService', () => {
       repository as never,
       jwtService as unknown as JwtService,
       authConfig,
+      recoveryPhraseGenerator as never,
+      recoveryPhraseRateLimiter as never,
     );
   });
 
@@ -82,6 +117,7 @@ describe('AuthService', () => {
         name: 'Admin User',
         role: 'ADMIN',
         mustChangePassword: true,
+        authVersion: 7,
         isActive: true,
       },
     });
@@ -136,7 +172,7 @@ describe('AuthService', () => {
     });
     expect(createRefreshSessionInput.tokenDigest).toEqual(expect.any(String));
     expect(jwtService.signAsync).toHaveBeenCalledWith(
-      { sub: 'user-1', role: 'ADMIN' },
+      { sub: 'user-1', role: 'ADMIN', authVersion: 7 },
       {
         secret: 'access-secret',
         expiresIn: 900,
@@ -154,6 +190,7 @@ describe('AuthService', () => {
         name: 'Admin User',
         role: 'ADMIN',
         mustChangePassword: false,
+        authVersion: 3,
         isActive: true,
       },
     });
@@ -380,7 +417,36 @@ describe('AuthService', () => {
       expect.objectContaining({
         passwordHash: 'new-hash',
         mustChangePassword: false,
+        bumpAuthVersion: true,
       }),
+    );
+  });
+
+  it('requests an auth version bump when changing the current password', async () => {
+    repository.findActivePasswordCredentialByUserId.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'stored-hash',
+      user: { id: 'user-1', role: 'ADMIN', isActive: true },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
+    repository.updatePasswordCredential.mockResolvedValue({
+      id: 'user-1',
+      email: 'admin@mecanismos.test',
+      name: 'Admin User',
+      role: 'ADMIN',
+      mustChangePassword: false,
+      isActive: true,
+    });
+
+    await service.changePassword('user-1', {
+      currentPassword: 'Temp1234!',
+      newPassword: 'NewSecure123!',
+    });
+
+    expect(repository.updatePasswordCredential).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ bumpAuthVersion: true }),
     );
   });
 
@@ -407,5 +473,313 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
 
     expect(repository.updatePasswordCredential).not.toHaveBeenCalled();
+  });
+
+  it('returns recovery phrase status metadata without exposing the stored hash', async () => {
+    repository.findActiveRecoveryCredentialByUserId.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'stored-password-hash',
+      recoveryPhraseHash: 'stored-recovery-hash',
+      recoveryPhraseGeneratedAt: new Date('2026-05-12T12:00:00.000Z'),
+      recoveryPhraseConsumedAt: null,
+      user: {
+        id: 'user-1',
+        email: 'admin@mecanismos.test',
+        name: 'Admin User',
+        role: 'ADMIN',
+        mustChangePassword: false,
+        isActive: true,
+      },
+    });
+
+    await expect(service.getRecoveryPhraseStatus('user-1')).resolves.toEqual({
+      enabled: true,
+      generatedAt: '2026-05-12T12:00:00.000Z',
+      consumedAt: null,
+    });
+  });
+
+  it('verifies current password, stores only a slow hash, and returns generated phrase once', async () => {
+    repository.findActiveRecoveryCredentialByUserId.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'stored-password-hash',
+      recoveryPhraseHash: null,
+      recoveryPhraseGeneratedAt: null,
+      recoveryPhraseConsumedAt: null,
+      user: {
+        id: 'user-1',
+        email: 'admin@mecanismos.test',
+        name: 'Admin User',
+        role: 'ADMIN',
+        mustChangePassword: false,
+        isActive: true,
+      },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('recovery-phrase-hash');
+
+    await expect(
+      service.generateRecoveryPhrase('user-1', {
+        currentPassword: 'Current123!',
+      }),
+    ).resolves.toEqual({
+      phrase: recoveryPhrase,
+      words: recoveryPhraseWords,
+      generatedAt: now.toISOString(),
+    });
+
+    expect(bcrypt.compare).toHaveBeenCalledWith(
+      'Current123!',
+      'stored-password-hash',
+    );
+    expect(bcrypt.hash).toHaveBeenCalledWith(recoveryPhrase, 12);
+    expect(repository.storeRecoveryPhraseHash).toHaveBeenCalledWith('user-1', {
+      recoveryPhraseHash: 'recovery-phrase-hash',
+      generatedAt: now,
+    });
+  });
+
+  it('allows an active sales user to generate their own recovery phrase', async () => {
+    repository.findActiveRecoveryCredentialByUserId.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'stored-password-hash',
+      recoveryPhraseHash: null,
+      recoveryPhraseGeneratedAt: null,
+      recoveryPhraseConsumedAt: null,
+      user: {
+        id: 'sales-1',
+        email: 'sales@mecanismos.test',
+        name: 'Sales User',
+        role: 'SALES',
+        mustChangePassword: false,
+        isActive: true,
+      },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('recovery-phrase-hash');
+
+    await expect(
+      service.generateRecoveryPhrase('sales-1', {
+        currentPassword: 'Current123!',
+      }),
+    ).resolves.toMatchObject({
+      phrase: recoveryPhrase,
+      words: recoveryPhraseWords,
+    });
+
+    expect(repository.storeRecoveryPhraseHash).toHaveBeenCalledWith('sales-1', {
+      recoveryPhraseHash: 'recovery-phrase-hash',
+      generatedAt: now,
+    });
+  });
+
+  it('rejects recovery phrase generation when current password is wrong', async () => {
+    repository.findActiveRecoveryCredentialByUserId.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'stored-password-hash',
+      user: {
+        id: 'user-1',
+        email: 'admin@mecanismos.test',
+        name: 'Admin User',
+        role: 'ADMIN',
+        mustChangePassword: false,
+        isActive: true,
+      },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+    await expect(
+      service.generateRecoveryPhrase('user-1', {
+        currentPassword: 'Wrong123!',
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(recoveryPhraseGenerator.generate).not.toHaveBeenCalled();
+    expect(repository.storeRecoveryPhraseHash).not.toHaveBeenCalled();
+  });
+
+  it('recovers an active user with matching phrase and revokes existing refresh sessions', async () => {
+    repository.findActiveRecoveryCredentialByEmail.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'old-password-hash',
+      recoveryPhraseHash: 'stored-recovery-hash',
+      recoveryPhraseGeneratedAt: new Date('2026-05-12T12:00:00.000Z'),
+      recoveryPhraseConsumedAt: null,
+      user: {
+        id: 'user-1',
+        email: 'admin@mecanismos.test',
+        name: 'Admin User',
+        role: 'ADMIN',
+        mustChangePassword: true,
+        isActive: true,
+      },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('new-password-hash');
+    repository.recoverPasswordWithPhrase.mockResolvedValue({
+      id: 'user-1',
+      email: 'admin@mecanismos.test',
+      name: 'Admin User',
+      role: 'ADMIN',
+      mustChangePassword: false,
+      isActive: true,
+    });
+
+    await expect(
+      service.recoverWithPhrase(
+        {
+          email: 'admin@mecanismos.test',
+          recoveryPhrase: recoveryPhrase.toUpperCase().replace(/ /g, '   '),
+          newPassword: 'NewSecure123!',
+        },
+        { ipAddress: '127.0.0.1' },
+      ),
+    ).resolves.toEqual({ success: true });
+
+    expect(bcrypt.compare).toHaveBeenCalledWith(
+      recoveryPhrase,
+      'stored-recovery-hash',
+    );
+    expect(repository.recoverPasswordWithPhrase).toHaveBeenCalledWith(
+      'user-1',
+      {
+        passwordHash: 'new-password-hash',
+        passwordUpdatedAt: now,
+        recoveryPhraseConsumedAt: now,
+        bumpAuthVersion: true,
+      },
+    );
+    expect(recoveryPhraseRateLimiter.recordSuccess).toHaveBeenCalledWith({
+      email: 'admin@mecanismos.test',
+      ipAddress: '127.0.0.1',
+    });
+  });
+
+  it('locks recovery attempts after limiter reports too many failures', async () => {
+    recoveryPhraseRateLimiter.assertAllowed.mockImplementation(() => {
+      throw new HttpException(
+        'Too many recovery attempts',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    });
+
+    await expect(
+      service.recoverWithPhrase(
+        {
+          email: 'admin@mecanismos.test',
+          recoveryPhrase,
+          newPassword: 'NewSecure123!',
+        },
+        { ipAddress: '127.0.0.1' },
+      ),
+    ).rejects.toThrow(HttpException);
+
+    expect(
+      repository.findActiveRecoveryCredentialByEmail,
+    ).not.toHaveBeenCalled();
+    expect(recoveryPhraseRateLimiter.recordFailure).not.toHaveBeenCalled();
+  });
+
+  it('records recovery failures against the same generic email/ip key', async () => {
+    repository.findActiveRecoveryCredentialByEmail.mockResolvedValue(null);
+
+    await expect(
+      service.recoverWithPhrase(
+        {
+          email: 'missing@mecanismos.test',
+          recoveryPhrase,
+          newPassword: 'NewSecure123!',
+        },
+        { ipAddress: '127.0.0.1' },
+      ),
+    ).rejects.toThrow(new UnauthorizedException('Recovery failed'));
+
+    expect(recoveryPhraseRateLimiter.recordFailure).toHaveBeenCalledWith({
+      email: 'missing@mecanismos.test',
+      ipAddress: '127.0.0.1',
+    });
+  });
+
+  it('recovers an active sales user with matching phrase', async () => {
+    repository.findActiveRecoveryCredentialByEmail.mockResolvedValue({
+      id: 'account-1',
+      passwordHash: 'old-password-hash',
+      recoveryPhraseHash: 'stored-recovery-hash',
+      recoveryPhraseGeneratedAt: new Date('2026-05-12T12:00:00.000Z'),
+      recoveryPhraseConsumedAt: null,
+      user: {
+        id: 'sales-1',
+        email: 'sales@mecanismos.test',
+        name: 'Sales User',
+        role: 'SALES',
+        mustChangePassword: true,
+        isActive: true,
+      },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('new-password-hash');
+
+    await expect(
+      service.recoverWithPhrase({
+        email: 'sales@mecanismos.test',
+        recoveryPhrase,
+        newPassword: 'NewSecure123!',
+      }),
+    ).resolves.toEqual({ success: true });
+
+    expect(repository.recoverPasswordWithPhrase).toHaveBeenCalledWith(
+      'sales-1',
+      {
+        passwordHash: 'new-password-hash',
+        passwordUpdatedAt: now,
+        recoveryPhraseConsumedAt: now,
+        bumpAuthVersion: true,
+      },
+    );
+  });
+
+  it('uses the same generic failure for missing user, wrong phrase, and used phrase', async () => {
+    repository.findActiveRecoveryCredentialByEmail.mockResolvedValueOnce(null);
+
+    await expect(
+      service.recoverWithPhrase({
+        email: 'missing@mecanismos.test',
+        recoveryPhrase,
+        newPassword: 'NewSecure123!',
+      }),
+    ).rejects.toThrow(new UnauthorizedException('Recovery failed'));
+
+    repository.findActiveRecoveryCredentialByEmail.mockResolvedValueOnce({
+      id: 'account-1',
+      recoveryPhraseHash: 'stored-recovery-hash',
+      recoveryPhraseConsumedAt: null,
+      user: { id: 'user-1', role: 'ADMIN', isActive: true },
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
+
+    await expect(
+      service.recoverWithPhrase({
+        email: 'admin@mecanismos.test',
+        recoveryPhrase,
+        newPassword: 'NewSecure123!',
+      }),
+    ).rejects.toThrow(new UnauthorizedException('Recovery failed'));
+
+    repository.findActiveRecoveryCredentialByEmail.mockResolvedValueOnce({
+      id: 'account-1',
+      recoveryPhraseHash: 'stored-recovery-hash',
+      recoveryPhraseConsumedAt: now,
+      user: { id: 'user-1', role: 'ADMIN', isActive: true },
+    });
+
+    await expect(
+      service.recoverWithPhrase({
+        email: 'admin@mecanismos.test',
+        recoveryPhrase,
+        newPassword: 'NewSecure123!',
+      }),
+    ).rejects.toThrow(new UnauthorizedException('Recovery failed'));
+
+    expect(repository.recoverPasswordWithPhrase).not.toHaveBeenCalled();
   });
 });

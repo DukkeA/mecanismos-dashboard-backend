@@ -193,6 +193,7 @@ export class AdminUsersRepository {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.role !== undefined ? { role: input.role } : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+        ...(input.isActive === false ? { authVersion: { increment: 1 } } : {}),
         updatedAt: new Date(),
       },
       select: adminUserSelect,
@@ -207,6 +208,9 @@ export class AdminUsersRepository {
           data: {
             passwordHash: input.passwordHash,
             passwordUpdatedAt: input.passwordUpdatedAt,
+            recoveryPhraseHash: null,
+            recoveryPhraseGeneratedAt: null,
+            recoveryPhraseConsumedAt: input.passwordUpdatedAt,
             updatedAt: input.passwordUpdatedAt,
           },
         });
@@ -215,6 +219,7 @@ export class AdminUsersRepository {
           where: { id: userId },
           data: {
             mustChangePassword: input.mustChangePassword,
+            authVersion: { increment: 1 },
             updatedAt: input.passwordUpdatedAt,
           },
           select: adminUserSelect,

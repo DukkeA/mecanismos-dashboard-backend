@@ -95,13 +95,21 @@ describe('Auth change-password (real db e2e)', () => {
     expect(JSON.stringify(changeBody)).not.toContain('Temp1234!');
     expect(JSON.stringify(changeBody)).not.toContain('passwordHash');
 
-    const meResponse = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .get('/auth/me')
       .set('Cookie', userCookies)
-      .expect(200);
-    expect((meResponse.body as ChangePasswordUserBody).mustChangePassword).toBe(
-      false,
-    );
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'forzar-cambio@mecanismos.test',
+        password: 'NewSecure123!',
+      })
+      .expect(200)
+      .expect(({ body }: { body: ChangePasswordUserBody }) => {
+        expect(body.mustChangePassword).toBe(false);
+      });
   });
 
   it('rejects change-password when the current password is wrong', async () => {

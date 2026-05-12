@@ -4,9 +4,20 @@ import { compare, hash } from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { LoginDto } from './dto/login.dto';
 import type { ChangePasswordDto } from './dto/change-password.dto';
+import type {
+  GenerateRecoveryPhraseDto,
+  GenerateRecoveryPhraseResponseDto,
+  RecoverWithPhraseDto,
+  RecoveryPhraseStatusDto,
+} from './dto/recovery-phrase.dto';
 import { AUTH_RUNTIME_CONFIG } from './config/auth.config';
 import type { AuthRuntimeConfig } from './config/auth.config';
 import { AuthSessionRepository } from './persistence/auth-session.repository';
+import {
+  normalizeRecoveryPhrase,
+  RecoveryPhraseGenerator,
+} from './recovery-phrase.generator';
+import { RecoveryPhraseRateLimiter } from './recovery-phrase-rate-limiter';
 
 export type AuthRequestContext = {
   ipAddress?: string;
@@ -19,6 +30,10 @@ export type AuthUserPayload = {
   name: string;
   role: 'ADMIN' | 'SALES' | 'MECHANIC';
   mustChangePassword: boolean;
+};
+
+type AuthUserRecord = AuthUserPayload & {
+  authVersion: number;
 };
 
 export type AuthTokensResult = {
@@ -34,6 +49,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @Inject(AUTH_RUNTIME_CONFIG)
     private readonly authConfig: AuthRuntimeConfig,
+    private readonly recoveryPhraseGenerator: RecoveryPhraseGenerator,
+    private readonly recoveryPhraseRateLimiter: RecoveryPhraseRateLimiter,
   ) {}
 
   async login(
@@ -188,19 +205,129 @@ export class AuthService {
         passwordHash: await hash(dto.newPassword, 12),
         passwordUpdatedAt: new Date(),
         mustChangePassword: false,
+        bumpAuthVersion: true,
       });
 
     return this.toAuthUserPayload(updatedUser);
   }
 
+  async getRecoveryPhraseStatus(
+    userId: string,
+  ): Promise<RecoveryPhraseStatusDto> {
+    const account =
+      await this.authSessionRepository.findActiveRecoveryCredentialByUserId(
+        userId,
+      );
+
+    if (!account) {
+      throw new UnauthorizedException('Authenticated user is no longer active');
+    }
+
+    return {
+      enabled: Boolean(account.recoveryPhraseHash),
+      generatedAt: account.recoveryPhraseGeneratedAt?.toISOString() ?? null,
+      consumedAt: account.recoveryPhraseConsumedAt?.toISOString() ?? null,
+    };
+  }
+
+  async generateRecoveryPhrase(
+    userId: string,
+    dto: GenerateRecoveryPhraseDto,
+  ): Promise<GenerateRecoveryPhraseResponseDto> {
+    const account =
+      await this.authSessionRepository.findActiveRecoveryCredentialByUserId(
+        userId,
+      );
+
+    if (!account) {
+      throw new UnauthorizedException('Authenticated user is no longer active');
+    }
+
+    const passwordMatches = await compare(
+      dto.currentPassword,
+      account.passwordHash,
+    );
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const phrase = this.recoveryPhraseGenerator.generate();
+    const generatedAt = new Date();
+
+    await this.authSessionRepository.storeRecoveryPhraseHash(userId, {
+      recoveryPhraseHash: await hash(phrase, 12),
+      generatedAt,
+    });
+
+    return {
+      phrase,
+      words: phrase.split(' '),
+      generatedAt: generatedAt.toISOString(),
+    };
+  }
+
+  async recoverWithPhrase(
+    dto: RecoverWithPhraseDto,
+    context: AuthRequestContext = {},
+  ): Promise<{ success: true }> {
+    const limiterInput = {
+      email: dto.email,
+      ipAddress: context.ipAddress,
+    };
+
+    this.recoveryPhraseRateLimiter.assertAllowed(limiterInput);
+
+    const account =
+      await this.authSessionRepository.findActiveRecoveryCredentialByEmail(
+        dto.email,
+      );
+
+    if (
+      !account ||
+      !account.user.isActive ||
+      !account.recoveryPhraseHash ||
+      account.recoveryPhraseConsumedAt
+    ) {
+      this.recoveryPhraseRateLimiter.recordFailure(limiterInput);
+      throw this.genericRecoveryFailure();
+    }
+
+    const phraseMatches = await compare(
+      normalizeRecoveryPhrase(dto.recoveryPhrase),
+      account.recoveryPhraseHash,
+    );
+
+    if (!phraseMatches) {
+      this.recoveryPhraseRateLimiter.recordFailure(limiterInput);
+      throw this.genericRecoveryFailure();
+    }
+
+    const recoveredAt = new Date();
+
+    await this.authSessionRepository.recoverPasswordWithPhrase(
+      account.user.id,
+      {
+        passwordHash: await hash(dto.newPassword, 12),
+        passwordUpdatedAt: recoveredAt,
+        recoveryPhraseConsumedAt: recoveredAt,
+        bumpAuthVersion: true,
+      },
+    );
+
+    this.recoveryPhraseRateLimiter.recordSuccess(limiterInput);
+
+    return { success: true };
+  }
+
   private async buildTokensResult(
-    user: AuthUserPayload,
+    user: AuthUserRecord,
     refreshToken: string,
   ): Promise<AuthTokensResult> {
     return {
       user: this.toAuthUserPayload(user),
       accessToken: await this.jwtService.signAsync(
-        { sub: user.id, role: user.role },
+        { sub: user.id, role: user.role, authVersion: user.authVersion },
         {
           secret: this.authConfig.accessTokenSecret,
           expiresIn: this.authConfig.accessTokenTtlSeconds,
@@ -226,5 +353,9 @@ export class AuthService {
 
   private digestToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private genericRecoveryFailure() {
+    return new UnauthorizedException('Recovery failed');
   }
 }

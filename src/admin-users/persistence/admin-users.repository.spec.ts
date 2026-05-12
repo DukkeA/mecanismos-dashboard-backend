@@ -138,4 +138,101 @@ describe('AdminUsersRepository', () => {
       },
     });
   });
+
+  it('clears recovery phrase credentials when updating a password', async () => {
+    const updatedUser = {
+      id: 'user-2',
+      email: 'ventas@mecanismos.test',
+      name: 'Ventas',
+      role: UserRole.SALES,
+      isActive: true,
+      mustChangePassword: true,
+      lastLoginAt: null,
+      createdAt: new Date('2026-05-11T08:00:00.000Z'),
+      updatedAt: new Date('2026-05-12T09:00:00.000Z'),
+    };
+    const accountUpdate = jest.fn().mockResolvedValue({});
+    const userUpdate = jest.fn().mockResolvedValue(updatedUser);
+    const prisma = {
+      $transaction: jest.fn(async (callback: never) =>
+        (callback as (tx: unknown) => Promise<unknown>)({
+          account: { update: accountUpdate },
+          user: { update: userUpdate },
+        }),
+      ),
+    };
+    const passwordUpdatedAt = new Date('2026-05-12T09:00:00.000Z');
+
+    const repository = new AdminUsersRepository(prisma as never);
+
+    await expect(
+      repository.updatePassword('user-2', {
+        passwordHash: 'reset-hash',
+        mustChangePassword: true,
+        passwordUpdatedAt,
+      }),
+    ).resolves.toEqual(updatedUser);
+
+    expect(accountUpdate).toHaveBeenCalledWith({
+      where: { userId: 'user-2' },
+      data: {
+        passwordHash: 'reset-hash',
+        passwordUpdatedAt,
+        recoveryPhraseHash: null,
+        recoveryPhraseGeneratedAt: null,
+        recoveryPhraseConsumedAt: passwordUpdatedAt,
+        updatedAt: passwordUpdatedAt,
+      },
+    });
+    expect(userUpdate).toHaveBeenCalledWith({
+      where: { id: 'user-2' },
+      data: {
+        mustChangePassword: true,
+        authVersion: { increment: 1 },
+        updatedAt: passwordUpdatedAt,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        mustChangePassword: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  });
+
+  it('bumps auth version when deactivating a user', async () => {
+    const prisma = {
+      user: {
+        update: jest.fn().mockResolvedValue({ id: 'user-2', isActive: false }),
+      },
+    };
+    const repository = new AdminUsersRepository(prisma as never);
+
+    await repository.update('user-2', { isActive: false });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-2' },
+      data: {
+        isActive: false,
+        authVersion: { increment: 1 },
+        updatedAt: expect.any(Date) as Date,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        mustChangePassword: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  });
 });

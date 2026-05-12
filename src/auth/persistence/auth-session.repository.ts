@@ -5,12 +5,16 @@ export const AUTH_PRISMA_CLIENT = Symbol('AUTH_PRISMA_CLIENT');
 type CredentialAccountRecord = {
   id: string;
   passwordHash: string;
+  recoveryPhraseHash?: string | null;
+  recoveryPhraseGeneratedAt?: Date | null;
+  recoveryPhraseConsumedAt?: Date | null;
   user: {
     id: string;
     email: string;
     name: string;
     role: 'ADMIN' | 'SALES' | 'MECHANIC';
     isActive: boolean;
+    authVersion: number;
     mustChangePassword: boolean;
   };
 };
@@ -33,6 +37,7 @@ type RefreshSessionLookupRecord = {
     name: string;
     role: 'ADMIN' | 'SALES' | 'MECHANIC';
     isActive: boolean;
+    authVersion: number;
     mustChangePassword: boolean;
   };
 };
@@ -43,20 +48,48 @@ type ActiveUserRecord = {
   name: string;
   role: 'ADMIN' | 'SALES' | 'MECHANIC';
   isActive: boolean;
+  authVersion: number;
   mustChangePassword: boolean;
 };
 
 type AuthPrismaClient = {
   account: {
     findFirst(args: {
-      where: { user: { email?: string; id?: string; isActive: true } };
-      include: { user: true };
+      where: {
+        user: {
+          email?: string;
+          id?: string;
+          isActive: true;
+        };
+      };
+      include?: { user: true };
+      select?: {
+        id: true;
+        passwordHash: true;
+        recoveryPhraseHash: true;
+        recoveryPhraseGeneratedAt: true;
+        recoveryPhraseConsumedAt: true;
+        user: {
+          select: {
+            id: true;
+            email: true;
+            name: true;
+            role: true;
+            isActive: true;
+            authVersion: true;
+            mustChangePassword: true;
+          };
+        };
+      };
     }): Promise<CredentialAccountRecord | null>;
     update(args: {
       where: { userId: string };
       data: {
-        passwordHash: string;
-        passwordUpdatedAt: Date;
+        passwordHash?: string;
+        passwordUpdatedAt?: Date;
+        recoveryPhraseHash?: string | null;
+        recoveryPhraseGeneratedAt?: Date | null;
+        recoveryPhraseConsumedAt?: Date | null;
         updatedAt: Date;
       };
     }): Promise<unknown>;
@@ -89,7 +122,7 @@ type AuthPrismaClient = {
       };
     }): Promise<unknown>;
     updateMany(args: {
-      where: { familyId: string; revokedAt: null };
+      where: { familyId?: string; userId?: string; revokedAt: null };
       data: { revokedAt: Date; updatedAt: Date };
     }): Promise<{ count: number }>;
   };
@@ -102,6 +135,7 @@ type AuthPrismaClient = {
         name: true;
         role: true;
         isActive: true;
+        authVersion: true;
         mustChangePassword: true;
       };
     }): Promise<ActiveUserRecord | null>;
@@ -110,7 +144,17 @@ type AuthPrismaClient = {
       data: {
         lastLoginAt?: Date;
         mustChangePassword?: boolean;
+        authVersion?: { increment: 1 };
         updatedAt?: Date;
+      };
+      select?: {
+        id: true;
+        email: true;
+        name: true;
+        role: true;
+        isActive: true;
+        authVersion: true;
+        mustChangePassword: true;
       };
     }): Promise<ActiveUserRecord>;
   };
@@ -120,6 +164,37 @@ type AuthPrismaClient = {
 };
 
 type AuthPrismaTransaction = {
+  account: {
+    update(args: {
+      where: { userId: string };
+      data: {
+        passwordHash: string;
+        passwordUpdatedAt: Date;
+        recoveryPhraseHash?: null;
+        recoveryPhraseConsumedAt?: Date;
+        updatedAt: Date;
+      };
+    }): Promise<unknown>;
+  };
+  user: {
+    update(args: {
+      where: { id: string };
+      data: {
+        mustChangePassword: boolean;
+        authVersion?: { increment: 1 };
+        updatedAt: Date;
+      };
+      select: {
+        id: true;
+        email: true;
+        name: true;
+        role: true;
+        isActive: true;
+        authVersion: true;
+        mustChangePassword: true;
+      };
+    }): Promise<ActiveUserRecord>;
+  };
   session: {
     create(args: {
       data: {
@@ -143,6 +218,10 @@ type AuthPrismaTransaction = {
         updatedAt: Date;
       };
     }): Promise<unknown>;
+    updateMany(args: {
+      where: { userId: string; revokedAt: null };
+      data: { revokedAt: Date; updatedAt: Date };
+    }): Promise<{ count: number }>;
   };
 };
 
@@ -202,6 +281,7 @@ export class AuthSessionRepository {
         name: true,
         role: true,
         isActive: true,
+        authVersion: true,
         mustChangePassword: true,
       },
     });
@@ -221,29 +301,137 @@ export class AuthSessionRepository {
     });
   }
 
+  findActiveRecoveryCredentialByUserId(userId: string) {
+    return this.prisma.account.findFirst({
+      where: {
+        user: {
+          id: userId,
+          isActive: true,
+        },
+      },
+      select: {
+        id: true,
+        passwordHash: true,
+        recoveryPhraseHash: true,
+        recoveryPhraseGeneratedAt: true,
+        recoveryPhraseConsumedAt: true,
+        user: {
+          select: activeUserSelect,
+        },
+      },
+    });
+  }
+
+  findActiveRecoveryCredentialByEmail(email: string) {
+    return this.prisma.account.findFirst({
+      where: {
+        user: {
+          email: email.trim().toLowerCase(),
+          isActive: true,
+        },
+      },
+      select: this.recoveryCredentialSelect(),
+    });
+  }
+
+  storeRecoveryPhraseHash(
+    userId: string,
+    input: { recoveryPhraseHash: string; generatedAt: Date },
+  ) {
+    return this.prisma.account.update({
+      where: { userId },
+      data: {
+        recoveryPhraseHash: input.recoveryPhraseHash,
+        recoveryPhraseGeneratedAt: input.generatedAt,
+        recoveryPhraseConsumedAt: null,
+        updatedAt: input.generatedAt,
+      },
+    });
+  }
+
   async updatePasswordCredential(
     userId: string,
     input: {
       passwordHash: string;
       passwordUpdatedAt: Date;
       mustChangePassword: boolean;
+      bumpAuthVersion?: boolean;
     },
   ) {
-    await this.prisma.account.update({
-      where: { userId },
-      data: {
-        passwordHash: input.passwordHash,
-        passwordUpdatedAt: input.passwordUpdatedAt,
-        updatedAt: input.passwordUpdatedAt,
-      },
-    });
+    if (!this.prisma.$transaction) {
+      throw new Error(
+        'Prisma transaction support is required for password update',
+      );
+    }
 
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        mustChangePassword: input.mustChangePassword,
-        updatedAt: input.passwordUpdatedAt,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.account.update({
+        where: { userId },
+        data: {
+          passwordHash: input.passwordHash,
+          passwordUpdatedAt: input.passwordUpdatedAt,
+          updatedAt: input.passwordUpdatedAt,
+        },
+      });
+
+      return tx.user.update({
+        where: { id: userId },
+        data: {
+          mustChangePassword: input.mustChangePassword,
+          ...(input.bumpAuthVersion ? { authVersion: { increment: 1 } } : {}),
+          updatedAt: input.passwordUpdatedAt,
+        },
+        select: activeUserSelect,
+      });
+    });
+  }
+
+  async recoverPasswordWithPhrase(
+    userId: string,
+    input: {
+      passwordHash: string;
+      passwordUpdatedAt: Date;
+      recoveryPhraseConsumedAt: Date;
+      bumpAuthVersion?: boolean;
+    },
+  ) {
+    if (!this.prisma.$transaction) {
+      throw new Error(
+        'Prisma transaction support is required for recovery password reset',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.account.update({
+        where: { userId },
+        data: {
+          passwordHash: input.passwordHash,
+          passwordUpdatedAt: input.passwordUpdatedAt,
+          recoveryPhraseHash: null,
+          recoveryPhraseConsumedAt: input.recoveryPhraseConsumedAt,
+          updatedAt: input.passwordUpdatedAt,
+        },
+      });
+
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: {
+          mustChangePassword: false,
+          ...(input.bumpAuthVersion ? { authVersion: { increment: 1 } } : {}),
+          updatedAt: input.passwordUpdatedAt,
+        },
+        select: activeUserSelect,
+      });
+
+      await tx.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: {
+          revokedAt: input.recoveryPhraseConsumedAt,
+          updatedAt: input.recoveryPhraseConsumedAt,
+        },
+      });
+
+      return user;
     });
   }
 
@@ -346,4 +534,35 @@ export class AuthSessionRepository {
       },
     });
   }
+
+  private recoveryCredentialSelect() {
+    return {
+      id: true,
+      passwordHash: true,
+      recoveryPhraseHash: true,
+      recoveryPhraseGeneratedAt: true,
+      recoveryPhraseConsumedAt: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          isActive: true,
+          authVersion: true,
+          mustChangePassword: true,
+        },
+      },
+    } as const;
+  }
 }
+
+const activeUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  isActive: true,
+  authVersion: true,
+  mustChangePassword: true,
+} as const;

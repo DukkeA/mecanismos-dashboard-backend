@@ -16,6 +16,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -29,6 +30,12 @@ import { AUTH_RUNTIME_CONFIG } from './config/auth.config';
 import type { AuthRuntimeConfig } from './config/auth.config';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import {
+  GenerateRecoveryPhraseDto,
+  GenerateRecoveryPhraseResponseDto,
+  RecoverWithPhraseDto,
+  RecoveryPhraseStatusDto,
+} from './dto/recovery-phrase.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
@@ -161,5 +168,63 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
   ): Promise<AuthUserPayload> {
     return this.authService.changePassword(user.sub, dto);
+  }
+
+  @Get('recovery-phrase/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('md_access')
+  @ApiOperation({ summary: 'Return recovery phrase status metadata' })
+  @ApiOkResponse({
+    type: RecoveryPhraseStatusDto,
+    description: 'Recovery phrase metadata returned without plaintext or hash.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token missing or invalid.' })
+  getRecoveryPhraseStatus(
+    @CurrentUser() user: AuthJwtPayload,
+  ): Promise<RecoveryPhraseStatusDto> {
+    return this.authService.getRecoveryPhraseStatus(user.sub);
+  }
+
+  @Post('recovery-phrase/generate')
+  @HttpCode(200)
+  @UseGuards(AuthOriginGuard, JwtAuthGuard)
+  @ApiCookieAuth('md_access')
+  @ApiOperation({
+    summary: 'Generate or rotate the authenticated user recovery phrase',
+  })
+  @ApiBody({ type: GenerateRecoveryPhraseDto })
+  @ApiOkResponse({
+    type: GenerateRecoveryPhraseResponseDto,
+    description: 'Plaintext recovery phrase returned exactly once.',
+  })
+  @ApiUnauthorizedResponse({
+    description:
+      'Access token missing, invalid, or current password incorrect.',
+  })
+  generateRecoveryPhrase(
+    @CurrentUser() user: AuthJwtPayload,
+    @Body() dto: GenerateRecoveryPhraseDto,
+  ): Promise<GenerateRecoveryPhraseResponseDto> {
+    return this.authService.generateRecoveryPhrase(user.sub, dto);
+  }
+
+  @Post('recovery-phrase/recover')
+  @HttpCode(200)
+  @UseGuards(AuthOriginGuard)
+  @ApiOperation({ summary: 'Recover an account with a recovery phrase' })
+  @ApiBody({ type: RecoverWithPhraseDto })
+  @ApiOkResponse({
+    description: 'Password recovered and refresh sessions revoked.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Recovery failed.' })
+  @ApiTooManyRequestsResponse({ description: 'Too many recovery attempts.' })
+  recoverWithPhrase(
+    @Req() request: Request,
+    @Body() dto: RecoverWithPhraseDto,
+  ): Promise<{ success: true }> {
+    return this.authService.recoverWithPhrase(dto, {
+      ipAddress: request.ip,
+      userAgent: request.get('user-agent') ?? undefined,
+    });
   }
 }

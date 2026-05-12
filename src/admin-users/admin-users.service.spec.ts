@@ -162,13 +162,14 @@ describe('AdminUsersService', () => {
     );
   });
 
-  it('resets a password with bcrypt and revokes refresh sessions', async () => {
+  it('resets a password with bcrypt, clears recovery through the repository, and revokes refresh sessions', async () => {
     repository.findById.mockResolvedValue(existingUser);
     repository.updatePassword.mockResolvedValue({
       ...existingUser,
       mustChangePassword: true,
     });
     (bcrypt.hash as jest.Mock).mockResolvedValue('reset-hash');
+    const logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
 
     await expect(
       service.resetPassword('admin-1', 'user-2', {
@@ -191,6 +192,7 @@ describe('AdminUsersService', () => {
       'user-2',
       expect.any(Date),
     );
+    expect(JSON.stringify(logSpy.mock.calls)).not.toContain('Reset1234!');
   });
 
   it('throws NotFoundException when updating a missing user', async () => {
