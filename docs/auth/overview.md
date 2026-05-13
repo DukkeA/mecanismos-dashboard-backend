@@ -23,7 +23,7 @@ Frontend implementers should start with [`frontend-recommendations.md`](./fronte
 | `GET /auth/me`                         | Access cookie           | Return the authenticated current user                                                   | Current user payload                       |
 | `POST /auth/change-password`           | Access cookie           | Verify the current password, store a new hash, and clear forced-change state            | Current user payload                       |
 | `GET /auth/recovery-phrase/status`     | Access cookie           | Report whether the current login user has a configured recovery phrase                  | Metadata only; no phrase or hash           |
-| `POST /auth/recovery-phrase/generate`  | Access cookie           | Generate or rotate the current login user's recovery phrase after password confirmation | One-time plaintext 8-word phrase           |
+| `POST /auth/recovery-phrase/generate`  | Access cookie           | Generate or rotate the current login user's recovery phrase after password confirmation | One-time plaintext 8-word English phrase   |
 | `POST /auth/recovery-phrase/recover`   | No                      | Reset an active login user password using email + recovery phrase + new password        | `{ "success": true }`                      |
 | `GET /auth/admin/smoke`                | Access cookie + `ADMIN` | Confirm admin-only route protection                                                     | `{ "success": true, "role": "ADMIN" }`     |
 | `GET /admin/users`                     | Access cookie + `ADMIN` | List managed login users with filters                                                   | Paginated user list                        |

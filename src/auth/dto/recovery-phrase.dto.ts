@@ -33,7 +33,7 @@ export class GenerateRecoveryPhraseResponseDto {
   @ApiProperty({
     example: '<generated recovery phrase returned once>',
     description:
-      'Plaintext recovery phrase returned once. Store it securely; examples are redacted to avoid publishing reusable-looking secrets.',
+      'Plaintext 8-word English recovery phrase returned once. Store it securely; examples are redacted to avoid publishing reusable-looking secrets.',
   })
   phrase!: string;
 
@@ -65,7 +65,8 @@ export class RecoverWithPhraseDto {
 
   @ApiProperty({
     example: '<generated recovery phrase returned once>',
-    description: 'Exactly eight lowercase words separated by single spaces.',
+    description:
+      'Exactly eight lowercase English words separated by single spaces.',
   })
   @NormalizedRecoveryPhrase()
   @IsString()

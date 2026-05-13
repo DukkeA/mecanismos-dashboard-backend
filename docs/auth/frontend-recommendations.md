@@ -20,7 +20,7 @@ Use the auth API as a cookie-first browser flow: submit credentials, let the bro
 | Logout                      | `POST /auth/logout`                    | Cookie if present     | None                                                                                                    | `{ "success": true }`                                                                | Always clear frontend state                                  |
 | Forced/self password change | `POST /auth/change-password`           | `md_access` cookie    | `{ "currentPassword": "Temp1234!", "newPassword": "NewSecure123!" }`                                    | Current user                                                                         | Old access token is invalid immediately after success        |
 | Recovery status             | `GET /auth/recovery-phrase/status`     | `md_access` cookie    | None                                                                                                    | `{ "enabled": true, "generatedAt": "2026-05-12T12:00:00.000Z", "consumedAt": null }` | Never contains phrase/hash                                   |
-| Generate/rotate phrase      | `POST /auth/recovery-phrase/generate`  | `md_access` cookie    | `{ "currentPassword": "NewSecure123!" }`                                                                | One-time phrase response                                                             | User must store offline before closing                       |
+| Generate/rotate phrase      | `POST /auth/recovery-phrase/generate`  | `md_access` cookie    | `{ "currentPassword": "NewSecure123!" }`                                                                | One-time 8-word English phrase response                                              | User must store offline before closing                       |
 | Public recovery             | `POST /auth/recovery-phrase/recover`   | None                  | `{ "email": "admin@example.test", "recoveryPhrase": "word ... word", "newPassword": "Recovered123!" }`  | `{ "success": true }`                                                                | `401 Recovery failed`, `429 Too many recovery attempts`      |
 | Admin create user           | `POST /admin/users`                    | `ADMIN` access cookie | `{ "email": "sales@example.test", "name": "Sales", "role": "SALES", "temporaryPassword": "Temp1234!" }` | User + `temporaryPassword` once                                                      | No email automation                                          |
 | Admin reset password        | `POST /admin/users/:id/reset-password` | `ADMIN` access cookie | `{ "temporaryPassword": "Temp1234!" }`                                                                  | User + `temporaryPassword` once                                                      | Clears old recovery phrase and invalidates old access tokens |
@@ -43,22 +43,22 @@ Use the auth API as a cookie-first browser flow: submit credentials, let the bro
 
 ```json
 {
-  "phrase": "alpha bravo cable delta ember forest galaxy harbor",
+  "phrase": "<8 lowercase English words returned once>",
   "words": [
-    "alpha",
-    "bravo",
-    "cable",
-    "delta",
-    "ember",
-    "forest",
-    "galaxy",
-    "harbor"
+    "<word-1>",
+    "<word-2>",
+    "<word-3>",
+    "<word-4>",
+    "<word-5>",
+    "<word-6>",
+    "<word-7>",
+    "<word-8>"
   ],
   "generatedAt": "2026-05-12T12:00:00.000Z"
 }
 ```
 
-The example phrase is documentation-only. Do not hardcode sample phrases in tests, seed data, or UI state.
+The API chooses real lowercase English words server-side, but docs intentionally redact sample phrases. Do not hardcode sample phrases in tests, seed data, or UI state.
 
 ## Recommended screens and states
 

@@ -9,7 +9,7 @@ The current security posture is COOKIE-FIRST: access and refresh tokens stay in 
 3. Revoke the refresh-session family on reuse.
 4. Force password rotation after admin-created or admin-reset credentials.
 5. Allow admin-only access only for `ADMIN`.
-6. Treat recovery phrases like passwords: generate server-side, hash at rest, return plaintext once, and consume/clear on recovery or admin reset.
+6. Treat recovery phrases like passwords: generate 8 real English words server-side, hash at rest, return plaintext once, and consume/clear on recovery or admin reset.
 7. Keep root `.env` as the current local source of truth until real deployment environments exist.
 
 ## Cookie contract
