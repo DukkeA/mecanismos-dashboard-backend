@@ -39,19 +39,19 @@ AS $$
   END
 $$;
 
-ALTER TABLE "Customer" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "Vehicle" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "Component" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "Supplier" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "SupplierPhone" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "InventoryItem" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "InventoryMovement" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "SupplierQuoteHistory" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "Expense" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "WorkOrderActualCost" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "WorkOrderEstimate" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "WorkOrderEstimateLine" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
-ALTER TABLE "WorkOrderPayment" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL OR btrim("notes") = '' THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "Customer" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "Vehicle" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "Component" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "Supplier" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "SupplierPhone" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "InventoryItem" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "InventoryMovement" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "SupplierQuoteHistory" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "Expense" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "WorkOrderActualCost" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "WorkOrderEstimate" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "WorkOrderEstimateLine" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
+ALTER TABLE "WorkOrderPayment" ALTER COLUMN "notes" TYPE jsonb USING CASE WHEN "notes" IS NULL THEN NULL ELSE lexical_note_from_text("notes") END;
 
 UPDATE "WorkOrder"
 SET "notes" = lexical_note_from_jsonb("notes")
