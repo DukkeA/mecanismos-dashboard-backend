@@ -28,7 +28,7 @@
 - Normalize component type slugs to lowercase kebab-case without accents.
 - Uppercase vehicle plate.
 - Treat empty optional strings as absent/null when persisted.
-- Keep `notes` as opaque rich-text strings in v1.
+- Keep `notes` as opaque LexKit/Lexical editor-state JSON objects or `null`; plain strings are rejected.
 
 ## Search/list rules
 

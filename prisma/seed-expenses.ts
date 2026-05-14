@@ -37,6 +37,20 @@ const SEED_EXPENSES = [
   },
 ] as const;
 
+function lexicalNote(text: string) {
+  return {
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text }],
+        },
+      ],
+    },
+  };
+}
+
 export type ExpenseSeedPrismaClient = {
   costCenter: {
     findUnique(
@@ -67,7 +81,7 @@ export async function seedExpenses(prisma: ExpenseSeedPrismaClient, now: Date) {
         paidAt: seedExpense.paidAt,
         paymentMethod: seedExpense.paymentMethod,
         costCenterId,
-        notes: seedExpense.notes,
+        notes: lexicalNote(seedExpense.notes),
         createdAt: now,
         updatedAt: now,
       },
@@ -79,7 +93,7 @@ export async function seedExpenses(prisma: ExpenseSeedPrismaClient, now: Date) {
         paidAt: seedExpense.paidAt,
         paymentMethod: seedExpense.paymentMethod,
         costCenterId,
-        notes: seedExpense.notes,
+        notes: lexicalNote(seedExpense.notes),
         updatedAt: now,
       },
     });

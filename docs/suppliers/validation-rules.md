@@ -10,7 +10,7 @@
 
 ## Phone normalization rules
 
-- Trim all phone labels, numbers, and optional notes.
+- Trim all phone labels and numbers. Supplier and phone `notes` are optional nullable LexKit/Lexical editor-state JSON; plain strings are rejected.
 - Lowercase supplier email.
 - If create/update sends no primary phone, the **first phone becomes primary**.
 - If create/update sends more than one primary phone, the request fails.

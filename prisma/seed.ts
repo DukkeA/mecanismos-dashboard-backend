@@ -22,6 +22,20 @@ import { seedWorkOrders } from './seed-work-orders';
 
 const BCRYPT_ROUNDS = 12;
 
+function lexicalNote(text: string) {
+  return {
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text }],
+        },
+      ],
+    },
+  };
+}
+
 const SEED_USERS = [
   {
     id: 'seed-user-admin',
@@ -377,7 +391,7 @@ function mapSeedSupplierPhones(
     phone: phone.phone,
     isPrimary: phone.isPrimary,
     hasWhatsapp: phone.hasWhatsapp,
-    notes: phone.notes,
+    notes: lexicalNote(phone.notes),
     createdAt: now,
     updatedAt: now,
   }));
@@ -458,7 +472,7 @@ async function main() {
           documentType: seedCustomer.documentType,
           documentNumber: seedCustomer.documentNumber,
           email: seedCustomer.email,
-          notes: seedCustomer.notes,
+          notes: lexicalNote(seedCustomer.notes),
           createdAt: now,
           updatedAt: now,
         },
@@ -466,7 +480,7 @@ async function main() {
           name: seedCustomer.name,
           phone: seedCustomer.phone,
           email: seedCustomer.email,
-          notes: seedCustomer.notes,
+          notes: lexicalNote(seedCustomer.notes),
           updatedAt: now,
         },
       });
@@ -483,7 +497,7 @@ async function main() {
           brand: seedVehicle.brand,
           modelReference: seedVehicle.modelReference,
           plate: seedVehicle.plate,
-          notes: seedVehicle.notes,
+          notes: lexicalNote(seedVehicle.notes),
           createdAt: now,
           updatedAt: now,
         },
@@ -491,7 +505,7 @@ async function main() {
           customerId: seedVehicle.customerId,
           brand: seedVehicle.brand,
           modelReference: seedVehicle.modelReference,
-          notes: seedVehicle.notes,
+          notes: lexicalNote(seedVehicle.notes),
           updatedAt: now,
         },
       });
@@ -533,7 +547,7 @@ async function main() {
           brand: seedComponent.brand,
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,
-          notes: seedComponent.notes,
+          notes: lexicalNote(seedComponent.notes),
           createdAt: now,
           updatedAt: now,
         },
@@ -544,7 +558,7 @@ async function main() {
           brand: seedComponent.brand,
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,
-          notes: seedComponent.notes,
+          notes: lexicalNote(seedComponent.notes),
           updatedAt: now,
         },
       });
@@ -606,7 +620,7 @@ async function main() {
           documentType: seedSupplier.documentType,
           documentNumber: seedSupplier.documentNumber,
           email: seedSupplier.email,
-          notes: seedSupplier.notes,
+          notes: lexicalNote(seedSupplier.notes),
           isActive: seedSupplier.isActive,
           createdAt: now,
           updatedAt: now,
@@ -621,7 +635,7 @@ async function main() {
           documentType: seedSupplier.documentType,
           documentNumber: seedSupplier.documentNumber,
           email: seedSupplier.email,
-          notes: seedSupplier.notes,
+          notes: lexicalNote(seedSupplier.notes),
           isActive: seedSupplier.isActive,
           updatedAt: now,
           phones: {
@@ -639,11 +653,13 @@ async function main() {
         where: { id: seedInventoryItem.id },
         create: {
           ...seedInventoryItem,
+          notes: lexicalNote(seedInventoryItem.notes),
           createdAt: now,
           updatedAt: now,
         },
         update: {
           ...seedInventoryItem,
+          notes: lexicalNote(seedInventoryItem.notes),
           updatedAt: now,
         },
       });
@@ -656,9 +672,13 @@ async function main() {
         where: { id: seedInventoryMovement.id },
         create: {
           ...seedInventoryMovement,
+          notes: lexicalNote(seedInventoryMovement.notes),
           createdAt: now,
         },
-        update: seedInventoryMovement,
+        update: {
+          ...seedInventoryMovement,
+          notes: lexicalNote(seedInventoryMovement.notes),
+        },
       });
 
       console.log(`Seeded inventory movement: ${seedInventoryMovement.id}`);
@@ -669,6 +689,7 @@ async function main() {
         where: { id: seedSupplierQuote.id },
         create: {
           ...seedSupplierQuote,
+          notes: lexicalNote(seedSupplierQuote.notes),
           createdAt: now,
           updatedAt: now,
         },
@@ -678,7 +699,7 @@ async function main() {
           quotedCost: seedSupplierQuote.quotedCost,
           quotedAt: seedSupplierQuote.quotedAt,
           status: seedSupplierQuote.status,
-          notes: seedSupplierQuote.notes,
+          notes: lexicalNote(seedSupplierQuote.notes),
           correctionReason: seedSupplierQuote.correctionReason,
           voidReason: seedSupplierQuote.voidReason,
           voidedAt: seedSupplierQuote.voidedAt,

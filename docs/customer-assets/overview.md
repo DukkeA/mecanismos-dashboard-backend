@@ -16,7 +16,7 @@ This slice delivers protected CRUD-lite for **component types, customers, vehicl
 | Resource | Routes | Notes |
 | --- | --- | --- |
 | Component types | `POST /component-types`, `GET /component-types`, `GET /component-types/:id`, `PATCH /component-types/:id` | Catalog for normalized component categories and combobox creation. |
-| Customers | `POST /customers`, `GET /customers`, `GET /customers/:id`, `PATCH /customers/:id` | `notes` is optional rich-text string stored opaquely. |
+| Customers | `POST /customers`, `GET /customers`, `GET /customers/:id`, `PATCH /customers/:id` | `notes` is optional nullable LexKit/Lexical editor-state JSON stored opaquely. |
 | Vehicles | `POST /vehicles`, `GET /vehicles`, `GET /vehicles/:id`, `PATCH /vehicles/:id` | `customerId` set once on create. |
 | Components | `POST /components`, `GET /components`, `GET /components/:id`, `PATCH /components/:id` | `vehicleId` is optional but relation-safe; `componentTypeId` is required. |
 

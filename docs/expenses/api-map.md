@@ -7,7 +7,7 @@ Quick routes: POST /expenses, GET /expenses, GET /expenses/:id, PATCH /expenses/
 | Method | Route | Input | Output | Notes |
 | --- | --- | --- | --- | --- |
 | `POST` | `/expenses` | `name`, `category`, `amount`, `expectedAt`, optional `costCenterId`, optional `paidAt`, optional `paymentMethod`, optional `notes` | Created expense row | `paymentMethod` requires `paidAt`; unknown cost center returns `404` |
-| `GET` | `/expenses?page=&limit=&search=&category=&costCenterId=&isPaid=&expectedFrom=&expectedTo=&paidFrom=&paidTo=` | Query params only | `{ data, meta }` pagination envelope | Search covers `name` + `notes` |
+| `GET` | `/expenses?page=&limit=&search=&category=&costCenterId=&isPaid=&expectedFrom=&expectedTo=&paidFrom=&paidTo=` | Query params only | `{ data, meta }` pagination envelope | Search covers `name`; rich-text note body search is deferred |
 | `GET` | `/expenses/:id` | Path id | Single expense row | `404` if missing |
 | `PATCH` | `/expenses/:id` | Partial expense payload | Updated expense row | Clearing `paidAt` clears `paymentMethod` |
 
@@ -29,7 +29,7 @@ Quick routes: POST /expenses, GET /expenses, GET /expenses/:id, PATCH /expenses/
   "amount": 1500000,
   "expectedAt": "2026-05-15T00:00:00.000Z",
   "costCenterId": "seed-cost-center-oficina",
-  "notes": "Canon mensual programado"
+  "notes": { "root": { "type": "root", "children": [] } }
 }
 ```
 
@@ -39,6 +39,6 @@ Quick routes: POST /expenses, GET /expenses, GET /expenses/:id, PATCH /expenses/
 {
   "paidAt": "2026-05-16T14:00:00.000Z",
   "paymentMethod": "TRANSFER",
-  "notes": "Pago confirmado por transferencia"
+  "notes": { "root": { "type": "root", "children": [] } }
 }
 ```

@@ -70,6 +70,20 @@ const workshopEstimateId = 'seed-work-order-estimate-workshop-final';
 const saleEstimateId = 'seed-work-order-estimate-sale-initial';
 const partialPaymentEstimateId = 'seed-work-order-estimate-partial-final';
 
+function lexicalNote(text: string) {
+  return {
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text }],
+        },
+      ],
+    },
+  };
+}
+
 const seedWorkOrderRows = [
   {
     id: saleWorkOrderId,
@@ -404,6 +418,7 @@ export async function seedWorkOrders(
         where: { id: seedWorkOrder.id },
         create: {
           ...seedWorkOrder,
+          notes: lexicalNote(seedWorkOrder.notes),
           createdAt: now,
           updatedAt: now,
         },
@@ -417,7 +432,7 @@ export async function seedWorkOrders(
           assignedEmployeeId: seedWorkOrder.assignedEmployeeId,
           summary: seedWorkOrder.summary,
           externalLink: seedWorkOrder.externalLink,
-          notes: seedWorkOrder.notes,
+          notes: lexicalNote(seedWorkOrder.notes),
           estimatedCompletionAt: seedWorkOrder.estimatedCompletionAt,
           estimatedCollectionAt: seedWorkOrder.estimatedCollectionAt,
           completedAt: seedWorkOrder.completedAt,
@@ -449,6 +464,7 @@ export async function seedWorkOrders(
         where: { id: estimate.id },
         create: {
           ...estimate,
+          notes: lexicalNote(estimate.notes),
           createdAt: now,
           updatedAt: now,
         },
@@ -465,7 +481,7 @@ export async function seedWorkOrders(
           recommendedMinimumPrice: estimate.recommendedMinimumPrice,
           recommendedPrice: estimate.recommendedPrice,
           recommendedHighPrice: estimate.recommendedHighPrice,
-          notes: estimate.notes,
+          notes: lexicalNote(estimate.notes),
           updatedAt: now,
         },
       });
@@ -481,6 +497,7 @@ export async function seedWorkOrders(
     await transaction.workOrderEstimateLine.createMany({
       data: estimateLines.map((line) => ({
         ...line,
+        notes: lexicalNote(line.notes),
         createdAt: now,
         updatedAt: now,
       })),
@@ -501,6 +518,7 @@ export async function seedWorkOrders(
     await transaction.workOrderActualCost.createMany({
       data: actualCosts.map((actualCost) => ({
         ...actualCost,
+        notes: lexicalNote(actualCost.notes),
         createdAt: now,
         updatedAt: now,
       })),
@@ -521,6 +539,7 @@ export async function seedWorkOrders(
     await transaction.workOrderPayment.createMany({
       data: payments.map((payment) => ({
         ...payment,
+        notes: lexicalNote(payment.notes),
         createdAt: now,
         updatedAt: now,
       })),
@@ -547,6 +566,7 @@ export async function seedWorkOrders(
       await transaction.inventoryMovement.createMany({
         data: workOrderInventoryMovements.map((movement) => ({
           ...movement,
+          notes: lexicalNote(movement.notes),
           createdAt: now,
         })),
       });

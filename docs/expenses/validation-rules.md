@@ -9,12 +9,12 @@
 - `costCenterId` is optional, trimmed, and any unknown reference returns `404 Not Found`.
 - `paidAt` is optional and marks the expense as paid when present.
 - `paymentMethod` is optional, must be one of the Prisma `PaymentMethod` values, and requires `paidAt`.
-- `notes` is optional and trimmed when present.
+- `notes` is optional, nullable LexKit/Lexical editor-state JSON. Plain strings are rejected.
 
 ## List query rules
 
 - `page` defaults to `1`, `limit` defaults to `10`, and `limit` max is `100`.
-- `search` is optional and trimmed before matching `name` and `notes`.
+- `search` is optional and trimmed before matching `name`. Rich-text note body search is deferred because notes are JSONB.
 - `category`, `costCenterId`, and `isPaid` are optional filters.
 - `expectedFrom`, `expectedTo`, `paidFrom`, and `paidTo` are optional ISO date filters.
 
