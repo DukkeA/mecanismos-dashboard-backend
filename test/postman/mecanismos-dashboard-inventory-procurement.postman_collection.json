@@ -116,7 +116,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{inventoryItemName}}\",\n  \"itemType\": \"STOCK_OWNED\",\n  \"condition\": \"NEW\",\n  \"brand\": \"Denso\",\n  \"reference\": \"DLLA-{{runId}}\",\n  \"identifier\": \"INV-RUNNER-{{runId}}\",\n  \"minimumStock\": 1,\n  \"defaultSalePrice\": 120000,\n  \"notes\": \"Ítem runner para validar inventario y cotizaciones\"\n}"
+              "raw": "{\n  \"name\": \"{{inventoryItemName}}\",\n  \"itemType\": \"STOCK_OWNED\",\n  \"condition\": \"NEW\",\n  \"brand\": \"Denso\",\n  \"reference\": \"DLLA-{{runId}}\",\n  \"identifier\": \"INV-RUNNER-{{runId}}\",\n  \"minimumStock\": 1,\n  \"defaultSalePrice\": 120000,\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Ítem runner para validar inventario y cotizaciones\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/inventory-items",
@@ -180,7 +180,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"movementType\": \"OUT\",\n  \"reason\": \"SALE\",\n  \"quantity\": 1,\n  \"occurredAt\": \"2026-05-06T10:00:00.000Z\",\n  \"notes\": \"Debe fallar porque el stock actual es cero\"\n}"
+              "raw": "{\n  \"movementType\": \"OUT\",\n  \"reason\": \"SALE\",\n  \"quantity\": 1,\n  \"occurredAt\": \"2026-05-06T10:00:00.000Z\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Debe fallar porque el stock actual es cero\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/movements",
@@ -205,7 +205,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"movementType\": \"IN\",\n  \"reason\": \"PURCHASE\",\n  \"quantity\": 5,\n  \"unitCost\": 70000,\n  \"supplierId\": \"{{supplierId}}\",\n  \"occurredAt\": \"2026-05-06T11:00:00.000Z\",\n  \"notes\": \"Entrada runner por compra\"\n}"
+              "raw": "{\n  \"movementType\": \"IN\",\n  \"reason\": \"PURCHASE\",\n  \"quantity\": 5,\n  \"unitCost\": 70000,\n  \"supplierId\": \"{{supplierId}}\",\n  \"occurredAt\": \"2026-05-06T11:00:00.000Z\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Entrada runner por compra\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/movements",
@@ -233,7 +233,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"movementType\": \"OUT\",\n  \"reason\": \"SALE\",\n  \"quantity\": 2,\n  \"occurredAt\": \"2026-05-06T12:00:00.000Z\",\n  \"notes\": \"Salida runner después de entrada\"\n}"
+              "raw": "{\n  \"movementType\": \"OUT\",\n  \"reason\": \"SALE\",\n  \"quantity\": 2,\n  \"occurredAt\": \"2026-05-06T12:00:00.000Z\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Salida runner después de entrada\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/inventory-items/{{inventoryItemId}}/movements",
@@ -331,7 +331,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"inventoryItemId\": \"{{inventoryItemId}}\",\n  \"quotedCost\": 76000,\n  \"quotedAt\": \"2026-05-06T13:00:00.000Z\",\n  \"notes\": \"Primera cotización runner\"\n}"
+              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"inventoryItemId\": \"{{inventoryItemId}}\",\n  \"quotedCost\": 76000,\n  \"quotedAt\": \"2026-05-06T13:00:00.000Z\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Primera cotización runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/supplier-quotes",
@@ -362,7 +362,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"inventoryItemId\": \"{{inventoryItemId}}\",\n  \"quotedCost\": 82000,\n  \"quotedAt\": \"2026-05-07T13:00:00.000Z\",\n  \"notes\": \"Nuevo precio: debe ser otro evento, no reemplazo\"\n}"
+              "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"inventoryItemId\": \"{{inventoryItemId}}\",\n  \"quotedCost\": 82000,\n  \"quotedAt\": \"2026-05-07T13:00:00.000Z\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Nuevo precio: debe ser otro evento, no reemplazo\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/supplier-quotes",
@@ -393,7 +393,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"quotedCost\": 76500,\n  \"correctionReason\": \"Corrección runner por digitación\",\n  \"notes\": \"Proveedor confirmó IVA incluido\"\n}"
+              "raw": "{\n  \"quotedCost\": 76500,\n  \"correctionReason\": \"Corrección runner por digitación\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Proveedor confirmó IVA incluido\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/supplier-quotes/{{supplierQuoteId}}",

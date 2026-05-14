@@ -186,7 +186,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{customerName}}\",\n  \"phone\": \"{{customerPhone}}\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"{{customerDocumentNumber}}\",\n  \"email\": \"{{customerEmail}}\",\n  \"notes\": \"<p>Creado desde Collection Runner {{runId}}</p>\"\n}"
+              "raw": "{\n  \"name\": \"{{customerName}}\",\n  \"phone\": \"{{customerPhone}}\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"{{customerDocumentNumber}}\",\n  \"email\": \"{{customerEmail}}\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Creado desde Collection Runner {{runId}}\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/customers",
@@ -323,7 +323,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"notes\": \"<p>Actualizado desde Collection Runner {{runId}}</p>\"\n}"
+              "raw": "{\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Actualizado desde Collection Runner {{runId}}\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/customers/{{customerId}}",
@@ -370,7 +370,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"Runner {{runId}}\",\n  \"plate\": \"{{vehiclePlate}}\",\n  \"notes\": \"<p>Vehiculo creado desde Collection Runner</p>\"\n}"
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"Runner {{runId}}\",\n  \"plate\": \"{{vehiclePlate}}\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Vehiculo creado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/vehicles",
@@ -510,7 +510,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"notes\": \"<p>Actualizado desde Collection Runner</p>\"\n}"
+              "raw": "{\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Actualizado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/vehicles/{{vehicleId}}",
@@ -660,7 +660,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"componentTypeId\": \"{{componentTypeId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"{{componentIdentifier}}\",\n  \"notes\": \"<p>Componente creado desde Collection Runner</p>\"\n}"
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"componentTypeId\": \"{{componentTypeId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"{{componentIdentifier}}\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Componente creado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/components",
@@ -811,7 +811,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vehicleId\": null,\n  \"notes\": \"<p>Actualizado desde Collection Runner</p>\"\n}"
+              "raw": "{\n  \"vehicleId\": null,\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Actualizado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/components/{{componentId}}",

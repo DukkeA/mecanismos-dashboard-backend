@@ -130,7 +130,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"estimatedLaborHours\": 2.5,\n  \"baseCostAmount\": 180000,\n  \"contingencyPct\": 10,\n  \"totalCostAmount\": 198000,\n  \"totalPriceAmount\": 260000,\n  \"notes\": \"Estimate runner\",\n  \"lines\": [\n    {\n      \"lineType\": \"PART\",\n      \"description\": \"Inyector Bosch 0445120231\",\n      \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n      \"supplierId\": \"seed-supplier-repuestos-central-main\",\n      \"supplierQuoteHistoryId\": \"{{unboundSupplierQuoteId}}\",\n      \"quantity\": 1,\n      \"unitCost\": 182000,\n      \"unitPrice\": 240000\n    }\n  ]\n}"
+              "raw": "{\n  \"estimatedLaborHours\": 2.5,\n  \"baseCostAmount\": 180000,\n  \"contingencyPct\": 10,\n  \"totalCostAmount\": 198000,\n  \"totalPriceAmount\": 260000,\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Estimate runner\" }]\n        }\n      ]\n    }\n  },\n  \"lines\": [\n    {\n      \"lineType\": \"PART\",\n      \"description\": \"Inyector Bosch 0445120231\",\n      \"inventoryItemId\": \"seed-inventory-item-bosch-inyector\",\n      \"supplierId\": \"seed-supplier-repuestos-central-main\",\n      \"supplierQuoteHistoryId\": \"{{unboundSupplierQuoteId}}\",\n      \"quantity\": 1,\n      \"unitCost\": 182000,\n      \"unitPrice\": 240000\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/estimates/{{estimatePhase}}",
@@ -257,7 +257,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 260000,\n  \"paidAt\": \"2026-05-10T15:30:00.000Z\",\n  \"paymentMethod\": \"CASH\",\n  \"notes\": \"Pago runner\"\n}"
+              "raw": "{\n  \"amount\": 260000,\n  \"paidAt\": \"2026-05-10T15:30:00.000Z\",\n  \"paymentMethod\": \"CASH\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Pago runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/work-orders/{{createdWorkOrderId}}/payments",

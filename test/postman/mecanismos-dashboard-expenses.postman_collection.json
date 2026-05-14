@@ -111,7 +111,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{expenseName}}\",\n  \"category\": \"RENT\",\n  \"amount\": 1500000,\n  \"expectedAt\": \"2026-05-15T00:00:00.000Z\",\n  \"costCenterId\": \"{{expenseCostCenterId}}\",\n  \"notes\": \"Programado por runner\"\n}"
+              "raw": "{\n  \"name\": \"{{expenseName}}\",\n  \"category\": \"RENT\",\n  \"amount\": 1500000,\n  \"expectedAt\": \"2026-05-15T00:00:00.000Z\",\n  \"costCenterId\": \"{{expenseCostCenterId}}\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Programado por runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/expenses",
@@ -199,7 +199,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"paidAt\": \"2026-05-16T14:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"notes\": \"Pago confirmado por runner\"\n}"
+              "raw": "{\n  \"paidAt\": \"2026-05-16T14:00:00.000Z\",\n  \"paymentMethod\": \"TRANSFER\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Pago confirmado por runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/expenses/{{expenseId}}",
