@@ -5,6 +5,11 @@ import type {
   CustomerDocumentType,
   Prisma,
 } from '../../../generated/prisma/client';
+import {
+  DEFAULT_CUSTOMER_LIST_SORT,
+  type CustomerListSortDirection,
+  type CustomerListSortField,
+} from '../customer-list-sorting';
 
 export const CUSTOMERS_PRISMA_CLIENT = Symbol('CUSTOMERS_PRISMA_CLIENT');
 
@@ -31,6 +36,8 @@ export type ListCustomersQuery = {
   limit: number;
   search?: string;
   documentType?: CustomerDocumentType;
+  sortBy?: CustomerListSortField;
+  sortDir?: CustomerListSortDirection;
 };
 
 export type ListCustomerOptionsQuery = {
@@ -40,13 +47,17 @@ export type ListCustomerOptionsQuery = {
 };
 
 type CustomerWhereInput = Prisma.CustomerWhereInput;
+type CustomerOrderByInput = Pick<
+  Prisma.CustomerOrderByWithRelationInput,
+  CustomerListSortField
+>;
 
 type CustomersPrismaClient = {
   customer: {
     create(args: { data: Record<string, unknown> }): Promise<CustomerRecord>;
     findMany(args: {
       where: CustomerWhereInput;
-      orderBy: { createdAt: 'desc' };
+      orderBy: CustomerOrderByInput;
       skip: number;
       take: number;
     }): Promise<CustomerRecord[]>;
@@ -100,7 +111,7 @@ export class CustomersRepository {
     const [items, total] = await Promise.all([
       this.prisma.customer.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: buildCustomerOrderBy(query),
         skip,
         take: query.limit,
       }),
@@ -200,6 +211,13 @@ function buildCustomerWhere(query: ListCustomersQuery): CustomerWhereInput {
         }
       : {}),
   };
+}
+
+function buildCustomerOrderBy(query: ListCustomersQuery): CustomerOrderByInput {
+  const sortBy = query.sortBy ?? DEFAULT_CUSTOMER_LIST_SORT.sortBy;
+  const sortDir = query.sortDir ?? DEFAULT_CUSTOMER_LIST_SORT.sortDir;
+
+  return { [sortBy]: sortDir };
 }
 
 function normalizeOptionalEmail(value?: string) {

@@ -68,7 +68,7 @@ describe('CustomersRepository', () => {
   it('builds paginated pragmatic search filters for customer list', async () => {
     type FindManyArgs = {
       where: Record<string, unknown>;
-      orderBy: { createdAt: string };
+      orderBy: Record<string, string>;
       skip: number;
       take: number;
     };
@@ -126,5 +126,38 @@ describe('CustomersRepository', () => {
         ],
       },
     });
+  });
+
+  it('uses requested allowlisted sorting for customer list', async () => {
+    type FindManyArgs = {
+      where: Record<string, unknown>;
+      orderBy: Record<string, string>;
+      skip: number;
+      take: number;
+    };
+
+    let receivedFindManyArgs: FindManyArgs | undefined;
+
+    const prisma = {
+      customer: {
+        findMany: jest.fn((args: FindManyArgs) => {
+          receivedFindManyArgs = args;
+
+          return Promise.resolve([]);
+        }),
+        count: jest.fn(() => Promise.resolve(0)),
+      },
+    };
+
+    const repository = new CustomersRepository(prisma as never);
+
+    await repository.findMany({
+      page: 1,
+      limit: 10,
+      sortBy: 'name',
+      sortDir: 'asc',
+    });
+
+    expect(receivedFindManyArgs?.orderBy).toEqual({ name: 'asc' });
   });
 });

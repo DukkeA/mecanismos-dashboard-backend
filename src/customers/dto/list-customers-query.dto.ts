@@ -3,6 +3,13 @@ import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CustomerDocumentType } from '../../../generated/prisma/enums';
 import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
+import {
+  CUSTOMER_LIST_SORT_DIRECTIONS,
+  CUSTOMER_LIST_SORT_FIELDS,
+  DEFAULT_CUSTOMER_LIST_SORT,
+  type CustomerListSortDirection,
+  type CustomerListSortField,
+} from '../customer-list-sorting';
 
 const customerDocumentTypes = Object.values(CustomerDocumentType);
 
@@ -32,4 +39,20 @@ export class ListCustomersQueryDto {
   @IsOptional()
   @IsIn(customerDocumentTypes)
   documentType?: CustomerDocumentType;
+
+  @ApiPropertyOptional({
+    enum: CUSTOMER_LIST_SORT_FIELDS,
+    default: DEFAULT_CUSTOMER_LIST_SORT.sortBy,
+  })
+  @IsOptional()
+  @IsIn(CUSTOMER_LIST_SORT_FIELDS)
+  sortBy?: CustomerListSortField = DEFAULT_CUSTOMER_LIST_SORT.sortBy;
+
+  @ApiPropertyOptional({
+    enum: CUSTOMER_LIST_SORT_DIRECTIONS,
+    default: DEFAULT_CUSTOMER_LIST_SORT.sortDir,
+  })
+  @IsOptional()
+  @IsIn(CUSTOMER_LIST_SORT_DIRECTIONS)
+  sortDir?: CustomerListSortDirection = DEFAULT_CUSTOMER_LIST_SORT.sortDir;
 }
