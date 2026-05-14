@@ -36,7 +36,9 @@ function lexicalNoteFromText(text: string): LexicalNoteJson {
   };
 }
 
-function toReadableLegacyNoteText(value: Exclude<LegacyNoteValue, null>): string {
+function toReadableLegacyNoteText(
+  value: Exclude<LegacyNoteValue, null>,
+): string {
   if (typeof value === 'string') {
     return value;
   }

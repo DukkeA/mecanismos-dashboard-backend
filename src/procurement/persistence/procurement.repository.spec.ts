@@ -179,8 +179,9 @@ function withoutPrismaRelationAliases(record: {
   InventoryItem: unknown;
   [key: string]: unknown;
 }) {
-  const { Supplier: _supplier, InventoryItem: _inventoryItem, ...quote } =
-    record;
+  const quote = { ...record };
+  delete quote.Supplier;
+  delete quote.InventoryItem;
 
   return quote;
 }

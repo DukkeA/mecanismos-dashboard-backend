@@ -313,17 +313,12 @@ function buildSupplierQuoteWhere(input: {
   } satisfies Prisma.SupplierQuoteHistoryWhereInput;
 }
 
-function normalizeOptionalString(value?: string | null) {
-  const normalized = value?.trim();
-  return normalized ? normalized : null;
-}
-
 function mapQuoteRecord(record: PrismaQuoteRecord): QuoteRecord {
   const { Supplier, InventoryItem, ...quote } = record;
 
   return {
-      ...(quote as Omit<typeof quote, 'notes'>),
-      notes: quote.notes as LexicalNoteJson | null,
+    ...(quote as Omit<typeof quote, 'notes'>),
+    notes: quote.notes as LexicalNoteJson | null,
     supplier: Supplier,
     inventoryItem: InventoryItem,
   };
