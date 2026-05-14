@@ -6,6 +6,10 @@ import type {
   Prisma,
 } from '../../../generated/prisma/client';
 import {
+  LexicalNoteJson,
+  normalizeOptionalNoteJson,
+} from '../../common/rich-text/lexical-note';
+import {
   DEFAULT_CUSTOMER_LIST_SORT,
   type CustomerListSortDirection,
   type CustomerListSortField,
@@ -26,7 +30,7 @@ export type CreateCustomerRecordInput = {
   documentType: CustomerDocumentType;
   documentNumber: string;
   email?: string;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
 };
 
 export type UpdateCustomerRecordInput = Partial<CreateCustomerRecordInput>;
@@ -96,7 +100,7 @@ export class CustomersRepository {
           documentType: input.documentType,
           documentNumber: input.documentNumber.trim(),
           email: normalizeOptionalEmail(input.email),
-          notes: normalizeOptionalString(input.notes),
+          notes: normalizeOptionalNoteJson(input.notes) ?? null,
           updatedAt: now,
         },
       });
@@ -185,7 +189,7 @@ export class CustomersRepository {
             ? { email: normalizeOptionalEmail(input.email) }
             : {}),
           ...(input.notes !== undefined
-            ? { notes: normalizeOptionalString(input.notes) }
+            ? { notes: normalizeOptionalNoteJson(input.notes) }
             : {}),
           updatedAt: now,
         },

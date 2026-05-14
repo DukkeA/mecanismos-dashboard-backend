@@ -4,6 +4,7 @@ import {
   ExpenseCategory,
   PaymentMethod,
 } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { CreateExpenseDto } from './create-expense.dto';
 import { ListExpensesQueryDto } from './list-expenses-query.dto';
 import { UpdateExpenseDto } from './update-expense.dto';
@@ -18,7 +19,7 @@ describe('expense DTO contracts', () => {
       paidAt: '2026-05-16T00:00:00.000Z',
       paymentMethod: PaymentMethod.TRANSFER,
       costCenterId: '  cc-1  ',
-      notes: '  Pago de oficina principal  ',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
     const invalidDto = plainToInstance(CreateExpenseDto, {
       name: '   ',
@@ -30,7 +31,7 @@ describe('expense DTO contracts', () => {
 
     expect(validDto.name).toBe('Arriendo mayo');
     expect(validDto.costCenterId).toBe('cc-1');
-    expect(validDto.notes).toBe('Pago de oficina principal');
+    expect(validDto.notes).toEqual(LEXICAL_NOTE_EXAMPLE);
     expect(validDto.expectedAt).toBeInstanceOf(Date);
     expect(validDto.paidAt).toBeInstanceOf(Date);
     await expect(validate(validDto)).resolves.toHaveLength(0);

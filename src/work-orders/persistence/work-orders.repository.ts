@@ -23,6 +23,10 @@ import {
   calculateAvailableStockForWorkOrder,
   calculatePhysicalStockFromMovements,
 } from '../work-order-inventory.helpers';
+import {
+  LexicalNoteJson,
+  normalizeOptionalNoteJson,
+} from '../../common/rich-text/lexical-note';
 
 export const WORK_ORDERS_PRISMA_CLIENT = Symbol('WORK_ORDERS_PRISMA_CLIENT');
 
@@ -64,7 +68,7 @@ export type WorkOrderEstimateSummary = {
   phase: string;
   totalCostAmount: number;
   totalPriceAmount: number;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
 };
 
 export type WorkOrderEstimateLineInventorySummary = {
@@ -113,7 +117,7 @@ export type WorkOrderEstimateLineDetail = {
   quantity: number;
   unitCost: number | null;
   unitPrice: number | null;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   inventoryItem: WorkOrderEstimateLineInventorySummary | null;
   serviceCatalog: WorkOrderEstimateLineServiceCatalogSummary | null;
   supplier: WorkOrderEstimateLineSupplierSummary | null;
@@ -134,7 +138,7 @@ export type WorkOrderEstimateDetail = {
   recommendedMinimumPrice: number | null;
   recommendedPrice: number | null;
   recommendedHighPrice: number | null;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   lines: WorkOrderEstimateLineDetail[];
 };
 
@@ -167,7 +171,7 @@ export type WorkOrderInventoryMovementSummary = {
   workOrderId: string | null;
   isReservedForWorkOrder: boolean;
   occurredAt: Date;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   actualCostId: string | null;
 };
 
@@ -207,7 +211,7 @@ export type WorkOrderActualCostSummary = {
   supplierQuoteHistoryId: string | null;
   paymentMethod: string | null;
   incurredAt: Date;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   supplier: WorkOrderSupplierSummary | null;
   inventoryItem: WorkOrderInventoryItemSummary | null;
   supplierQuoteHistory: WorkOrderSupplierQuoteSummary | null;
@@ -218,7 +222,7 @@ export type WorkOrderPaymentSummary = {
   amount: number;
   paymentMethod: string | null;
   paidAt: Date;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
 };
 
 export type WorkOrderDetail = {
@@ -233,7 +237,7 @@ export type WorkOrderDetail = {
   assignedEmployeeId: string | null;
   summary: string;
   externalLink: string | null;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   estimatedCompletionAt: Date | null;
   estimatedCollectionAt: Date | null;
   completedAt: Date | null;
@@ -263,7 +267,7 @@ export type CreateWorkOrderInventoryActionInput = {
   occurredAt: Date;
   supplierId?: string;
   unitCost?: number;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
   isReservedForWorkOrder?: boolean;
   actualCost?: {
     category: WorkOrderCostCategory;
@@ -274,7 +278,7 @@ export type CreateWorkOrderInventoryActionInput = {
     supplierQuoteHistoryId?: string;
     paymentMethod?: string;
     incurredAt: Date;
-    notes?: string;
+    notes?: LexicalNoteJson | null;
   };
 };
 
@@ -568,7 +572,7 @@ type WorkOrderEstimateRecord = {
   recommendedMinimumPrice: number | null;
   recommendedPrice: number | null;
   recommendedHighPrice: number | null;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   WorkOrderEstimateLine: WorkOrderEstimateLineRecord[];
 };
 
@@ -583,7 +587,7 @@ type WorkOrderEstimateLineRecord = {
   quantity: number;
   unitCost: number | null;
   unitPrice: number | null;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   InventoryItem: WorkOrderEstimateLineInventorySummary | null;
   ServiceCatalog: WorkOrderEstimateLineServiceCatalogSummary | null;
   Supplier: WorkOrderEstimateLineSupplierSummary | null;
@@ -610,7 +614,7 @@ type ActualCostRecord = {
   supplierQuoteHistoryId: string | null;
   paymentMethod: string | null;
   incurredAt: Date;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   Supplier: WorkOrderSupplierSummary | null;
   InventoryItem: {
     id: string;
@@ -673,7 +677,7 @@ type WorkOrderRecord = {
     phase: string;
     totalCostAmount: number;
     totalPriceAmount: number;
-    notes: string | null;
+    notes: LexicalNoteJson | null;
   }>;
   WorkOrderActualCost: Array<{
     id: string;
@@ -685,7 +689,7 @@ type WorkOrderRecord = {
     supplierQuoteHistoryId: string | null;
     paymentMethod: string | null;
     incurredAt: Date;
-    notes: string | null;
+    notes: LexicalNoteJson | null;
     Supplier: WorkOrderSupplierSummary | null;
     InventoryItem: {
       id: string;
@@ -702,7 +706,7 @@ type WorkOrderRecord = {
     amount: number;
     paymentMethod: string | null;
     paidAt: Date;
-    notes: string | null;
+    notes: LexicalNoteJson | null;
   }>;
   InventoryMovement: InventoryMovementRecordWithItem[];
 };
@@ -718,7 +722,7 @@ type InventoryMovementRecord = {
   workOrderId: string | null;
   isReservedForWorkOrder: boolean;
   occurredAt: Date;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   createdAt: Date;
 };
 
@@ -1016,7 +1020,7 @@ export class WorkOrdersRepository {
           recommendedMinimumPrice: input.recommendedMinimumPrice ?? null,
           recommendedPrice: input.recommendedPrice ?? null,
           recommendedHighPrice: input.recommendedHighPrice ?? null,
-          notes: normalizeOptionalString(input.notes),
+          notes: normalizeOptionalNoteJson(input.notes) ?? null,
           WorkOrderEstimateLine: [],
         },
       );
@@ -1243,7 +1247,7 @@ export class WorkOrdersRepository {
             workOrderId,
             isReservedForWorkOrder: input.isReservedForWorkOrder ?? false,
             occurredAt: input.occurredAt,
-            notes: normalizeOptionalString(input.notes),
+            notes: normalizeOptionalNoteJson(input.notes) ?? null,
           },
         });
 
@@ -1278,7 +1282,7 @@ export class WorkOrdersRepository {
                     ) ?? null,
                   paymentMethod: actualCostInput.paymentMethod ?? null,
                   incurredAt: actualCostInput.incurredAt,
-                  notes: normalizeOptionalString(actualCostInput.notes),
+                  notes: normalizeOptionalNoteJson(actualCostInput.notes) ?? null,
                   updatedAt: new Date(),
                 },
                 include: actualCostInclude,
@@ -1545,7 +1549,7 @@ function buildWorkOrderCreateData(input: CreateWorkOrderDto) {
     assignedEmployeeId: normalizeOptionalForeignKey(input.assignedEmployeeId),
     summary: input.summary.trim(),
     externalLink: normalizeOptionalString(input.externalLink),
-    notes: normalizeOptionalString(input.notes),
+    notes: normalizeOptionalNoteJson(input.notes) ?? null,
     estimatedCompletionAt: input.estimatedCompletionAt ?? null,
     estimatedCollectionAt: input.estimatedCollectionAt ?? null,
     completedAt: input.completedAt ?? null,
@@ -1579,7 +1583,7 @@ function buildWorkOrderUpdateData(input: UpdateWorkOrderDto) {
       ? { externalLink: normalizeOptionalString(input.externalLink) }
       : {}),
     ...(input.notes !== undefined
-      ? { notes: normalizeOptionalString(input.notes) }
+      ? { notes: normalizeOptionalNoteJson(input.notes) }
       : {}),
     ...(input.estimatedCompletionAt !== undefined
       ? { estimatedCompletionAt: input.estimatedCompletionAt }
@@ -1634,7 +1638,7 @@ function buildCreatePaymentData(
     amount: input.amount,
     paymentMethod: input.paymentMethod ?? null,
     paidAt: input.paidAt,
-    notes: normalizeOptionalString(input.notes),
+    notes: normalizeOptionalNoteJson(input.notes) ?? null,
     updatedAt: new Date(),
   };
 }
@@ -1656,7 +1660,7 @@ function buildActualCostCreateData(
     ),
     paymentMethod: input.paymentMethod ?? null,
     incurredAt: input.incurredAt,
-    notes: normalizeOptionalString(input.notes),
+    notes: normalizeOptionalNoteJson(input.notes) ?? null,
     updatedAt: new Date(),
   };
 }
@@ -1680,7 +1684,7 @@ function buildEstimateCreatePayload(
     recommendedMinimumPrice: input.recommendedMinimumPrice ?? null,
     recommendedPrice: input.recommendedPrice ?? null,
     recommendedHighPrice: input.recommendedHighPrice ?? null,
-    notes: normalizeOptionalString(input.notes),
+    notes: normalizeOptionalNoteJson(input.notes) ?? null,
     updatedAt: new Date(),
   };
 }
@@ -1715,7 +1719,7 @@ function buildEstimateLineCreateManyData(
     quantity: line.quantity ?? 1,
     unitCost: line.unitCost ?? null,
     unitPrice: line.unitPrice ?? null,
-    notes: normalizeOptionalString(line.notes),
+    notes: normalizeOptionalNoteJson(line.notes) ?? null,
     updatedAt: new Date(),
   }));
 }
@@ -1752,7 +1756,7 @@ function buildActualCostUpdateData(input: UpdateWorkOrderActualCostDto) {
       : {}),
     ...(input.incurredAt !== undefined ? { incurredAt: input.incurredAt } : {}),
     ...(input.notes !== undefined
-      ? { notes: normalizeOptionalString(input.notes) }
+      ? { notes: normalizeOptionalNoteJson(input.notes) }
       : {}),
     updatedAt: new Date(),
   };
@@ -1766,7 +1770,7 @@ function buildUpdatePaymentData(input: UpdateWorkOrderPaymentDto) {
       : {}),
     ...(input.paidAt !== undefined ? { paidAt: input.paidAt } : {}),
     ...(input.notes !== undefined
-      ? { notes: normalizeOptionalString(input.notes) }
+      ? { notes: normalizeOptionalNoteJson(input.notes) }
       : {}),
     updatedAt: new Date(),
   };
@@ -1778,7 +1782,7 @@ function buildCreatedPaymentSummary(input: CreateWorkOrderPaymentDto) {
     amount: input.amount,
     paymentMethod: input.paymentMethod ?? null,
     paidAt: input.paidAt,
-    notes: normalizeOptionalString(input.notes),
+    notes: normalizeOptionalNoteJson(input.notes) ?? null,
   };
 }
 
@@ -1795,7 +1799,7 @@ function buildUpdatedPaymentSummary(
     paidAt: input.paidAt ?? payment.paidAt,
     notes:
       input.notes !== undefined
-        ? normalizeOptionalString(input.notes)
+        ? normalizeOptionalNoteJson(input.notes)
         : payment.notes,
   };
 }
@@ -1854,7 +1858,7 @@ function mapWorkOrderRecord(record: WorkOrderRecord): WorkOrderDetail {
     assignedEmployeeId: record.assignedEmployeeId,
     summary: record.summary,
     externalLink: record.externalLink,
-    notes: normalizeJsonString(record.notes),
+    notes: record.notes as LexicalNoteJson | null,
     estimatedCompletionAt: record.estimatedCompletionAt,
     estimatedCollectionAt: record.estimatedCollectionAt,
     completedAt: record.completedAt,
@@ -2059,14 +2063,6 @@ function normalizeOptionalString(value?: string | null) {
   const normalized = value?.trim();
 
   return normalized ? normalized : null;
-}
-
-function normalizeJsonString(value: Prisma.JsonValue | null) {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  return value === null ? null : JSON.stringify(value);
 }
 
 function normalizeDecimalNumber(value: DecimalValue) {

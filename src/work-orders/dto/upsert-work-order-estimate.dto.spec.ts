@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { EstimateLineType } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { UpsertWorkOrderEstimateDto } from './upsert-work-order-estimate.dto';
 
 describe('upsert work-order estimate DTO contracts', () => {
@@ -14,7 +15,7 @@ describe('upsert work-order estimate DTO contracts', () => {
       recommendedPrice: '220000',
       recommendedHighPrice: '250000',
       totalPriceAmount: '220000',
-      notes: ' Estimación inicial ',
+      notes: LEXICAL_NOTE_EXAMPLE,
       lines: [
         {
           lineType: EstimateLineType.PART,
@@ -34,7 +35,7 @@ describe('upsert work-order estimate DTO contracts', () => {
     expect(dto.recommendedMinimumPrice).toBe(180000);
     expect(dto.recommendedPrice).toBe(220000);
     expect(dto.recommendedHighPrice).toBe(250000);
-    expect(dto.notes).toBe('Estimación inicial');
+    expect(dto.notes).toEqual(LEXICAL_NOTE_EXAMPLE);
     expect(dto.lines?.[0]).toMatchObject({
       description: 'Rodamiento delantero',
       inventoryItemId: 'inventory-1',

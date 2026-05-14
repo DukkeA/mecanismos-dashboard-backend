@@ -7,6 +7,10 @@ import type {
   SupplierPhone,
   SupplierType,
 } from '../../../generated/prisma/client';
+import {
+  LexicalNoteJson,
+  normalizeOptionalNoteJson,
+} from '../../common/rich-text/lexical-note';
 
 export const SUPPLIERS_PRISMA_CLIENT = Symbol('SUPPLIERS_PRISMA_CLIENT');
 
@@ -26,7 +30,7 @@ export type SupplierPhoneRecordInput = {
   phone: string;
   isPrimary: boolean;
   hasWhatsapp?: boolean;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
 };
 
 export type CreateSupplierRecordInput = {
@@ -36,7 +40,7 @@ export type CreateSupplierRecordInput = {
   documentType?: SupplierDocumentType;
   documentNumber?: string;
   email?: string;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
   isActive?: boolean;
   phones: SupplierPhoneRecordInput[];
 };
@@ -135,7 +139,7 @@ export class SuppliersRepository {
           documentType: input.documentType ?? null,
           documentNumber: normalizeOptionalString(input.documentNumber),
           email: normalizeOptionalEmail(input.email),
-          notes: normalizeOptionalString(input.notes),
+          notes: normalizeOptionalNoteJson(input.notes) ?? null,
           isActive: input.isActive ?? true,
           updatedAt: now,
           phones: {
@@ -226,7 +230,7 @@ export class SuppliersRepository {
             ? { email: normalizeOptionalEmail(input.email) }
             : {}),
           ...(input.notes !== undefined
-            ? { notes: normalizeOptionalString(input.notes) }
+            ? { notes: normalizeOptionalNoteJson(input.notes) }
             : {}),
           ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
           updatedAt: now,
@@ -289,7 +293,7 @@ function buildPhoneCreateData(phones: SupplierPhoneRecordInput[], now: Date) {
     phone: phone.phone.trim(),
     isPrimary: phone.isPrimary,
     hasWhatsapp: phone.hasWhatsapp ?? false,
-    notes: normalizeOptionalString(phone.notes),
+    notes: normalizeOptionalNoteJson(phone.notes) ?? null,
     updatedAt: now,
   }));
 }
@@ -306,7 +310,7 @@ function buildPhoneCreateManyData(
     phone: phone.phone.trim(),
     isPrimary: phone.isPrimary,
     hasWhatsapp: phone.hasWhatsapp ?? false,
-    notes: normalizeOptionalString(phone.notes),
+    notes: normalizeOptionalNoteJson(phone.notes) ?? null,
     updatedAt: now,
   }));
 }

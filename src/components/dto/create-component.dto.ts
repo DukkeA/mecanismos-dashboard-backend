@@ -5,6 +5,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 function OptionalVehicleId() {
   return Transform(({ value }: { value: unknown }) => {
@@ -59,9 +63,6 @@ export class CreateComponentDto {
   @IsString()
   identifier?: string;
 
-  @ApiPropertyOptional({ example: '<p>Alternador reemplazado</p>' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

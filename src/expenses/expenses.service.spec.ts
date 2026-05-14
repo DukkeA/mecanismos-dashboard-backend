@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { ExpenseCategory, PaymentMethod } from '../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../common/rich-text/lexical-note';
 import { ExpensesService } from './expenses.service';
 import { ExpensesRepository } from './persistence/expenses.repository';
 import type { ExpenseRecord } from './persistence/expenses.repository';
@@ -22,7 +23,7 @@ describe('ExpensesService', () => {
     expectedAt: new Date('2026-05-15T00:00:00.000Z'),
     paidAt: null,
     paymentMethod: null,
-    notes: 'Pago oficina principal',
+    notes: LEXICAL_NOTE_EXAMPLE,
     costCenterId: 'cost-center-1',
     createdAt: new Date('2026-05-10T10:00:00.000Z'),
     updatedAt: new Date('2026-05-10T10:00:00.000Z'),
@@ -62,7 +63,7 @@ describe('ExpensesService', () => {
         amount: 1500000,
         expectedAt: new Date('2026-05-15T00:00:00.000Z'),
         costCenterId: '  cost-center-1  ',
-        notes: '  Pago oficina principal  ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toEqual(unpaidExpenseRecord);
 
@@ -75,7 +76,7 @@ describe('ExpensesService', () => {
         costCenterId: 'cost-center-1',
         paidAt: undefined,
         paymentMethod: null,
-        notes: 'Pago oficina principal',
+        notes: LEXICAL_NOTE_EXAMPLE,
       },
     ]);
   });
@@ -140,20 +141,20 @@ describe('ExpensesService', () => {
       ...paidExpenseRecord,
       paidAt: null,
       paymentMethod: null,
-      notes: 'Reprogramado',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
 
     await expect(
       service.update('expense-2', {
         paidAt: null,
         paymentMethod: null,
-        notes: '  Reprogramado  ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toMatchObject({
       id: 'expense-2',
       paidAt: null,
       paymentMethod: null,
-      notes: 'Reprogramado',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
 
     expect(repository.update.mock.calls[0]).toEqual([
@@ -161,7 +162,7 @@ describe('ExpensesService', () => {
       {
         paidAt: null,
         paymentMethod: null,
-        notes: 'Reprogramado',
+        notes: LEXICAL_NOTE_EXAMPLE,
       },
     ]);
   });

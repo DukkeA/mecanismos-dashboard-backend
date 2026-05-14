@@ -9,9 +9,12 @@ import {
 import { CustomerDocumentType } from '../../../generated/prisma/enums';
 import {
   LowercaseEmail,
-  OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const customerDocumentTypes = Object.values(CustomerDocumentType);
 
@@ -44,9 +47,6 @@ export class CreateCustomerDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ example: '<p>Cliente frecuente</p>' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

@@ -20,6 +20,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 import { SupplierPhoneDto } from './supplier-phone.dto';
 
 const supplierTypes = Object.values(SupplierType);
@@ -59,11 +63,8 @@ export class CreateSupplierDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ example: '<p>Proveedor preferido</p>' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 
   @ApiPropertyOptional({ example: true, default: true })
   @IsOptional()

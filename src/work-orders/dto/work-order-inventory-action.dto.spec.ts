@@ -4,6 +4,7 @@ import {
   InventoryMovementReason,
   PaymentMethod,
 } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import {
   ConsumeWorkOrderInventoryDto,
   ReleaseWorkOrderInventoryDto,
@@ -20,7 +21,7 @@ describe('work-order inventory action DTO contracts', () => {
       reason: InventoryMovementReason.WORK_ORDER_CONSUMPTION,
       supplierId: ' supplier-1 ',
       supplierQuoteHistoryId: ' quote-1 ',
-      notes: ' consumo final ',
+      notes: LEXICAL_NOTE_EXAMPLE,
       unitCost: 180000,
       actualCostAmount: 360000,
       actualCostDescription: ' consumo inventario ',
@@ -37,7 +38,7 @@ describe('work-order inventory action DTO contracts', () => {
     expect(consumeDto.inventoryItemId).toBe('inventory-1');
     expect(consumeDto.supplierId).toBe('supplier-1');
     expect(consumeDto.supplierQuoteHistoryId).toBe('quote-1');
-    expect(consumeDto.notes).toBe('consumo final');
+    expect(consumeDto.notes).toEqual(LEXICAL_NOTE_EXAMPLE);
     expect(consumeDto.actualCostDescription).toBe('consumo inventario');
     expect(sellDto.actualCostDescription).toBe('venta mostrador');
 

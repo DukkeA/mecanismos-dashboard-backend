@@ -12,6 +12,10 @@ import {
   sortQuotesChronologically,
 } from '../quote.helpers';
 import type { ListSupplierQuotesQueryDto } from '../dto/list-supplier-quotes-query.dto';
+import {
+  LexicalNoteJson,
+  normalizeOptionalNoteJson,
+} from '../../common/rich-text/lexical-note';
 
 export const PROCUREMENT_PRISMA_CLIENT = Symbol('PROCUREMENT_PRISMA_CLIENT');
 
@@ -27,7 +31,8 @@ export class InventoryQuoteItemNotFoundError extends Error {
   }
 }
 
-type QuoteRecord = SupplierQuoteHistory & {
+type QuoteRecord = Omit<SupplierQuoteHistory, 'notes'> & {
+  notes: LexicalNoteJson | null;
   supplier: Pick<Supplier, 'id' | 'name' | 'contactName'>;
   inventoryItem: Pick<
     InventoryItem,
@@ -132,7 +137,7 @@ export class ProcurementRepository {
     inventoryItemId: string;
     quotedCost: number;
     quotedAt: Date;
-    notes?: string;
+    notes?: LexicalNoteJson | null;
   }) {
     const now = new Date();
 
@@ -144,7 +149,7 @@ export class ProcurementRepository {
           inventoryItemId: input.inventoryItemId,
           quotedCost: input.quotedCost,
           quotedAt: input.quotedAt,
-          notes: normalizeOptionalString(input.notes),
+          notes: normalizeOptionalNoteJson(input.notes) ?? null,
           status: 'ACTIVE',
           updatedAt: now,
         },
@@ -167,7 +172,7 @@ export class ProcurementRepository {
     input: {
       quotedCost?: number;
       quotedAt?: Date;
-      notes?: string;
+      notes?: LexicalNoteJson | null;
       correctionReason: string;
     },
   ) {
@@ -180,7 +185,7 @@ export class ProcurementRepository {
             : {}),
           ...(input.quotedAt !== undefined ? { quotedAt: input.quotedAt } : {}),
           ...(input.notes !== undefined
-            ? { notes: normalizeOptionalString(input.notes) }
+            ? { notes: normalizeOptionalNoteJson(input.notes) }
             : {}),
           correctionReason: input.correctionReason.trim(),
           updatedAt: new Date(),
@@ -302,7 +307,6 @@ function buildSupplierQuoteWhere(input: {
                 identifier: { contains: search, mode: 'insensitive' },
               },
             },
-            { notes: { contains: search, mode: 'insensitive' } },
           ],
         }
       : {}),
@@ -318,7 +322,8 @@ function mapQuoteRecord(record: PrismaQuoteRecord): QuoteRecord {
   const { Supplier, InventoryItem, ...quote } = record;
 
   return {
-    ...quote,
+      ...(quote as Omit<typeof quote, 'notes'>),
+      notes: quote.notes as LexicalNoteJson | null,
     supplier: Supplier,
     inventoryItem: InventoryItem,
   };

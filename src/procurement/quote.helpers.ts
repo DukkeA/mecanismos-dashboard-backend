@@ -1,4 +1,5 @@
 import type { SupplierQuoteStatus } from '../../generated/prisma/enums';
+import type { LexicalNoteJson } from '../common/rich-text/lexical-note';
 
 export type QuoteTimelineRow = {
   id: string;
@@ -7,7 +8,7 @@ export type QuoteTimelineRow = {
   quotedCost: number;
   quotedAt: Date;
   status: SupplierQuoteStatus;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   correctionReason: string | null;
   voidReason: string | null;
   voidedAt: Date | null;

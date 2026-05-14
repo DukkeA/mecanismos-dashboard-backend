@@ -1,3 +1,4 @@
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { ComponentsRepository } from './components.repository';
 
 describe('ComponentsRepository', () => {
@@ -9,7 +10,7 @@ describe('ComponentsRepository', () => {
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: 'SER-100',
-      notes: '<p>Alternador reemplazado</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
       createdAt: new Date('2026-05-05T12:00:00.000Z'),
       updatedAt: new Date('2026-05-05T12:00:00.000Z'),
     };
@@ -22,7 +23,7 @@ describe('ComponentsRepository', () => {
         brand: string;
         reference: string;
         identifier: string;
-        notes: string;
+        notes: typeof LEXICAL_NOTE_EXAMPLE;
         updatedAt: Date;
       };
     };
@@ -49,7 +50,7 @@ describe('ComponentsRepository', () => {
         brand: ' Bosch ',
         reference: ' ALT-90A ',
         identifier: ' SER-100 ',
-        notes: ' <p>Alternador reemplazado</p> ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toEqual(createdComponent);
 
@@ -61,9 +62,7 @@ describe('ComponentsRepository', () => {
     expect(receivedCreateArgs?.data.brand).toBe('Bosch');
     expect(receivedCreateArgs?.data.reference).toBe('ALT-90A');
     expect(receivedCreateArgs?.data.identifier).toBe('SER-100');
-    expect(receivedCreateArgs?.data.notes).toBe(
-      '<p>Alternador reemplazado</p>',
-    );
+    expect(receivedCreateArgs?.data.notes).toBe(LEXICAL_NOTE_EXAMPLE);
     expect(receivedCreateArgs?.data.updatedAt).toEqual(expect.any(Date));
   });
 

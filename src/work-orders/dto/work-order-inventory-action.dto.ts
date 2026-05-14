@@ -16,6 +16,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const reserveReasons = [InventoryMovementReason.WORK_ORDER_PURCHASE] as const;
 const releaseReasons = [InventoryMovementReason.RETURN] as const;
@@ -54,13 +58,8 @@ class BaseWorkOrderInventoryDto {
   @IsString()
   supplierQuoteHistoryId?: string;
 
-  @ApiPropertyOptional({
-    example: 'Movimiento creado desde la orden de trabajo',
-  })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }
 
 class CostAwareWorkOrderInventoryDto extends BaseWorkOrderInventoryDto {

@@ -5,6 +5,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 export class SupplierPhoneDto {
   @ApiPropertyOptional({ example: 'Principal' })
@@ -29,9 +33,6 @@ export class SupplierPhoneDto {
   @IsBoolean()
   hasWhatsapp?: boolean;
 
-  @ApiPropertyOptional({ example: 'Disponible en horario laboral' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

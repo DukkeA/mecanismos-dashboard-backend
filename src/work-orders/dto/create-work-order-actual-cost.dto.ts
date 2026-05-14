@@ -17,6 +17,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const workOrderCostCategories = Object.values(WorkOrderCostCategory);
 const paymentMethods = Object.values(PaymentMethod);
@@ -69,9 +73,6 @@ export class CreateWorkOrderActualCostDto {
   @IsString()
   supplierQuoteHistoryId?: string;
 
-  @ApiPropertyOptional({ example: 'Compra urgente' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

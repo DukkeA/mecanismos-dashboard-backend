@@ -21,6 +21,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const expenseCategories = Object.values(ExpenseCategory);
 const paymentMethods = Object.values(PaymentMethod);
@@ -87,9 +91,6 @@ export class CreateExpenseDto {
   @IsIn(paymentMethods)
   paymentMethod?: PaymentMethod;
 
-  @ApiPropertyOptional({ example: 'Pago oficina principal' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

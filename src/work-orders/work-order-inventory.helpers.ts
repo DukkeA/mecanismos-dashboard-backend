@@ -1,3 +1,5 @@
+import type { LexicalNoteJson } from '../common/rich-text/lexical-note';
+
 type InventoryActivityMovement = {
   id: string;
   inventoryItemId: string;
@@ -9,7 +11,7 @@ type InventoryActivityMovement = {
   workOrderId: string | null;
   isReservedForWorkOrder: boolean;
   occurredAt: Date;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   createdAt?: Date;
   InventoryItem?: {
     id: string;
@@ -149,7 +151,7 @@ export function buildWorkOrderInventoryActivity(
         workOrderId: string | null;
         isReservedForWorkOrder: boolean;
         occurredAt: Date;
-        notes: string | null;
+        notes: LexicalNoteJson | null;
         actualCostId: string | null;
       }>;
     }

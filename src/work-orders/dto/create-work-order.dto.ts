@@ -10,6 +10,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const workOrderTypes = Object.values(WorkOrderType);
 const workOrderStatuses = Object.values(WorkOrderStatus);
@@ -92,11 +96,8 @@ export class CreateWorkOrderDto {
   @IsString()
   externalLink?: string;
 
-  @ApiPropertyOptional({ example: 'Nota operativa' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 
   @ApiPropertyOptional({ example: '2026-05-30T18:00:00.000Z' })
   @IsOptional()

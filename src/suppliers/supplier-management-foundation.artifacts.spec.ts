@@ -26,7 +26,7 @@ describe('supplier management foundation artifacts', () => {
       'documentType          SupplierDocumentType?',
     );
     expect(supplierBlock).toContain('documentNumber        String?');
-    expect(supplierBlock).toContain('notes                 String?');
+    expect(supplierBlock).toContain('notes                 Json?');
     expect(supplierBlock).toContain('phones                SupplierPhone[]');
     expect(supplierBlock).not.toContain('@unique');
     expect(supplierBlock).not.toContain('phone                 String?');
@@ -36,7 +36,7 @@ describe('supplier management foundation artifacts', () => {
     expect(supplierPhoneBlock).toContain('label       String?');
     expect(supplierPhoneBlock).toContain('isPrimary   Boolean');
     expect(supplierPhoneBlock).toContain('hasWhatsapp Boolean');
-    expect(supplierPhoneBlock).toContain('notes       String?');
+    expect(supplierPhoneBlock).toContain('notes       Json?');
   });
 
   it('ships a supplier reshape migration that backfills legacy phone data before dropping the old column', () => {

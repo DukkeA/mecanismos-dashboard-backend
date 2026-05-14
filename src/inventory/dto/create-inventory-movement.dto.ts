@@ -13,6 +13,10 @@ import {
   InventoryMovementType,
 } from '../../../generated/prisma/enums';
 import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const inventoryMovementTypes = Object.values(InventoryMovementType).filter(
   (movementType) => movementType !== 'ADJUSTMENT',
@@ -52,9 +56,6 @@ export class CreateInventoryMovementDto {
   @IsDate()
   occurredAt!: Date;
 
-  @ApiPropertyOptional({ example: 'Ingreso por compra urgente' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

@@ -16,6 +16,10 @@ import {
   calculateCurrentStockMap,
   type MovementAggregate,
 } from '../stock.helpers';
+import {
+  LexicalNoteJson,
+  normalizeOptionalNoteJson,
+} from '../../common/rich-text/lexical-note';
 
 export const INVENTORY_PRISMA_CLIENT = Symbol('INVENTORY_PRISMA_CLIENT');
 
@@ -34,7 +38,7 @@ export type CreateInventoryItemRecordInput = {
   brand?: string;
   reference?: string;
   identifier?: string;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
   minimumStock?: number;
   defaultSalePrice?: number;
   isActive?: boolean;
@@ -65,7 +69,7 @@ export type CreateInventoryMovementRecordInput = {
   unitCost?: number;
   supplierId?: string;
   occurredAt: Date;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
 };
 
 export class InventoryItemNotFoundError extends Error {
@@ -166,7 +170,7 @@ export class InventoryRepository {
         brand: normalizeOptionalString(input.brand),
         reference: normalizeOptionalString(input.reference),
         identifier: normalizeOptionalString(input.identifier),
-        notes: normalizeOptionalString(input.notes),
+        notes: normalizeOptionalNoteJson(input.notes) ?? null,
         minimumStock: input.minimumStock ?? 0,
         defaultSalePrice: input.defaultSalePrice ?? null,
         isActive: input.isActive ?? true,
@@ -300,7 +304,7 @@ export class InventoryRepository {
               unitCost: input.unitCost ?? null,
               supplierId: input.supplierId ?? null,
               occurredAt: input.occurredAt,
-              notes: normalizeOptionalString(input.notes),
+              notes: normalizeOptionalNoteJson(input.notes) ?? null,
             },
           });
 

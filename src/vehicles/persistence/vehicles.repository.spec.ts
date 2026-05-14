@@ -1,3 +1,4 @@
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { VehiclesRepository } from './vehicles.repository';
 
 describe('VehiclesRepository', () => {
@@ -8,7 +9,7 @@ describe('VehiclesRepository', () => {
       brand: 'Mazda',
       modelReference: 'CX5',
       plate: 'ABC123',
-      notes: '<p>Blindaje nivel 1</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
       createdAt: new Date('2026-05-05T12:00:00.000Z'),
       updatedAt: new Date('2026-05-05T12:00:00.000Z'),
     };
@@ -19,7 +20,7 @@ describe('VehiclesRepository', () => {
         brand: string;
         modelReference: string;
         plate: string;
-        notes: string;
+        notes: typeof LEXICAL_NOTE_EXAMPLE;
         updatedAt: Date;
       };
     };
@@ -44,7 +45,7 @@ describe('VehiclesRepository', () => {
         brand: ' Mazda ',
         modelReference: ' CX5 ',
         plate: ' abc123 ',
-        notes: ' <p>Blindaje nivel 1</p> ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toEqual(createdVehicle);
 
@@ -54,7 +55,7 @@ describe('VehiclesRepository', () => {
     expect(receivedCreateArgs?.data.brand).toBe('Mazda');
     expect(receivedCreateArgs?.data.modelReference).toBe('CX5');
     expect(receivedCreateArgs?.data.plate).toBe('ABC123');
-    expect(receivedCreateArgs?.data.notes).toBe('<p>Blindaje nivel 1</p>');
+    expect(receivedCreateArgs?.data.notes).toBe(LEXICAL_NOTE_EXAMPLE);
     expect(receivedCreateArgs?.data.updatedAt).toEqual(expect.any(Date));
   });
 

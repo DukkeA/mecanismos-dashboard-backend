@@ -96,7 +96,7 @@ function mapCreateExpenseInput(createExpenseDto: CreateExpenseDto) {
     paymentMethod: createExpenseDto.paidAt
       ? (createExpenseDto.paymentMethod ?? null)
       : null,
-    notes: normalizeOptionalString(createExpenseDto.notes),
+    notes: createExpenseDto.notes ?? null,
   };
 }
 
@@ -128,7 +128,7 @@ function mapUpdateExpenseInput(updateExpenseDto: UpdateExpenseInput) {
         ? { paymentMethod: updateExpenseDto.paymentMethod }
         : {}),
     ...(updateExpenseDto.notes !== undefined
-      ? { notes: normalizeOptionalString(updateExpenseDto.notes) }
+      ? { notes: updateExpenseDto.notes }
       : {}),
   };
 }

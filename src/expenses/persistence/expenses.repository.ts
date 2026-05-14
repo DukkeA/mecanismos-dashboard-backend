@@ -7,6 +7,10 @@ import type {
   PaymentMethod,
   Prisma,
 } from '../../../generated/prisma/client';
+import {
+  LexicalNoteJson,
+  normalizeOptionalNoteJson,
+} from '../../common/rich-text/lexical-note';
 
 export const EXPENSES_PRISMA_CLIENT = Symbol('EXPENSES_PRISMA_CLIENT');
 
@@ -22,7 +26,7 @@ export type CreateExpenseRecordInput = {
   costCenterId?: string | null;
   paidAt?: Date | null;
   paymentMethod?: PaymentMethod | null;
-  notes?: string | null;
+  notes?: LexicalNoteJson | null;
 };
 
 export type UpdateExpenseRecordInput = Partial<CreateExpenseRecordInput>;
@@ -90,7 +94,7 @@ export class ExpensesRepository {
         expectedAt: input.expectedAt,
         paidAt: input.paidAt ?? null,
         paymentMethod: input.paymentMethod ?? null,
-        notes: normalizeOptionalString(input.notes),
+        notes: normalizeOptionalNoteJson(input.notes) ?? null,
         ...connectCostCenter(input.costCenterId),
         updatedAt: now,
       },
@@ -144,7 +148,7 @@ export class ExpensesRepository {
           ? { paymentMethod: input.paymentMethod }
           : {}),
         ...(input.notes !== undefined
-          ? { notes: normalizeOptionalString(input.notes) }
+          ? { notes: normalizeOptionalNoteJson(input.notes) }
           : {}),
         ...(input.costCenterId !== undefined
           ? connectCostCenter(input.costCenterId)
@@ -174,7 +178,6 @@ function buildExpenseWhere(query: ListExpensesQuery): ExpenseWhereInput {
       ? {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
-            { notes: { contains: search, mode: 'insensitive' } },
           ],
         }
       : {}),

@@ -10,7 +10,7 @@ describe('customer assets foundation artifacts', () => {
     const schema = fs.readFileSync(prismaSchemaPath, 'utf8');
 
     expect(schema).toContain('model Customer');
-    expect(schema).toContain('notes          String?');
+    expect(schema).toContain('notes          Json?');
   });
 
   it('ships a customer-notes migration that alters the Customer table', () => {

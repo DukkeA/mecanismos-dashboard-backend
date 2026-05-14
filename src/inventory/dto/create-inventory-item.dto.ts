@@ -17,6 +17,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const inventoryItemTypes = Object.values(InventoryItemType);
 const inventoryConditions = Object.values(InventoryCondition);
@@ -55,11 +59,8 @@ export class CreateInventoryItemDto {
   @IsString()
   identifier?: string;
 
-  @ApiPropertyOptional({ example: '<p>Línea de uso frecuente</p>' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 
   @ApiPropertyOptional({ example: 2, default: 0 })
   @IsOptional()

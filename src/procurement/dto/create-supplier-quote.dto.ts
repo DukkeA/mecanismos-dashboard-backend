@@ -1,10 +1,14 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsDate, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 export class CreateSupplierQuoteDto {
   @ApiProperty({ example: 'seed-supplier-repuestos-central-main' })
@@ -28,9 +32,6 @@ export class CreateSupplierQuoteDto {
   @IsDate()
   quotedAt!: Date;
 
-  @ApiPropertyOptional({ example: 'Valor con entrega en 24 horas' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

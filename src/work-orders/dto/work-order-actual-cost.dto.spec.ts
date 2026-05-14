@@ -4,6 +4,7 @@ import {
   PaymentMethod,
   WorkOrderCostCategory,
 } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { CreateWorkOrderActualCostDto } from './create-work-order-actual-cost.dto';
 import { UpdateWorkOrderActualCostDto } from './update-work-order-actual-cost.dto';
 
@@ -18,14 +19,14 @@ describe('work-order actual cost DTO contracts', () => {
       supplierId: ' supplier-1 ',
       inventoryItemId: ' inventory-1 ',
       supplierQuoteHistoryId: ' quote-1 ',
-      notes: ' Compra urgente ',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
 
     expect(dto.description).toBe('Rodamiento SKF');
     expect(dto.supplierId).toBe('supplier-1');
     expect(dto.inventoryItemId).toBe('inventory-1');
     expect(dto.supplierQuoteHistoryId).toBe('quote-1');
-    expect(dto.notes).toBe('Compra urgente');
+    expect(dto.notes).toEqual(LEXICAL_NOTE_EXAMPLE);
     await expect(validate(dto)).resolves.toHaveLength(0);
   });
 
@@ -37,7 +38,7 @@ describe('work-order actual cost DTO contracts', () => {
       incurredAt: '2026-05-10T18:00:00.000Z',
     });
     const validUpdateDto = plainToInstance(UpdateWorkOrderActualCostDto, {
-      notes: ' Ajuste manual ',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
 
     const errors = await validate(invalidCreateDto);
@@ -45,7 +46,7 @@ describe('work-order actual cost DTO contracts', () => {
     expect(errors.map((error) => error.property)).toEqual(
       expect.arrayContaining(['supplierId']),
     );
-    expect(validUpdateDto.notes).toBe('Ajuste manual');
+    expect(validUpdateDto.notes).toEqual(LEXICAL_NOTE_EXAMPLE);
     await expect(validate(validUpdateDto)).resolves.toHaveLength(0);
   });
 });

@@ -2,6 +2,7 @@ import {
   ExpenseCategory,
   PaymentMethod,
 } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { ExpensesRepository } from './expenses.repository';
 
 describe('ExpensesRepository', () => {
@@ -15,7 +16,7 @@ describe('ExpensesRepository', () => {
       expectedAt: new Date('2026-05-15T00:00:00.000Z'),
       paidAt: new Date('2026-05-16T00:00:00.000Z'),
       paymentMethod: PaymentMethod.TRANSFER,
-      notes: 'Pago oficina',
+      notes: LEXICAL_NOTE_EXAMPLE,
       createdAt: new Date('2026-05-09T12:00:00.000Z'),
       updatedAt: new Date('2026-05-09T12:00:00.000Z'),
       CostCenter: {
@@ -34,7 +35,7 @@ describe('ExpensesRepository', () => {
         expectedAt: Date;
         paidAt: Date | null;
         paymentMethod: PaymentMethod | null;
-        notes: string | null;
+        notes: typeof LEXICAL_NOTE_EXAMPLE | null;
         CostCenter: { connect: { id: string } };
         updatedAt: Date;
       };
@@ -64,13 +65,13 @@ describe('ExpensesRepository', () => {
         paidAt: new Date('2026-05-16T00:00:00.000Z'),
         paymentMethod: PaymentMethod.TRANSFER,
         costCenterId: ' cost-center-1 ',
-        notes: ' Pago oficina ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toEqual(createdExpense);
 
     expect(receivedCreateArgs?.data.id).toEqual(expect.any(String));
     expect(receivedCreateArgs?.data.name).toBe('Arriendo mayo');
-    expect(receivedCreateArgs?.data.notes).toBe('Pago oficina');
+    expect(receivedCreateArgs?.data.notes).toBe(LEXICAL_NOTE_EXAMPLE);
     expect(receivedCreateArgs?.data.CostCenter).toEqual({
       connect: { id: 'cost-center-1' },
     });
@@ -133,10 +134,7 @@ describe('ExpensesRepository', () => {
           gte: new Date('2026-05-01T00:00:00.000Z'),
           lte: new Date('2026-05-31T23:59:59.000Z'),
         },
-        OR: [
-          { name: { contains: 'oficina', mode: 'insensitive' } },
-          { notes: { contains: 'oficina', mode: 'insensitive' } },
-        ],
+        OR: [{ name: { contains: 'oficina', mode: 'insensitive' } }],
       },
       include: { CostCenter: true },
       orderBy: { expectedAt: 'desc' },
@@ -156,10 +154,7 @@ describe('ExpensesRepository', () => {
           gte: new Date('2026-05-01T00:00:00.000Z'),
           lte: new Date('2026-05-31T23:59:59.000Z'),
         },
-        OR: [
-          { name: { contains: 'oficina', mode: 'insensitive' } },
-          { notes: { contains: 'oficina', mode: 'insensitive' } },
-        ],
+        OR: [{ name: { contains: 'oficina', mode: 'insensitive' } }],
       },
     });
   });
@@ -238,7 +233,7 @@ describe('ExpensesRepository', () => {
       paidAt: new Date('2026-05-12T12:00:00.000Z'),
       paymentMethod: PaymentMethod.CARD,
       costCenterId: '',
-      notes: '  Caja menor  ',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
 
     expect(receivedUpdateArgs?.where).toEqual({ id: 'expense-1' });
@@ -246,7 +241,7 @@ describe('ExpensesRepository', () => {
       name: 'Almuerzo equipo',
       paidAt: new Date('2026-05-12T12:00:00.000Z'),
       paymentMethod: PaymentMethod.CARD,
-      notes: 'Caja menor',
+      notes: LEXICAL_NOTE_EXAMPLE,
       CostCenter: { disconnect: true },
     });
     expect(receivedUpdateArgs?.data.updatedAt).toEqual(expect.any(Date));

@@ -2,6 +2,7 @@ import {
   SupplierDocumentType,
   SupplierType,
 } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { SuppliersRepository } from './suppliers.repository';
 
 describe('SuppliersRepository', () => {
@@ -13,7 +14,7 @@ describe('SuppliersRepository', () => {
     documentType: SupplierDocumentType.NIT,
     documentNumber: '900123456',
     email: 'compras@repuestos.test',
-    notes: '<p>Proveedor preferido</p>',
+    notes: LEXICAL_NOTE_EXAMPLE,
     isActive: true,
     createdAt: new Date('2026-05-05T12:00:00.000Z'),
     updatedAt: new Date('2026-05-05T12:00:00.000Z'),
@@ -70,7 +71,7 @@ describe('SuppliersRepository', () => {
         documentType: SupplierDocumentType.NIT,
         documentNumber: ' 900123456 ',
         email: ' COMPRAS@REPUESTOS.TEST ',
-        notes: ' <p>Proveedor preferido</p> ',
+        notes: LEXICAL_NOTE_EXAMPLE,
         isActive: true,
         phones: [
           {
@@ -78,7 +79,7 @@ describe('SuppliersRepository', () => {
             phone: ' 3001234567 ',
             isPrimary: true,
             hasWhatsapp: true,
-            notes: ' ',
+            notes: null,
           },
         ],
       }),
@@ -92,7 +93,7 @@ describe('SuppliersRepository', () => {
       documentType: SupplierDocumentType.NIT,
       documentNumber: '900123456',
       email: 'compras@repuestos.test',
-      notes: '<p>Proveedor preferido</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
       isActive: true,
     });
     expect(receivedCreateArgs?.data.id).toEqual(expect.any(String));
@@ -329,7 +330,7 @@ describe('SuppliersRepository', () => {
             phone: ' 3107776666 ',
             isPrimary: false,
             hasWhatsapp: false,
-            notes: ' Solo horario laboral ',
+            notes: LEXICAL_NOTE_EXAMPLE,
           },
         ],
       }),
@@ -359,7 +360,7 @@ describe('SuppliersRepository', () => {
         phone: '3107776666',
         isPrimary: false,
         hasWhatsapp: false,
-        notes: 'Solo horario laboral',
+          notes: LEXICAL_NOTE_EXAMPLE,
       },
     ]);
     expect(receivedCreateManyArgs?.data[0]?.id).toEqual(expect.any(String));

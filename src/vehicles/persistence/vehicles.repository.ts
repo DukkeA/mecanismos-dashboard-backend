@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import type { Prisma, Vehicle } from '../../../generated/prisma/client';
+import {
+  LexicalNoteJson,
+  normalizeOptionalNoteJson,
+} from '../../common/rich-text/lexical-note';
 
 export const VEHICLES_PRISMA_CLIENT = Symbol('VEHICLES_PRISMA_CLIENT');
 
@@ -16,7 +20,7 @@ export type CreateVehicleRecordInput = {
   brand: string;
   modelReference: string;
   plate: string;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
 };
 
 export type UpdateVehicleRecordInput = Partial<
@@ -86,7 +90,7 @@ export class VehiclesRepository {
           brand: input.brand.trim(),
           modelReference: input.modelReference.trim(),
           plate: normalizePlate(input.plate),
-          notes: normalizeOptionalString(input.notes),
+          notes: normalizeOptionalNoteJson(input.notes) ?? null,
           updatedAt: now,
         },
       });
@@ -178,7 +182,7 @@ export class VehiclesRepository {
             ? { plate: normalizePlate(input.plate) }
             : {}),
           ...(input.notes !== undefined
-            ? { notes: normalizeOptionalString(input.notes) }
+            ? { notes: normalizeOptionalNoteJson(input.notes) }
             : {}),
           updatedAt: now,
         },

@@ -2,9 +2,12 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsDate, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import {
-  OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 export class UpdateSupplierQuoteDto {
   @ApiPropertyOptional({ example: 182000 })
@@ -25,9 +28,6 @@ export class UpdateSupplierQuoteDto {
   @IsString()
   correctionReason!: string;
 
-  @ApiPropertyOptional({ example: 'El proveedor confirmó IVA incluido' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

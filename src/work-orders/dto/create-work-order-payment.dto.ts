@@ -9,7 +9,10 @@ import {
   Min,
 } from 'class-validator';
 import { PaymentMethod } from '../../../generated/prisma/enums';
-import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const paymentMethods = Object.values(PaymentMethod);
 
@@ -30,9 +33,6 @@ export class CreateWorkOrderPaymentDto {
   @IsIn(paymentMethods)
   paymentMethod?: PaymentMethod;
 
-  @ApiPropertyOptional({ example: 'Anticipo inicial' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }

@@ -10,6 +10,7 @@ import {
   WorkOrderStatus,
   WorkOrderType,
 } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import {
   WorkOrderInventoryReservationConflictError,
   WorkOrdersRepository,
@@ -255,7 +256,7 @@ describe('WorkOrdersRepository', () => {
         customerId: ' customer-1 ',
         summary: ' Venta de repuesto ',
         externalLink: ' https://example.com/orders/1001 ',
-        notes: ' Cliente espera hoy ',
+      notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toMatchObject({
       id: 'wo-1',
@@ -270,7 +271,7 @@ describe('WorkOrdersRepository', () => {
       customerId: 'customer-1',
       summary: 'Venta de repuesto',
       externalLink: 'https://example.com/orders/1001',
-      notes: 'Cliente espera hoy',
+      notes: LEXICAL_NOTE_EXAMPLE,
       status: WorkOrderStatus.IN_PROGRESS,
       paymentStatus: PaymentStatus.PENDING,
       updatedAt: expect.any(Date),
@@ -1196,7 +1197,7 @@ describe('WorkOrdersRepository', () => {
         recommendedPrice: 220000,
         recommendedHighPrice: 260000,
         totalPriceAmount: 220000,
-        notes: ' Estimación inicial ',
+      notes: LEXICAL_NOTE_EXAMPLE,
         lines: [
           {
             lineType: EstimateLineType.PART,
@@ -1207,7 +1208,7 @@ describe('WorkOrdersRepository', () => {
             quantity: 2,
             unitCost: 60000,
             unitPrice: 95000,
-            notes: ' Incluye garantía ',
+            notes: LEXICAL_NOTE_EXAMPLE,
           },
         ],
       }),
@@ -1254,7 +1255,7 @@ describe('WorkOrdersRepository', () => {
         recommendedMinimumPrice: 180000,
         recommendedPrice: 220000,
         recommendedHighPrice: 260000,
-        notes: 'Estimación inicial',
+        notes: LEXICAL_NOTE_EXAMPLE,
       },
     });
     expect(receivedDeleteManyArgs).toEqual({
@@ -1272,7 +1273,7 @@ describe('WorkOrdersRepository', () => {
         quantity: 2,
         unitCost: 60000,
         unitPrice: 95000,
-        notes: 'Incluye garantía',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ]);
   });
@@ -1296,7 +1297,7 @@ describe('WorkOrdersRepository', () => {
             recommendedMinimumPrice: null,
             recommendedPrice: null,
             recommendedHighPrice: null,
-            notes: 'Cierre',
+            notes: LEXICAL_NOTE_EXAMPLE,
             createdAt: new Date('2026-05-10T20:00:00.000Z'),
             updatedAt: new Date('2026-05-10T20:05:00.000Z'),
             WorkOrderEstimateLine: [],
@@ -1323,7 +1324,7 @@ describe('WorkOrdersRepository', () => {
         baseCostAmount: 180000,
         totalCostAmount: 180000,
         totalPriceAmount: 260000,
-        notes: ' Cierre ',
+        notes: LEXICAL_NOTE_EXAMPLE,
         lines: [],
       }),
     ).resolves.toEqual(
@@ -1377,7 +1378,7 @@ describe('WorkOrdersRepository', () => {
       supplierQuoteHistoryId: 'quote-1',
       paymentMethod: PaymentMethod.TRANSFER,
       incurredAt: new Date('2026-05-10T18:00:00.000Z'),
-      notes: 'Compra urgente',
+      notes: LEXICAL_NOTE_EXAMPLE,
       Supplier: {
         id: 'supplier-1',
         name: 'Proveedor Uno',
@@ -1465,7 +1466,7 @@ describe('WorkOrdersRepository', () => {
         supplierQuoteHistoryId: ' quote-1 ',
         paymentMethod: PaymentMethod.TRANSFER,
         incurredAt: new Date('2026-05-10T18:00:00.000Z'),
-        notes: ' Compra urgente ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toMatchObject({
       id: 'cost-1',
@@ -1484,7 +1485,7 @@ describe('WorkOrdersRepository', () => {
     await expect(
       repository.updateActualCost('wo-1', 'cost-1', {
         description: ' Rodamiento SKF 6203 ',
-        notes: ' ',
+        notes: null,
       }),
     ).resolves.toMatchObject({
       id: 'cost-1',
@@ -1505,7 +1506,7 @@ describe('WorkOrdersRepository', () => {
         supplierId: 'supplier-1',
         inventoryItemId: 'inventory-1',
         supplierQuoteHistoryId: 'quote-1',
-        notes: 'Compra urgente',
+        notes: LEXICAL_NOTE_EXAMPLE,
         updatedAt: expect.any(Date),
       },
     });
@@ -1574,7 +1575,7 @@ describe('WorkOrdersRepository', () => {
           amount: 50000,
           paidAt: new Date('2026-05-10T20:00:00.000Z'),
           paymentMethod: 'CASH',
-          notes: ' Abono inicial ',
+      notes: LEXICAL_NOTE_EXAMPLE,
         },
         buildWorkOrderDetail({
           paymentStatus: PaymentStatus.PENDING,
@@ -1599,7 +1600,7 @@ describe('WorkOrdersRepository', () => {
         amount: 50000,
         paymentMethod: 'CASH',
         paidAt: new Date('2026-05-10T20:00:00.000Z'),
-        notes: 'Abono inicial',
+      notes: LEXICAL_NOTE_EXAMPLE,
         updatedAt: expect.any(Date),
       },
     });

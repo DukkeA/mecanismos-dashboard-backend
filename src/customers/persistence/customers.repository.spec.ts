@@ -1,4 +1,5 @@
 import { CustomerDocumentType } from '../../../generated/prisma/enums';
+import { LEXICAL_NOTE_EXAMPLE } from '../../common/rich-text/lexical-note';
 import { CustomersRepository } from './customers.repository';
 
 describe('CustomersRepository', () => {
@@ -10,7 +11,7 @@ describe('CustomersRepository', () => {
       documentType: CustomerDocumentType.CEDULA,
       documentNumber: '123456789',
       email: 'ana@mecanismos.test',
-      notes: '<p>Cliente frecuente</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
       createdAt: new Date('2026-05-05T10:00:00.000Z'),
       updatedAt: new Date('2026-05-05T10:00:00.000Z'),
     };
@@ -22,7 +23,7 @@ describe('CustomersRepository', () => {
         documentType: string;
         documentNumber: string;
         email: string;
-        notes: string;
+        notes: typeof LEXICAL_NOTE_EXAMPLE;
         updatedAt: Date;
       };
     };
@@ -48,7 +49,7 @@ describe('CustomersRepository', () => {
         documentType: CustomerDocumentType.CEDULA,
         documentNumber: ' 123456789 ',
         email: '  ANA@MECANISMOS.TEST ',
-        notes: ' <p>Cliente frecuente</p> ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       }),
     ).resolves.toEqual(createdCustomer);
 
@@ -61,7 +62,7 @@ describe('CustomersRepository', () => {
     );
     expect(receivedCreateArgs?.data.documentNumber).toBe('123456789');
     expect(receivedCreateArgs?.data.email).toBe('ana@mecanismos.test');
-    expect(receivedCreateArgs?.data.notes).toBe('<p>Cliente frecuente</p>');
+    expect(receivedCreateArgs?.data.notes).toBe(LEXICAL_NOTE_EXAMPLE);
     expect(receivedCreateArgs?.data.updatedAt).toEqual(expect.any(Date));
   });
 

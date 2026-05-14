@@ -16,6 +16,10 @@ import {
   OptionalTrimmedString,
   TrimmedString,
 } from '../../common/transforms/string.transforms';
+import {
+  LexicalNoteJson,
+  OptionalLexicalNote,
+} from '../../common/rich-text/lexical-note';
 
 const estimateLineTypes = Object.values(EstimateLineType);
 
@@ -74,11 +78,8 @@ export class UpsertWorkOrderEstimateLineDto {
   @Min(0)
   unitPrice?: number;
 
-  @ApiPropertyOptional({ example: 'Incluye garantía' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 }
 
 export class UpsertWorkOrderEstimateDto {
@@ -146,11 +147,8 @@ export class UpsertWorkOrderEstimateDto {
   @Min(0)
   recommendedHighPrice?: number;
 
-  @ApiPropertyOptional({ example: 'Estimación inicial' })
-  @IsOptional()
-  @OptionalTrimmedString()
-  @IsString()
-  notes?: string;
+  @OptionalLexicalNote()
+  notes?: LexicalNoteJson | null;
 
   @ApiPropertyOptional({ type: () => [UpsertWorkOrderEstimateLineDto] })
   @IsOptional()
