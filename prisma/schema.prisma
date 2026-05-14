@@ -47,7 +47,7 @@ model Component {
   brand           String
   reference       String
   identifier      String?
-  notes           String?
+  notes           Json?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime
   Customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -94,7 +94,7 @@ model Customer {
   documentType   CustomerDocumentType
   documentNumber String
   email          String?
-  notes          String?
+  notes          Json?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime
   Component      Component[]
@@ -190,7 +190,7 @@ model Expense {
   expectedAt    DateTime
   paidAt        DateTime?
   paymentMethod PaymentMethod?
-  notes         String?
+  notes         Json?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime
   CostCenter    CostCenter?     @relation(fields: [costCenterId], references: [id])
@@ -208,7 +208,7 @@ model InventoryItem {
   brand                 String?
   reference             String?
   identifier            String?
-  notes                 String?
+  notes                 Json?
   minimumStock          Int                     @default(0)
   defaultSalePrice      Int?
   isActive              Boolean                 @default(true)
@@ -238,7 +238,7 @@ model InventoryMovement {
   workOrderId            String?
   isReservedForWorkOrder Boolean                 @default(false)
   occurredAt             DateTime
-  notes                  String?
+  notes                  Json?
   createdAt              DateTime                @default(now())
   InventoryItem          InventoryItem           @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
   Supplier               Supplier?               @relation(fields: [supplierId], references: [id])
@@ -271,7 +271,7 @@ model Supplier {
   documentType          SupplierDocumentType?
   documentNumber        String?
   email                 String?
-  notes                 String?
+  notes                 Json?
   isActive              Boolean                 @default(true)
   createdAt             DateTime                @default(now())
   updatedAt             DateTime
@@ -294,7 +294,7 @@ model SupplierPhone {
   phone       String
   isPrimary   Boolean  @default(false)
   hasWhatsapp Boolean  @default(false)
-  notes       String?
+  notes       Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime
   supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
@@ -310,7 +310,7 @@ model SupplierQuoteHistory {
   inventoryItemId           String
   workOrderId               String?
   quotedCost                Int
-  notes                     String?
+  notes                     Json?
   quotedAt                  DateTime
   status                    SupplierQuoteStatus     @default(ACTIVE)
   correctionReason          String?
@@ -338,7 +338,7 @@ model Vehicle {
   brand          String
   modelReference String
   plate          String      @unique
-  notes          String?
+  notes          Json?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime
   Component      Component[]
@@ -396,7 +396,7 @@ model WorkOrderActualCost {
   supplierQuoteHistoryId String?
   paymentMethod          PaymentMethod?
   incurredAt             DateTime
-  notes                  String?
+  notes                  Json?
   createdAt              DateTime              @default(now())
   updatedAt              DateTime
   InventoryItem          InventoryItem?        @relation(fields: [inventoryItemId], references: [id])
@@ -425,7 +425,7 @@ model WorkOrderEstimate {
   recommendedMinimumPrice Int?
   recommendedPrice        Int?
   recommendedHighPrice    Int?
-  notes                   String?
+  notes                   Json?
   createdAt               DateTime                @default(now())
   updatedAt               DateTime
   WorkOrder               WorkOrder               @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
@@ -447,7 +447,7 @@ model WorkOrderEstimateLine {
   quantity               Int                   @default(1)
   unitCost               Int?
   unitPrice              Int?
-  notes                  String?
+  notes                  Json?
   createdAt              DateTime              @default(now())
   updatedAt              DateTime
   WorkOrderEstimate      WorkOrderEstimate     @relation(fields: [estimateId], references: [id], onDelete: Cascade)
@@ -469,7 +469,7 @@ model WorkOrderPayment {
   amount        Int
   paymentMethod PaymentMethod?
   paidAt        DateTime
-  notes         String?
+  notes         Json?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime
   WorkOrder     WorkOrder      @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
