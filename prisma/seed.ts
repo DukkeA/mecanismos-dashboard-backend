@@ -69,6 +69,7 @@ const SEED_CUSTOMERS = [
     documentNumber: '900123456',
     email: 'compras@acme-industrial.test',
     notes: '<p>Cliente de muestra para activos industriales.</p>',
+    isActive: true,
   },
   {
     id: 'seed-customer-ana-gomez',
@@ -78,6 +79,17 @@ const SEED_CUSTOMERS = [
     documentNumber: '123456789',
     email: 'ana.gomez@mecanismos.test',
     notes: '<p>Cliente de muestra para flujo comercial.</p>',
+    isActive: true,
+  },
+  {
+    id: 'seed-customer-inactive-demo',
+    name: 'Cliente Inactivo Demo',
+    phone: '3000000000',
+    documentType: CustomerDocumentType.CEDULA,
+    documentNumber: '999000111',
+    email: 'inactivo@mecanismos.test',
+    notes: '<p>Cliente inactivo para validar filtros de ciclo de vida.</p>',
+    isActive: false,
   },
 ] as const;
 
@@ -89,6 +101,7 @@ const SEED_VEHICLES = [
     modelReference: 'Aumark BJ1049',
     plate: 'ABC123',
     notes: 'Vehiculo de reparto para pruebas de customer-assets.',
+    isActive: true,
   },
   {
     id: 'seed-vehicle-ana-hilux',
@@ -97,6 +110,16 @@ const SEED_VEHICLES = [
     modelReference: 'Hilux 2.8',
     plate: 'XYZ987',
     notes: 'Vehiculo personal de muestra.',
+    isActive: true,
+  },
+  {
+    id: 'seed-vehicle-inactive-demo',
+    customerId: 'seed-customer-ana-gomez',
+    brand: 'Chevrolet',
+    modelReference: 'NPR Retirado',
+    plate: 'INA001',
+    notes: 'Vehiculo inactivo para validar filtros y options.',
+    isActive: false,
   },
 ] as const;
 
@@ -134,6 +157,7 @@ const SEED_COMPONENTS = [
     reference: '0445120231',
     identifier: 'INY-ACME-001',
     notes: 'Inyector ligado al vehiculo Acme para validar ownership y filtros.',
+    isActive: true,
   },
   {
     id: 'seed-component-ana-tobera',
@@ -145,6 +169,18 @@ const SEED_COMPONENTS = [
     identifier: 'TOB-ANA-001',
     notes:
       'Tobera sin vehiculo para probar vehicleId opcional y tipo requerido.',
+    isActive: true,
+  },
+  {
+    id: 'seed-component-inactive-demo',
+    customerId: 'seed-customer-ana-gomez',
+    vehicleId: 'seed-vehicle-inactive-demo',
+    componentTypeId: 'seed-component-type-bomba-inyeccion',
+    brand: 'Delphi',
+    reference: 'BOM-INACTIVA-01',
+    identifier: 'COMP-INACTIVE-001',
+    notes: 'Componente inactivo para validar filtros y options.',
+    isActive: false,
   },
 ] as const;
 
@@ -473,6 +509,7 @@ async function main() {
           documentNumber: seedCustomer.documentNumber,
           email: seedCustomer.email,
           notes: lexicalNote(seedCustomer.notes),
+          isActive: seedCustomer.isActive,
           createdAt: now,
           updatedAt: now,
         },
@@ -481,6 +518,7 @@ async function main() {
           phone: seedCustomer.phone,
           email: seedCustomer.email,
           notes: lexicalNote(seedCustomer.notes),
+          isActive: seedCustomer.isActive,
           updatedAt: now,
         },
       });
@@ -498,6 +536,7 @@ async function main() {
           modelReference: seedVehicle.modelReference,
           plate: seedVehicle.plate,
           notes: lexicalNote(seedVehicle.notes),
+          isActive: seedVehicle.isActive,
           createdAt: now,
           updatedAt: now,
         },
@@ -506,6 +545,7 @@ async function main() {
           brand: seedVehicle.brand,
           modelReference: seedVehicle.modelReference,
           notes: lexicalNote(seedVehicle.notes),
+          isActive: seedVehicle.isActive,
           updatedAt: now,
         },
       });
@@ -548,6 +588,7 @@ async function main() {
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,
           notes: lexicalNote(seedComponent.notes),
+          isActive: seedComponent.isActive,
           createdAt: now,
           updatedAt: now,
         },
@@ -559,6 +600,7 @@ async function main() {
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,
           notes: lexicalNote(seedComponent.notes),
+          isActive: seedComponent.isActive,
           updatedAt: now,
         },
       });

@@ -48,6 +48,7 @@ model Component {
   reference       String
   identifier      String?
   notes           Json?
+  isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime
   Customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -56,9 +57,13 @@ model Component {
   WorkOrder       WorkOrder[]
 
   @@index([componentTypeId])
+  @@index([componentTypeId, isActive])
   @@index([customerId])
+  @@index([customerId, isActive])
   @@index([identifier])
+  @@index([isActive])
   @@index([vehicleId])
+  @@index([vehicleId, isActive])
 }
 
 model ComponentType {
@@ -95,6 +100,7 @@ model Customer {
   documentNumber String
   email          String?
   notes          Json?
+  isActive       Boolean              @default(true)
   createdAt      DateTime             @default(now())
   updatedAt      DateTime
   Component      Component[]
@@ -102,6 +108,8 @@ model Customer {
   WorkOrder      WorkOrder[]
 
   @@unique([documentType, documentNumber])
+  @@index([documentType, isActive])
+  @@index([isActive])
 }
 
 model Employee {
@@ -339,6 +347,7 @@ model Vehicle {
   modelReference String
   plate          String      @unique
   notes          Json?
+  isActive       Boolean     @default(true)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime
   Component      Component[]
@@ -346,6 +355,8 @@ model Vehicle {
   WorkOrder      WorkOrder[]
 
   @@index([customerId])
+  @@index([customerId, isActive])
+  @@index([isActive])
 }
 
 model WorkOrder {
