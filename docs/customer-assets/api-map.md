@@ -10,14 +10,17 @@
 | PATCH | `/component-types/:id` | Update component type | `ADMIN`, `SALES` |
 | POST | `/customers` | Create customer | `ADMIN`, `SALES` |
 | GET | `/customers` | List customers | `ADMIN`, `SALES` |
+| GET | `/customers/options` | List active customer options by default | `ADMIN`, `SALES` |
 | GET | `/customers/:id` | Fetch customer | `ADMIN`, `SALES` |
 | PATCH | `/customers/:id` | Update customer | `ADMIN`, `SALES` |
 | POST | `/vehicles` | Create vehicle | `ADMIN`, `SALES` |
 | GET | `/vehicles` | List vehicles | `ADMIN`, `SALES` |
+| GET | `/vehicles/options` | List active vehicle options by default | `ADMIN`, `SALES` |
 | GET | `/vehicles/:id` | Fetch vehicle | `ADMIN`, `SALES` |
 | PATCH | `/vehicles/:id` | Update vehicle | `ADMIN`, `SALES` |
 | POST | `/components` | Create component | `ADMIN`, `SALES` |
 | GET | `/components` | List components | `ADMIN`, `SALES` |
+| GET | `/components/options` | List active component options by default | `ADMIN`, `SALES` |
 | GET | `/components/:id` | Fetch component | `ADMIN`, `SALES` |
 | PATCH | `/components/:id` | Update component | `ADMIN`, `SALES` |
 
@@ -27,22 +30,25 @@
 - `GET /component-types?page=1&limit=10&search=inye&isActive=true`
 
 ### Customers
-- `GET /customers?page=1&limit=10&search=ana&documentType=CEDULA`
+- `GET /customers?page=1&limit=10&search=ana&documentType=CEDULA&isActive=false`
+- `GET /customers/options` defaults to active-only; use `?isActive=false` for inactive options.
 
 ### Vehicles
-- `GET /vehicles?page=1&limit=10&customerId=customer-1&search=mazda`
+- `GET /vehicles?page=1&limit=10&customerId=customer-1&search=mazda&isActive=false`
+- `GET /vehicles/options` defaults to active-only; use `?isActive=false` for inactive options.
 
 ### Components
-- `GET /components?page=1&limit=10&customerId=customer-1&vehicleId=vehicle-1&componentTypeId=component-type-1&search=bosch`
+- `GET /components?page=1&limit=10&customerId=customer-1&vehicleId=vehicle-1&componentTypeId=component-type-1&search=bosch&isActive=false`
+- `GET /components/options` defaults to active-only; use `?isActive=false` for inactive options.
 
 ## Update semantics
 
 | Route | Mutable fields | Guardrails |
 | --- | --- | --- |
-| `PATCH /customers/:id` | Name, phone, document, email, notes | Standard validation + duplicate customer document conflict. |
-| `PATCH /vehicles/:id` | Brand, modelReference, plate, notes | `customerId` is immutable. |
+| `PATCH /customers/:id` | Name, phone, document, email, notes, `isActive` | Standard validation + duplicate customer document conflict. |
+| `PATCH /vehicles/:id` | Brand, modelReference, plate, notes, `isActive` | `customerId` is immutable. |
 | `PATCH /component-types/:id` | Name, slug, description, `isActive` | Slug stays unique after normalization. |
-| `PATCH /components/:id` | Brand, reference, identifier, notes, `vehicleId`, `componentTypeId` | `customerId` is immutable; `vehicleId` must remain in the same customer boundary or be cleared; `componentTypeId` must reference an existing type. |
+| `PATCH /components/:id` | Brand, reference, identifier, notes, `vehicleId`, `componentTypeId`, `isActive` | `customerId` is immutable; `vehicleId` must remain in the same customer boundary or be cleared; `componentTypeId` must reference an existing type. |
 
 ## Reviewer callouts
 

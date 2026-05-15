@@ -186,7 +186,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{customerName}}\",\n  \"phone\": \"{{customerPhone}}\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"{{customerDocumentNumber}}\",\n  \"email\": \"{{customerEmail}}\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Creado desde Collection Runner {{runId}}\" }]\n        }\n      ]\n    }\n  }\n}"
+              "raw": "{\n  \"name\": \"{{customerName}}\",\n  \"phone\": \"{{customerPhone}}\",\n  \"documentType\": \"CEDULA\",\n  \"documentNumber\": \"{{customerDocumentNumber}}\",\n  \"email\": \"{{customerEmail}}\",\n  \"isActive\": false,\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Creado desde Collection Runner {{runId}}\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/customers",
@@ -218,6 +218,7 @@
                   "  pm.expect(body.name).to.eql(pm.collectionVariables.get('customerName'));",
                   "  pm.expect(body.documentNumber).to.eql(pm.collectionVariables.get('customerDocumentNumber'));",
                   "  pm.expect(body.email).to.eql(pm.collectionVariables.get('customerEmail'));",
+                  "  pm.expect(body.isActive).to.eql(false);",
                   "});"
                 ]
               }
@@ -229,7 +230,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/customers?page=1&limit=10&search={{customerSearch}}",
+              "raw": "{{baseUrl}}/customers?page=1&limit=10&search={{customerSearch}}&isActive=false",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -248,6 +249,10 @@
                 {
                   "key": "search",
                   "value": "{{customerSearch}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false"
                 }
               ]
             }
@@ -271,6 +276,49 @@
                   "pm.test('list customers includes the created customer', function () {",
                   "  const customerId = pm.collectionVariables.get('customerId');",
                   "  pm.expect(body.data.some((item) => item.id === customerId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer Options - Inactive Override",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customers/options?search={{customerSearch}}&isActive=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "options"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "{{customerSearch}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('inactive customer options returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('inactive customer options includes created inactive customer', function () {",
+                  "  pm.expect(body.data.some((item) => item.id === pm.collectionVariables.get('customerId'))).to.eql(true);",
                   "});"
                 ]
               }
@@ -370,7 +418,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"Runner {{runId}}\",\n  \"plate\": \"{{vehiclePlate}}\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Vehiculo creado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"brand\": \"Mazda\",\n  \"modelReference\": \"Runner {{runId}}\",\n  \"plate\": \"{{vehiclePlate}}\",\n  \"isActive\": false,\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Vehiculo creado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/vehicles",
@@ -401,6 +449,7 @@
                   "pm.test('create vehicle links to captured customerId', function () {",
                   "  pm.expect(body.customerId).to.eql(pm.collectionVariables.get('customerId'));",
                   "  pm.expect(body.plate).to.eql(pm.collectionVariables.get('vehiclePlate'));",
+                  "  pm.expect(body.isActive).to.eql(false);",
                   "});"
                 ]
               }
@@ -412,7 +461,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/vehicles?page=1&limit=10&customerId={{customerId}}&search={{vehicleSearch}}",
+              "raw": "{{baseUrl}}/vehicles?page=1&limit=10&customerId={{customerId}}&search={{vehicleSearch}}&isActive=false",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -435,6 +484,10 @@
                 {
                   "key": "search",
                   "value": "{{vehicleSearch}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false"
                 }
               ]
             }
@@ -458,6 +511,49 @@
                   "pm.test('list vehicles includes the created vehicle', function () {",
                   "  const vehicleId = pm.collectionVariables.get('vehicleId');",
                   "  pm.expect(body.data.some((item) => item.id === vehicleId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vehicle Options - Inactive Override",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/options?customerId={{customerId}}&isActive=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "options"
+              ],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('inactive vehicle options returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('inactive vehicle options includes created inactive vehicle', function () {",
+                  "  pm.expect(body.data.some((item) => item.id === pm.collectionVariables.get('vehicleId'))).to.eql(true);",
                   "});"
                 ]
               }
@@ -660,7 +756,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"componentTypeId\": \"{{componentTypeId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"{{componentIdentifier}}\",\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Componente creado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"componentTypeId\": \"{{componentTypeId}}\",\n  \"brand\": \"Bosch\",\n  \"reference\": \"ALT-90A\",\n  \"identifier\": \"{{componentIdentifier}}\",\n  \"isActive\": false,\n  \"notes\": {\n    \"root\": {\n      \"type\": \"root\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"children\": [{ \"type\": \"text\", \"text\": \"Componente creado desde Collection Runner\" }]\n        }\n      ]\n    }\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/components",
@@ -693,6 +789,7 @@
                    "  pm.expect(body.vehicleId).to.eql(pm.collectionVariables.get('vehicleId'));",
                    "  pm.expect(body.componentTypeId).to.eql(pm.collectionVariables.get('componentTypeId'));",
                    "  pm.expect(body.identifier).to.eql(pm.collectionVariables.get('componentIdentifier'));",
+                   "  pm.expect(body.isActive).to.eql(false);",
                    "});"
                 ]
               }
@@ -704,7 +801,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/components?page=1&limit=10&customerId={{customerId}}&vehicleId={{vehicleId}}&componentTypeId={{componentTypeId}}&search={{componentSearch}}",
+              "raw": "{{baseUrl}}/components?page=1&limit=10&customerId={{customerId}}&vehicleId={{vehicleId}}&componentTypeId={{componentTypeId}}&search={{componentSearch}}&isActive=false",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -735,6 +832,10 @@
                 {
                   "key": "search",
                   "value": "{{componentSearch}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false"
                 }
               ]
             }
@@ -760,6 +861,49 @@
                    "  pm.expect(body.data.some((item) => item.id === componentId)).to.eql(true);",
                    "  pm.expect(body.data.some((item) => item.componentTypeId === pm.collectionVariables.get('componentTypeId'))).to.eql(true);",
                    "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Component Options - Inactive Override",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/components/options?customerId={{customerId}}&isActive=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "components",
+                "options"
+              ],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('inactive component options returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('inactive component options includes created inactive component', function () {",
+                  "  pm.expect(body.data.some((item) => item.id === pm.collectionVariables.get('componentId'))).to.eql(true);",
+                  "});"
                 ]
               }
             }

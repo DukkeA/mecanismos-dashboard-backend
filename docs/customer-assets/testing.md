@@ -5,7 +5,7 @@
 Primary verification is automated. Use these commands from repo root:
 
 ```bash
-npm run test -- src/component-types/component-types.service.spec.ts src/component-types/persistence/component-types.repository.spec.ts src/components/components.service.spec.ts src/components/persistence/components.repository.spec.ts src/customer-assets/customer-assets.artifacts.spec.ts
+npm run test -- customers vehicles components common/reference-data
 npm run test:e2e -- test/customer-assets/component-types.e2e-spec.ts test/customer-assets/components.e2e-spec.ts
 npm run test:e2e -- test/customer-assets/customers.e2e-spec.ts test/customer-assets/vehicles.e2e-spec.ts test/customer-assets/components.e2e-spec.ts
 npm run test
@@ -33,7 +33,7 @@ npx prisma db seed
 
 Use `npx prisma migrate deploy` instead when applying already committed migrations in CI/staging/production-style environments where no new migration should be created.
 
-The seed creates sample `ADMIN`, `SALES`, and `MECHANIC` users plus customer-assets data for component types, customers, vehicles, and components.
+The seed creates sample `ADMIN`, `SALES`, and `MECHANIC` users plus customer-assets data for component types, customers, vehicles, and components. It includes active and inactive customers, vehicles, and components so `?isActive=false` and options overrides can be exercised immediately.
 
 ### Collection Runner order
 
@@ -47,6 +47,7 @@ The seed creates sample `ADMIN`, `SALES`, and `MECHANIC` users plus customer-ass
 - Logs in as the seeded `ADMIN` user before customer-assets requests.
 - Generates unique customer/vehicle/component payload values per run so reruns do not collide on document number, plate, or identifier.
 - Captures `componentTypeId`, `customerId`, `vehicleId`, and `componentId` from create responses and reuses them in later GET/PATCH requests.
+- Exercises `isActive=false` create/update, list filtering, and options override flows for customers, vehicles, and components.
 - Verifies `401` after logout and `403` for a seeded `MECHANIC` user on a protected customer-assets endpoint.
 
 You no longer need placeholder IDs like `customer-1`, `vehicle-1`, or `component-1` for the default runner flow.
@@ -58,4 +59,5 @@ You no longer need placeholder IDs like `customer-1`, `vehicle-1`, or `component
 - Confirm mismatch between component `customerId` and vehicle owner returns `400`.
 - Confirm duplicate component-type creation normalizes to the same slug and returns `409`.
 - Confirm `customerId` reassignment attempts are rejected at validation boundary.
+- Confirm list endpoints include both active and inactive rows by default while options default to active-only.
 - Confirm there are no delete routes in Swagger or Postman.

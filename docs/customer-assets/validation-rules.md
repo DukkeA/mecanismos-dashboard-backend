@@ -29,15 +29,24 @@
 - Uppercase vehicle plate.
 - Treat empty optional strings as absent/null when persisted.
 - Keep `notes` as opaque LexKit/Lexical editor-state JSON objects or `null`; plain strings are rejected.
+- `isActive` body fields must be JSON booleans; query `isActive` accepts only `true` or `false` strings and rejects values like `yes`, `0`, or `inactive`.
 
 ## Search/list rules
 
 | Resource | Search fields | Extra filters |
 | --- | --- | --- |
-| Customers | `name`, `documentNumber`, `phone` | `documentType` |
-| Vehicles | `plate`, `brand`, `modelReference` | `customerId` |
+| Customers | `name`, `documentNumber`, `phone` | `documentType`, `isActive` |
+| Vehicles | `plate`, `brand`, `modelReference` | `customerId`, `isActive` |
 | Component types | `name`, `slug`, `description` | `isActive` |
-| Components | `identifier`, `reference`, `brand` | `customerId`, `vehicleId`, `componentTypeId` |
+| Components | `identifier`, `reference`, `brand` | `customerId`, `vehicleId`, `componentTypeId`, `isActive` |
+
+## Lifecycle rules
+
+- `Customer`, `Vehicle`, and `Component` records default to `isActive=true` when omitted on create.
+- List endpoints do not filter lifecycle state unless `?isActive=true|false` is present.
+- Options endpoints default to active-only and support `?isActive=false` for inactive-only picker data.
+- Detail and update by id still work for inactive records.
+- Work orders, payroll, expenses, inventory movements, quote history, and other process/history rows keep their enum/status fields instead of gaining `isActive`.
 
 ## Scope guardrails
 

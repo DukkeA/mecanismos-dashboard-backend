@@ -32,6 +32,7 @@ This slice is READY FOR REVIEW as a single `size:exception` work unit. The backe
 - The collection generates per-run values with `runId`; it does NOT depend on hardcoded seeded IDs.
 - It captures `customerId`, `vehicleId`, and `costCenterId` from prior responses before dependent requests run.
 - Protection coverage includes duplicate quick-create conflict and forbidden mechanic access.
+- Customer, vehicle, and component options default to active-only. Use `?isActive=false` to request inactive options; full list endpoints only filter lifecycle when `isActive=true|false` is provided.
 
 ## Out of scope
 
