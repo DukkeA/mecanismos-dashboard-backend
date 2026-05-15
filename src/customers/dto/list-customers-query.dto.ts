@@ -1,7 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { CustomerDocumentType } from '../../../generated/prisma/enums';
+import { OptionalBooleanQuery } from '../../common/reference-data';
 import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 import {
   CUSTOMER_LIST_SORT_DIRECTIONS,
@@ -39,6 +48,12 @@ export class ListCustomersQueryDto {
   @IsOptional()
   @IsIn(customerDocumentTypes)
   documentType?: CustomerDocumentType;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @OptionalBooleanQuery()
+  @IsBoolean()
+  isActive?: boolean;
 
   @ApiPropertyOptional({
     enum: CUSTOMER_LIST_SORT_FIELDS,

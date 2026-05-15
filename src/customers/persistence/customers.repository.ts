@@ -21,7 +21,13 @@ export type CustomerRecord = Customer;
 
 export type CustomerOptionRecord = Pick<
   Customer,
-  'id' | 'name' | 'phone' | 'documentType' | 'documentNumber' | 'email'
+  | 'id'
+  | 'name'
+  | 'phone'
+  | 'documentType'
+  | 'documentNumber'
+  | 'email'
+  | 'isActive'
 >;
 
 export type CreateCustomerRecordInput = {
@@ -31,6 +37,7 @@ export type CreateCustomerRecordInput = {
   documentNumber: string;
   email?: string;
   notes?: LexicalNoteJson | null;
+  isActive?: boolean;
 };
 
 export type UpdateCustomerRecordInput = Partial<CreateCustomerRecordInput>;
@@ -42,12 +49,14 @@ export type ListCustomersQuery = {
   documentType?: CustomerDocumentType;
   sortBy?: CustomerListSortField;
   sortDir?: CustomerListSortDirection;
+  isActive?: boolean;
 };
 
 export type ListCustomerOptionsQuery = {
   limit: number;
   search?: string;
   documentType?: CustomerDocumentType;
+  isActive?: boolean;
 };
 
 type CustomerWhereInput = Prisma.CustomerWhereInput;
@@ -101,6 +110,7 @@ export class CustomersRepository {
           documentNumber: input.documentNumber.trim(),
           email: normalizeOptionalEmail(input.email),
           notes: normalizeOptionalNoteJson(input.notes) ?? null,
+          ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
           updatedAt: now,
         },
       });
@@ -150,6 +160,7 @@ export class CustomersRepository {
             documentType: true;
             documentNumber: true;
             email: true;
+            isActive: true;
           };
         }): Promise<CustomerOptionRecord[]>;
       };
@@ -166,6 +177,7 @@ export class CustomersRepository {
         documentType: true,
         documentNumber: true,
         email: true,
+        isActive: true,
       },
     });
   }
@@ -191,6 +203,7 @@ export class CustomersRepository {
           ...(input.notes !== undefined
             ? { notes: normalizeOptionalNoteJson(input.notes) }
             : {}),
+          ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
           updatedAt: now,
         },
       });
@@ -205,6 +218,7 @@ function buildCustomerWhere(query: ListCustomersQuery): CustomerWhereInput {
 
   return {
     ...(query.documentType ? { documentType: query.documentType } : {}),
+    ...(query.isActive !== undefined ? { isActive: query.isActive } : {}),
     ...(search
       ? {
           OR: [

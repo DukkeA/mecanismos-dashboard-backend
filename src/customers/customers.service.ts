@@ -40,7 +40,10 @@ export class CustomersService {
   }
 
   async findOptions(query: CustomerOptionsQueryDto) {
-    const options = await this.customersRepository.findOptions(query);
+    const options = await this.customersRepository.findOptions({
+      ...query,
+      isActive: query.isActive ?? true,
+    });
 
     return buildOptionsResponse(options.map(mapCustomerOption), query.limit);
   }
@@ -87,6 +90,7 @@ function mapCustomerOption(customer: {
   documentType: string;
   documentNumber: string;
   email?: string | null;
+  isActive?: boolean;
 }): ReferenceOption {
   return {
     id: customer.id,
@@ -95,6 +99,9 @@ function mapCustomerOption(customer: {
     context: {
       phone: customer.phone,
       email: customer.email ?? null,
+      ...(customer.isActive !== undefined
+        ? { isActive: customer.isActive }
+        : {}),
     },
   };
 }

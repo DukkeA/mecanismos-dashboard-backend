@@ -115,6 +115,23 @@ describe('CustomersService', () => {
     });
   });
 
+  it('defaults customer options to active records and preserves explicit inactive requests', async () => {
+    repository.findOptions.mockResolvedValue([]);
+
+    await service.findOptions({ limit: 10, search: 'ana' });
+    await service.findOptions({ limit: 10, isActive: false });
+
+    expect(repository.findOptions.mock.calls[0]?.[0]).toEqual({
+      limit: 10,
+      search: 'ana',
+      isActive: true,
+    });
+    expect(repository.findOptions.mock.calls[1]?.[0]).toEqual({
+      limit: 10,
+      isActive: false,
+    });
+  });
+
   it('throws NotFoundException when the customer does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 

@@ -41,6 +41,7 @@ describe('CustomersController (e2e)', () => {
   const customersService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findOptions: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
   };
@@ -154,6 +155,35 @@ describe('CustomersController (e2e)', () => {
     },
   );
 
+  it('passes customer lifecycle filters and options overrides to the service', async () => {
+    customersService.findAll.mockResolvedValue({
+      data: [{ id: 'customer-inactive', isActive: false }],
+      meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
+    });
+    customersService.findOptions.mockResolvedValue({
+      data: [{ id: 'customer-inactive', label: 'Inactive customer' }],
+      meta: { limit: 10 },
+    });
+
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .get('/customers?isActive=false')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/customers/options?isActive=false')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(200);
+
+    expect(customersService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: false }),
+    );
+    expect(customersService.findOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: false }),
+    );
+  });
+
   it('creates a customer with optional notes', async () => {
     customersService.create.mockResolvedValue({
       id: 'customer-1',
@@ -178,6 +208,7 @@ describe('CustomersController (e2e)', () => {
         documentNumber: ' 123456789 ',
         email: ' ANA@MECANISMOS.TEST ',
         notes: LEXICAL_NOTE_EXAMPLE,
+        isActive: false,
       })
       .expect(201);
     const body = readBody<{ id: string }>(response);
@@ -190,6 +221,7 @@ describe('CustomersController (e2e)', () => {
       documentNumber: '123456789',
       email: 'ana@mecanismos.test',
       notes: LEXICAL_NOTE_EXAMPLE,
+      isActive: false,
     });
   });
 
@@ -205,6 +237,35 @@ describe('CustomersController (e2e)', () => {
         documentType: CustomerDocumentType.CEDULA,
         documentNumber: '123456789',
       })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/customers')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        name: 'Ana Gomez',
+        phone: '3001234567',
+        documentType: CustomerDocumentType.CEDULA,
+        documentNumber: '123456789',
+        isActive: 'false',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/customers')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        name: 'Ana Gomez',
+        phone: '3001234567',
+        documentType: CustomerDocumentType.CEDULA,
+        documentNumber: '123456789',
+        lifecycleState: 'inactive',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/customers?isActive=inactive')
+      .set('Cookie', [`md_access=${accessToken}`])
       .expect(400);
   });
 
@@ -271,6 +332,7 @@ describe('CustomersController (e2e)', () => {
         name: ' Ana Gomez Restrepo ',
         email: ' ANA+VIP@MECANISMOS.TEST ',
         notes: LEXICAL_NOTE_EXAMPLE,
+        isActive: false,
       })
       .expect(200);
     const body = readBody<{ name: string }>(response);
@@ -280,6 +342,7 @@ describe('CustomersController (e2e)', () => {
       name: 'Ana Gomez Restrepo',
       email: 'ana+vip@mecanismos.test',
       notes: LEXICAL_NOTE_EXAMPLE,
+      isActive: false,
     });
   });
 });
