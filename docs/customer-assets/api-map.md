@@ -4,6 +4,11 @@
 
 | Method | Path | Purpose | Roles |
 | --- | --- | --- | --- |
+| POST | `/brands` | Create or reuse normalized brand | `ADMIN`, `SALES` |
+| GET | `/brands` | List brands | `ADMIN`, `SALES` |
+| GET | `/brands/options` | List active brand options by default | `ADMIN`, `SALES` |
+| GET | `/brands/:id` | Fetch brand | `ADMIN`, `SALES` |
+| PATCH | `/brands/:id` | Update brand | `ADMIN`, `SALES` |
 | POST | `/component-types` | Create component type | `ADMIN`, `SALES` |
 | GET | `/component-types` | List component types | `ADMIN`, `SALES` |
 | GET | `/component-types/:id` | Fetch component type | `ADMIN`, `SALES` |
@@ -26,6 +31,10 @@
 
 ## Query map
 
+### Brands
+- `GET /brands?page=1&limit=10&search=bosch&isActive=true`
+- `GET /brands/options` defaults to active-only; use `?isActive=false` for inactive options.
+
 ### Component types
 - `GET /component-types?page=1&limit=10&search=inye&isActive=true`
 
@@ -46,13 +55,24 @@
 | Route | Mutable fields | Guardrails |
 | --- | --- | --- |
 | `PATCH /customers/:id` | Name, phone, document, email, notes, `isActive` | Standard validation + duplicate customer document conflict. |
-| `PATCH /vehicles/:id` | Brand, modelReference, plate, notes, `isActive` | `customerId` is immutable. |
+| `PATCH /brands/:id` | Name, `isActive` | Name is normalized to a case-insensitive unique key. |
+| `PATCH /vehicles/:id` | Brand display string, modelReference, plate, notes, `isActive` | `customerId` is immutable. Create-time aggregate behavior is on `POST /vehicles`, not update. |
 | `PATCH /component-types/:id` | Name, slug, description, `isActive` | Slug stays unique after normalization. |
-| `PATCH /components/:id` | Brand, reference, identifier, notes, `vehicleId`, `componentTypeId`, `isActive` | `customerId` is immutable; `vehicleId` must remain in the same customer boundary or be cleared; `componentTypeId` must reference an existing type. |
+| `PATCH /components/:id` | Brand display string, reference, identifier, notes, `vehicleId`, `componentTypeId`, `isActive` | `customerId` is immutable; `vehicleId` must remain in the same customer boundary or be cleared; `componentTypeId` must reference an existing type. Create-time aggregate behavior is on `POST /components`, not update. |
+
+## Standard create aggregate payloads
+
+Use the standard REST create endpoints for inline create/connect flows. Do not add `/with-related` endpoints and do not require `/quick-create` for this UX.
+
+| Route | Existing references | Inline creation fields | Brand contract |
+| --- | --- | --- | --- |
+| `POST /vehicles` | `customerId`, `brandId` | `customer: { name, phone, documentType, documentNumber, email?, notes?, isActive? }` | `brandId`, `brandName`, `brand: "Bosch"`, or `brand: { name: "Bosch" }`; names reuse the normalized brand row. |
+| `POST /components` | `customerId`, `componentTypeId`, `brandId`, optional `vehicleId` | `customer`, `componentType: { name, slug? }`, optional `vehicle: { brandId? brand? brandName?, modelReference, plate, notes?, isActive? }` | Same brand contract as vehicles; inline vehicle brand is resolved independently. |
 
 ## Reviewer callouts
 
+- `POST /brands` and `GET /brands/options` support brand comboboxes; aggregate creates can also find-or-create a brand by normalized name.
 - `POST /component-types` lets the frontend create new combobox options without storing free-text component categories.
-- `POST /components` and `PATCH /components/:id` are the only routes with cross-resource ownership validation.
+- `POST /components` and `PATCH /components/:id` validate cross-resource ownership; inline component vehicle creation is always scoped to the resolved customer.
 - `PATCH /vehicles/:id` and `PATCH /components/:id` reject reassignment by schema/DTO contract rather than silently ignoring it.
 - There is intentionally **no** delete surface.

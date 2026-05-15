@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { Prisma, Vehicle } from '../../../generated/prisma/client';
+import type { Brand, Customer, Prisma, Vehicle } from '../../../generated/prisma/client';
+import { normalizeBrandKey, normalizeBrandName } from '../../brands/brand-normalization';
+import type { CreateVehicleDto } from '../dto/create-vehicle.dto';
 import {
   LexicalNoteJson,
   normalizeOptionalNoteJson,
@@ -9,6 +11,10 @@ import {
 export const VEHICLES_PRISMA_CLIENT = Symbol('VEHICLES_PRISMA_CLIENT');
 
 export type VehicleRecord = Vehicle;
+export type VehicleWithRelationsRecord = Vehicle & {
+  brandRef: Brand | null;
+  Customer?: Pick<Customer, 'id' | 'name'>;
+};
 
 export type VehicleOptionRecord = Pick<
   Vehicle,
@@ -46,6 +52,7 @@ export type ListVehicleOptionsQuery = {
 type VehicleWhereInput = Prisma.VehicleWhereInput;
 
 type VehiclesPrismaClient = {
+  $transaction<T>(callback: (transactionClient: VehiclesPrismaTransactionClient) => Promise<T>): Promise<T>;
   customer: {
     findUnique(args: { where: { id: string }; select: { id: true } }): Promise<{
       id: string;
@@ -65,6 +72,19 @@ type VehiclesPrismaClient = {
       where: { id: string };
       data: Record<string, unknown>;
     }): Promise<VehicleRecord>;
+  };
+};
+
+type VehiclesPrismaTransactionClient = VehiclesPrismaClient & {
+  brand: {
+    findUnique(args: { where: { id: string } | { normalizedName: string } }): Promise<Brand | null>;
+    upsert(args: { where: { normalizedName: string }; create: Record<string, unknown>; update: Record<string, unknown> }): Promise<Brand>;
+  };
+  customer: VehiclesPrismaClient['customer'] & {
+    upsert(args: { where: { documentType_documentNumber: { documentType: unknown; documentNumber: string } }; create: Record<string, unknown>; update: Record<string, unknown> }): Promise<Customer>;
+  };
+  vehicle: VehiclesPrismaClient['vehicle'] & {
+    create(args: { data: Record<string, unknown>; include: { brandRef: true; Customer: { select: { id: true; name: true } } } }): Promise<VehicleWithRelationsRecord>;
   };
 };
 
@@ -97,6 +117,34 @@ export class VehiclesRepository {
           ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
           updatedAt: now,
         },
+      });
+    } catch (error) {
+      throw mapVehicleWriteError(error);
+    }
+  }
+
+  async createWithResolvedRelations(input: CreateVehicleDto) {
+    const now = new Date();
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const customerId = await resolveCustomerId(tx, input, now);
+        const brand = await resolveBrand(tx, input.brandId, input.brandName ?? input.brand, now);
+
+        return tx.vehicle.create({
+          data: {
+            id: randomUUID(),
+            customerId,
+            brandId: brand.id,
+            brand: brand.name,
+            modelReference: input.modelReference.trim(),
+            plate: normalizePlate(input.plate),
+            notes: normalizeOptionalNoteJson(input.notes) ?? null,
+            ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+            updatedAt: now,
+          },
+          include: { brandRef: true, Customer: { select: { id: true, name: true } } },
+        });
       });
     } catch (error) {
       throw mapVehicleWriteError(error);
@@ -198,6 +246,50 @@ export class VehiclesRepository {
       throw mapVehicleWriteError(error);
     }
   }
+}
+
+async function resolveCustomerId(tx: VehiclesPrismaTransactionClient, input: CreateVehicleDto, now: Date) {
+  if (input.customerId) {
+    const customer = await tx.customer.findUnique({ where: { id: input.customerId }, select: { id: true } });
+    if (!customer) throw new Error(`Customer ${input.customerId} not found`);
+    return customer.id;
+  }
+
+  if (!input.customer) throw new Error('customerId or customer is required');
+
+  const customer = await tx.customer.upsert({
+    where: { documentType_documentNumber: { documentType: input.customer.documentType, documentNumber: input.customer.documentNumber.trim() } },
+    create: {
+      id: randomUUID(),
+      name: input.customer.name.trim(),
+      phone: input.customer.phone.trim(),
+      documentType: input.customer.documentType,
+      documentNumber: input.customer.documentNumber.trim(),
+      email: input.customer.email ?? null,
+      notes: normalizeOptionalNoteJson(input.customer.notes) ?? null,
+      isActive: input.customer.isActive ?? true,
+      updatedAt: now,
+    },
+    update: {},
+  });
+
+  return customer.id;
+}
+
+async function resolveBrand(tx: VehiclesPrismaTransactionClient, brandId: string | undefined, nameInput: string | undefined, now: Date) {
+  if (brandId) {
+    const brand = await tx.brand.findUnique({ where: { id: brandId } });
+    if (!brand) throw new Error(`Brand ${brandId} not found`);
+    return brand;
+  }
+
+  if (!nameInput) throw new Error('brandId or brand is required');
+  const name = normalizeBrandName(nameInput);
+  return tx.brand.upsert({
+    where: { normalizedName: normalizeBrandKey(name) },
+    create: { id: randomUUID(), name, normalizedName: normalizeBrandKey(name), isActive: true, updatedAt: now },
+    update: { updatedAt: now },
+  });
 }
 
 function buildVehicleWhere(query: ListVehiclesQuery): VehicleWhereInput {

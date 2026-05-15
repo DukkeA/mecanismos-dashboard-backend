@@ -5,7 +5,19 @@ import {
   LexicalNoteJson,
   OptionalLexicalNote,
 } from '../../common/rich-text/lexical-note';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { ValidateIf, ValidateNested } from 'class-validator';
+import { CreateCustomerDto } from '../../customers/dto/create-customer.dto';
+
+function BrandName() {
+  return Transform(({ value }: { value: unknown }) => {
+    if (typeof value === 'object' && value !== null && 'name' in value) {
+      const name = (value as { name?: unknown }).name;
+      return typeof name === 'string' ? name.trim() : name;
+    }
+    return typeof value === 'string' ? value.trim() : value;
+  });
+}
 
 function UppercasePlate() {
   return Transform(({ value }: { value: unknown }) => {
@@ -14,17 +26,39 @@ function UppercasePlate() {
 }
 
 export class CreateVehicleDto {
-  @ApiProperty({ example: 'customer-1' })
+  @ApiPropertyOptional({ example: 'customer-1' })
+  @ValidateIf((payload: CreateVehicleDto) => payload.customer === undefined)
   @TrimmedString()
   @IsString()
   @IsNotEmpty()
-  customerId!: string;
+  customerId?: string;
 
-  @ApiProperty({ example: 'Mazda' })
+  @ApiPropertyOptional({ type: CreateCustomerDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateCustomerDto)
+  customer?: CreateCustomerDto;
+
+  @ApiPropertyOptional({ example: 'brand-1' })
+  @IsOptional()
   @TrimmedString()
   @IsString()
   @IsNotEmpty()
-  brand!: string;
+  brandId?: string;
+
+  @ApiPropertyOptional({ example: 'Mazda' })
+  @ValidateIf((payload: CreateVehicleDto) => payload.brandId === undefined && payload.brandName === undefined)
+  @BrandName()
+  @IsString()
+  @IsNotEmpty()
+  brand?: string;
+
+  @ApiPropertyOptional({ example: 'Mazda' })
+  @IsOptional()
+  @TrimmedString()
+  @IsString()
+  @IsNotEmpty()
+  brandName?: string;
 
   @ApiProperty({ example: 'CX5' })
   @TrimmedString()

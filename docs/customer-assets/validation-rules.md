@@ -6,6 +6,8 @@
 2. A component can reference a vehicle only when that vehicle belongs to the **same customer**.
 3. Every component must reference an existing normalized `componentTypeId`.
 4. Component `vehicleId` may be omitted on create and may be cleared on update.
+5. Vehicle/component create may resolve an existing customer by `customerId` or find-or-create an inline customer by `(documentType, documentNumber)`.
+6. Brand names resolve through the shared `Brand.normalizedName` key, so `Bosch`, `BOSCH`, and `BoScH` all target one brand row.
 
 ## Error contract
 
@@ -14,6 +16,7 @@
 | Missing customer parent | `404 Not Found` |
 | Missing vehicle referenced by component | `404 Not Found` |
 | Missing component type referenced by component | `404 Not Found` |
+| Missing brand referenced by `brandId` | `404 Not Found` |
 | Cross-customer component/vehicle mismatch | `400 Bad Request` |
 | Duplicate customer document | `409 Conflict` |
 | Duplicate vehicle plate | `409 Conflict` |
@@ -26,6 +29,7 @@
 - Trim all string inputs.
 - Lowercase customer email.
 - Normalize component type slugs to lowercase kebab-case without accents.
+- Normalize brand keys by trimming, collapsing whitespace, and lowercasing before uniqueness checks.
 - Uppercase vehicle plate.
 - Treat empty optional strings as absent/null when persisted.
 - Keep `notes` as opaque LexKit/Lexical editor-state JSON objects or `null`; plain strings are rejected.
@@ -37,6 +41,7 @@
 | --- | --- | --- |
 | Customers | `name`, `documentNumber`, `phone` | `documentType`, `isActive` |
 | Vehicles | `plate`, `brand`, `modelReference` | `customerId`, `isActive` |
+| Brands | `name`, `normalizedName` | `isActive` |
 | Component types | `name`, `slug`, `description` | `isActive` |
 | Components | `identifier`, `reference`, `brand` | `customerId`, `vehicleId`, `componentTypeId`, `isActive` |
 

@@ -24,18 +24,18 @@ describe('VehiclesService', () => {
     findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
+    createWithResolvedRelations: jest.fn(),
   } as unknown as jest.Mocked<VehiclesRepository>;
 
   let service: VehiclesService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     service = new VehiclesService(repository);
   });
 
   it('creates a vehicle for an existing customer', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.create.mockResolvedValue(vehicleRecord);
+    repository.createWithResolvedRelations.mockResolvedValue(vehicleRecord as never);
 
     await expect(
       service.create({
@@ -48,8 +48,76 @@ describe('VehiclesService', () => {
     ).resolves.toEqual(vehicleRecord);
   });
 
+  it('creates a vehicle by resolving an existing customer and existing brand', async () => {
+    repository.createWithResolvedRelations.mockResolvedValue({
+      ...vehicleRecord,
+      brandId: 'brand-mazda',
+      brandRef: { id: 'brand-mazda', name: 'Mazda', normalizedName: 'mazda' },
+    } as never);
+
+    await expect(
+      service.create({
+        customerId: 'customer-1',
+        brandId: 'brand-mazda',
+        modelReference: ' CX5 ',
+        plate: ' abc123 ',
+      }),
+    ).resolves.toMatchObject({
+      id: 'vehicle-1',
+      customerId: 'customer-1',
+      brand: 'Mazda',
+      brandId: 'brand-mazda',
+      brandRef: { id: 'brand-mazda', name: 'Mazda' },
+    });
+    expect(repository.createWithResolvedRelations).toHaveBeenCalledWith({
+      customerId: 'customer-1',
+      brandId: 'brand-mazda',
+      modelReference: ' CX5 ',
+      plate: ' abc123 ',
+    });
+    expect(repository.customerExists).not.toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a vehicle with inline customer data and reuses a brand by normalized name', async () => {
+    repository.createWithResolvedRelations.mockResolvedValue({
+      ...vehicleRecord,
+      customerId: 'customer-inline',
+      brandId: 'brand-bosch',
+      brand: 'Bosch',
+      brandRef: { id: 'brand-bosch', name: 'Bosch', normalizedName: 'bosch' },
+      Customer: { id: 'customer-inline', name: 'Laura Perez' },
+    } as never);
+
+    await expect(
+      service.create({
+        customer: {
+          name: ' Laura Perez ',
+          phone: ' 3001112233 ',
+          documentType: 'CEDULA' as never,
+          documentNumber: ' 123 ',
+        },
+        brand: ' BoScH ',
+        modelReference: 'BT-50',
+        plate: 'xyz987',
+      }),
+    ).resolves.toMatchObject({
+      customerId: 'customer-inline',
+      brandId: 'brand-bosch',
+      brand: 'Bosch',
+    });
+    expect(repository.createWithResolvedRelations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: expect.objectContaining({ phone: ' 3001112233 ' }),
+        brand: ' BoScH ',
+      }),
+    );
+  });
+
   it('rejects vehicle creation when the parent customer is missing', async () => {
-    repository.customerExists.mockResolvedValue(false);
+    repository.createWithResolvedRelations.mockRejectedValue(
+      new NotFoundException('Customer missing-customer not found'),
+    );
 
     await expect(
       service.create({
@@ -64,8 +132,9 @@ describe('VehiclesService', () => {
   });
 
   it('maps duplicate vehicle plates to ConflictException', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.create.mockRejectedValue(new VehicleDuplicatePlateError());
+    repository.createWithResolvedRelations.mockRejectedValue(
+      new VehicleDuplicatePlateError(),
+    );
 
     await expect(
       service.create({
@@ -185,8 +254,7 @@ describe('VehiclesService', () => {
   });
 
   it('quick-creates a vehicle with option-compatible response data', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.create.mockResolvedValue(vehicleRecord);
+    repository.createWithResolvedRelations.mockResolvedValue(vehicleRecord as never);
 
     await expect(
       service.quickCreate({

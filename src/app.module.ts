@@ -23,6 +23,7 @@ import { AppSettingsModule } from './app-settings/app-settings.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { EmployeeMonthlyPayrollModule } from './employee-monthly-payroll/employee-monthly-payroll.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BrandsModule } from './brands/brands.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     VehiclesModule,
     ComponentsModule,
     ComponentTypesModule,
+    BrandsModule,
     SuppliersModule,
     ServicesModule,
     InventoryModule,

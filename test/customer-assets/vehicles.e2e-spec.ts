@@ -218,6 +218,49 @@ describe('VehiclesController (e2e)', () => {
     });
   });
 
+  it('creates a vehicle with inline customer and brand name through standard POST', async () => {
+    vehiclesService.create.mockResolvedValue({
+      id: 'vehicle-inline',
+      customerId: 'customer-inline',
+      brandId: 'brand-bosch',
+      brand: 'Bosch',
+      brandRef: { id: 'brand-bosch', name: 'Bosch' },
+      modelReference: 'BT-50',
+      plate: 'XYZ987',
+      notes: null,
+      createdAt: '2026-05-05T12:00:00.000Z',
+      updatedAt: '2026-05-05T12:00:00.000Z',
+    });
+
+    const accessToken = await createAccessToken('ADMIN');
+    const response = await request(app.getHttpServer())
+      .post('/vehicles')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customer: {
+          name: ' Laura Perez ',
+          phone: ' 3001112233 ',
+          documentType: 'CEDULA',
+          documentNumber: ' 123 ',
+        },
+        brand: { name: ' BoScH ' },
+        modelReference: ' BT-50 ',
+        plate: ' xyz987 ',
+      })
+      .expect(201);
+    const body = readBody<{ brandId: string; plate: string }>(response);
+
+    expect(body.brandId).toBe('brand-bosch');
+    expect(body.plate).toBe('XYZ987');
+    expect(vehiclesService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brand: 'BoScH',
+        plate: 'XYZ987',
+        customer: expect.objectContaining({ phone: '3001112233' }),
+      }),
+    );
+  });
+
   it('rejects invalid vehicle lifecycle input', async () => {
     const accessToken = await createAccessToken('ADMIN');
 
@@ -355,6 +398,29 @@ describe('VehiclesController (e2e)', () => {
       .send({
         customerId: 'customer-2',
       })
+      .expect(400);
+  });
+
+  it('rejects create-only vehicle aggregate relation fields on update', async () => {
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .patch('/vehicles/vehicle-1')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customer: {
+          name: 'Laura Perez',
+          phone: '3001112233',
+          documentType: 'CEDULA',
+          documentNumber: '123',
+        },
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .patch('/vehicles/vehicle-1')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({ brandId: 'brand-bosch' })
       .expect(400);
   });
 });

@@ -244,6 +244,16 @@ describe('CustomersController (e2e)', () => {
       .set('Cookie', [`md_access=${accessToken}`])
       .send({
         name: 'Ana Gomez',
+        documentType: CustomerDocumentType.CEDULA,
+        documentNumber: '123456789',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/customers')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        name: 'Ana Gomez',
         phone: '3001234567',
         documentType: CustomerDocumentType.CEDULA,
         documentNumber: '123456789',

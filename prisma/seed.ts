@@ -22,6 +22,10 @@ import { seedWorkOrders } from './seed-work-orders';
 
 const BCRYPT_ROUNDS = 12;
 
+function normalizeBrandKey(name: string) {
+  return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
 function lexicalNote(text: string) {
   return {
     root: {
@@ -183,6 +187,17 @@ const SEED_COMPONENTS = [
     isActive: false,
   },
 ] as const;
+
+const SEED_BRANDS = Array.from(
+  new Set([
+    ...SEED_VEHICLES.map((vehicle) => vehicle.brand),
+    ...SEED_COMPONENTS.map((component) => component.brand),
+  ]),
+).map((name) => ({
+  id: `seed-brand-${normalizeBrandKey(name).replace(/[^a-z0-9]+/g, '-')}`,
+  name,
+  normalizedName: normalizeBrandKey(name),
+}));
 
 const SEED_SERVICES = [
   {
@@ -526,12 +541,41 @@ async function main() {
       console.log(`Seeded customer: ${seedCustomer.name}`);
     }
 
+    const seedBrandIdsByNormalizedName = new Map<string, string>();
+
+    for (const seedBrand of SEED_BRANDS) {
+      const brand = await prisma.brand.upsert({
+        where: { normalizedName: seedBrand.normalizedName },
+        create: {
+          id: seedBrand.id,
+          name: seedBrand.name,
+          normalizedName: seedBrand.normalizedName,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          name: seedBrand.name,
+          isActive: true,
+          updatedAt: now,
+        },
+      });
+
+      seedBrandIdsByNormalizedName.set(seedBrand.normalizedName, brand.id);
+
+      console.log(`Seeded brand: ${seedBrand.name}`);
+    }
+
     for (const seedVehicle of SEED_VEHICLES) {
+      const seedBrandId = seedBrandIdsByNormalizedName.get(
+        normalizeBrandKey(seedVehicle.brand),
+      )!;
       await prisma.vehicle.upsert({
         where: { plate: seedVehicle.plate },
         create: {
           id: seedVehicle.id,
           customerId: seedVehicle.customerId,
+          brandId: seedBrandId,
           brand: seedVehicle.brand,
           modelReference: seedVehicle.modelReference,
           plate: seedVehicle.plate,
@@ -542,6 +586,7 @@ async function main() {
         },
         update: {
           customerId: seedVehicle.customerId,
+          brandId: seedBrandId,
           brand: seedVehicle.brand,
           modelReference: seedVehicle.modelReference,
           notes: lexicalNote(seedVehicle.notes),
@@ -577,6 +622,9 @@ async function main() {
     }
 
     for (const seedComponent of SEED_COMPONENTS) {
+      const seedBrandId = seedBrandIdsByNormalizedName.get(
+        normalizeBrandKey(seedComponent.brand),
+      )!;
       await prisma.component.upsert({
         where: { id: seedComponent.id },
         create: {
@@ -584,6 +632,7 @@ async function main() {
           customerId: seedComponent.customerId,
           vehicleId: seedComponent.vehicleId,
           componentTypeId: seedComponent.componentTypeId,
+          brandId: seedBrandId,
           brand: seedComponent.brand,
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,
@@ -596,6 +645,7 @@ async function main() {
           customerId: seedComponent.customerId,
           vehicleId: seedComponent.vehicleId,
           componentTypeId: seedComponent.componentTypeId,
+          brandId: seedBrandId,
           brand: seedComponent.brand,
           reference: seedComponent.reference,
           identifier: seedComponent.identifier,

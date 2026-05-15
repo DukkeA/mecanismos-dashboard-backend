@@ -19,6 +19,7 @@ jest.mock('../../src/prisma.service', () => {
 
 import {
   BadRequestException,
+  ConflictException,
   INestApplication,
   NotFoundException,
   ValidationPipe,
@@ -310,6 +311,58 @@ describe('ComponentsController (e2e)', () => {
     );
   });
 
+  it('creates a component with inline references through standard POST', async () => {
+    componentsService.create.mockResolvedValue({
+      id: 'component-inline',
+      customerId: 'customer-inline',
+      vehicleId: 'vehicle-inline',
+      componentTypeId: 'component-type-inline',
+      brandId: 'brand-bosch',
+      brand: 'Bosch',
+      reference: 'ALT-90A',
+      identifier: null,
+      notes: null,
+      brandRef: { id: 'brand-bosch', name: 'Bosch' },
+      componentType: { id: 'component-type-inline', name: 'Alternador' },
+      createdAt: '2026-05-05T12:00:00.000Z',
+      updatedAt: '2026-05-05T12:00:00.000Z',
+    });
+
+    const accessToken = await createAccessToken('ADMIN');
+    const response = await request(app.getHttpServer())
+      .post('/components')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customer: {
+          name: 'Laura Perez',
+          phone: '3001112233',
+          documentType: 'CEDULA',
+          documentNumber: '123',
+        },
+        componentType: { name: ' Alternador ' },
+        brand: { name: ' BoScH ' },
+        reference: ' ALT-90A ',
+        vehicle: {
+          brand: ' Mazda ',
+          modelReference: 'BT-50',
+          plate: ' xyz987 ',
+        },
+      })
+      .expect(201);
+    const body = readBody<{ componentTypeId: string; vehicleId: string }>(response);
+
+    expect(body.componentTypeId).toBe('component-type-inline');
+    expect(body.vehicleId).toBe('vehicle-inline');
+    expect(componentsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brand: 'BoScH',
+        reference: 'ALT-90A',
+        componentType: { name: 'Alternador' },
+        vehicle: expect.objectContaining({ brand: 'Mazda', plate: 'XYZ987' }),
+      }),
+    );
+  });
+
   it('maps missing parent customer errors to 404', async () => {
     componentsService.create.mockRejectedValue(
       new NotFoundException('Customer missing-customer not found'),
@@ -347,6 +400,35 @@ describe('ComponentsController (e2e)', () => {
         reference: 'ALT-90A',
       })
       .expect(400);
+  });
+
+  it('maps duplicate inline vehicle plate errors to 409', async () => {
+    componentsService.create.mockRejectedValue(
+      new ConflictException('Vehicle plate already exists'),
+    );
+
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .post('/components')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customer: {
+          name: 'Laura Perez',
+          phone: '3001112233',
+          documentType: 'CEDULA',
+          documentNumber: '123',
+        },
+        componentType: { name: 'Alternador' },
+        brand: { name: 'Bosch' },
+        reference: 'ALT-90A',
+        vehicle: {
+          brand: 'Mazda',
+          modelReference: 'BT-50',
+          plate: 'ABC123',
+        },
+      })
+      .expect(409);
   });
 
   it('returns a component by id', async () => {
@@ -454,6 +536,35 @@ describe('ComponentsController (e2e)', () => {
       .send({
         customerId: 'customer-2',
       })
+      .expect(400);
+  });
+
+  it('rejects create-only component aggregate relation fields on update', async () => {
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .patch('/components/component-1')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customer: {
+          name: 'Laura Perez',
+          phone: '3001112233',
+          documentType: 'CEDULA',
+          documentNumber: '123',
+        },
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .patch('/components/component-1')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({ componentType: { name: 'Alternador' } })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .patch('/components/component-1')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({ vehicle: { brand: 'Mazda', modelReference: 'BT-50', plate: 'XYZ987' } })
       .expect(400);
   });
 });

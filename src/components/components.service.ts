@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,21 +15,39 @@ import type { ComponentOptionsQueryDto } from './dto/component-options-query.dto
 import type { CreateComponentDto } from './dto/create-component.dto';
 import type { ListComponentsQueryDto } from './dto/list-components-query.dto';
 import type { UpdateComponentDto } from './dto/update-component.dto';
-import { ComponentsRepository } from './persistence/components.repository';
+import {
+  ComponentInlineVehicleDuplicatePlateError,
+  ComponentsRepository,
+} from './persistence/components.repository';
 
 @Injectable()
 export class ComponentsService {
   constructor(private readonly componentsRepository: ComponentsRepository) {}
 
   async create(createComponentDto: CreateComponentDto) {
-    await this.assertCustomerExists(createComponentDto.customerId);
+    if (usesResolvedRelations(createComponentDto)) {
+      try {
+        return await this.componentsRepository.createWithResolvedRelations(
+          createComponentDto,
+        );
+      } catch (error) {
+        rethrowKnownCreateError(error);
+      }
+    }
+
+    await this.assertCustomerExists(createComponentDto.customerId!);
     await this.assertComponentTypeExists(createComponentDto.componentTypeId);
     await this.assertVehicleOwnership(
       createComponentDto.vehicleId,
-      createComponentDto.customerId,
+      createComponentDto.customerId!,
     );
 
-    return this.componentsRepository.create(createComponentDto);
+    return this.componentsRepository.create({
+      ...createComponentDto,
+      customerId: createComponentDto.customerId!,
+      componentTypeId: createComponentDto.componentTypeId!,
+      brand: createComponentDto.brand!,
+    });
   }
 
   async findAll(query: ListComponentsQueryDto) {
@@ -123,6 +142,35 @@ export class ComponentsService {
       );
     }
   }
+}
+
+function rethrowKnownCreateError(error: unknown): never {
+  if (error instanceof ComponentInlineVehicleDuplicatePlateError) {
+    throw new ConflictException('Vehicle plate already exists');
+  }
+
+  if (error instanceof Error) {
+    if (/^Vehicle .+ does not belong to customer .+$/.test(error.message)) {
+      throw new BadRequestException(error.message);
+    }
+
+    if (/^(Customer|Vehicle|Brand|Component type) .+ not found$/.test(error.message)) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  throw error;
+}
+
+function usesResolvedRelations(createComponentDto: CreateComponentDto) {
+  return Boolean(
+    createComponentDto.customer ||
+      createComponentDto.componentType ||
+      createComponentDto.vehicle ||
+      createComponentDto.brandId ||
+      createComponentDto.brandName ||
+      createComponentDto.brand,
+  );
 }
 
 function mapComponentOption(component: {

@@ -23,8 +23,18 @@ export class VehiclesService {
   constructor(private readonly vehiclesRepository: VehiclesRepository) {}
 
   async create(createVehicleDto: CreateVehicleDto) {
+    if (usesResolvedRelations(createVehicleDto)) {
+      try {
+        return await this.vehiclesRepository.createWithResolvedRelations(
+          createVehicleDto,
+        );
+      } catch (error) {
+        this.rethrowKnownError(error);
+      }
+    }
+
     const customerExists = await this.vehiclesRepository.customerExists(
-      createVehicleDto.customerId,
+      createVehicleDto.customerId!,
     );
 
     if (!customerExists) {
@@ -34,7 +44,11 @@ export class VehiclesService {
     }
 
     try {
-      return await this.vehiclesRepository.create(createVehicleDto);
+      return await this.vehiclesRepository.create({
+        ...createVehicleDto,
+        customerId: createVehicleDto.customerId!,
+        brand: createVehicleDto.brand!,
+      });
     } catch (error) {
       this.rethrowKnownError(error);
     }
@@ -89,8 +103,21 @@ export class VehiclesService {
       throw new ConflictException('Vehicle plate already exists');
     }
 
+    if (error instanceof Error && /^(Customer|Brand) .+ not found$/.test(error.message)) {
+      throw new NotFoundException(error.message);
+    }
+
     throw error;
   }
+}
+
+function usesResolvedRelations(createVehicleDto: CreateVehicleDto) {
+  return Boolean(
+    createVehicleDto.customer ||
+      createVehicleDto.brandId ||
+      createVehicleDto.brandName ||
+      createVehicleDto.brand,
+  );
 }
 
 function mapVehicleOption(vehicle: {

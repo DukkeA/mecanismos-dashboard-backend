@@ -44,6 +44,7 @@ model Component {
   customerId      String
   vehicleId       String?
   componentTypeId String
+  brandId         String?
   brand           String
   reference       String
   identifier      String?
@@ -52,18 +53,34 @@ model Component {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime
   Customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  brandRef        Brand?        @relation(fields: [brandId], references: [id])
   componentType   ComponentType @relation(fields: [componentTypeId], references: [id])
   Vehicle         Vehicle?      @relation(fields: [vehicleId], references: [id])
   WorkOrder       WorkOrder[]
 
   @@index([componentTypeId])
   @@index([componentTypeId, isActive])
+  @@index([brandId])
   @@index([customerId])
   @@index([customerId, isActive])
   @@index([identifier])
   @@index([isActive])
   @@index([vehicleId])
   @@index([vehicleId, isActive])
+}
+
+model Brand {
+  id             String      @id
+  name           String
+  normalizedName String      @unique
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime
+  components     Component[]
+  vehicles       Vehicle[]
+
+  @@index([isActive])
+  @@index([name])
 }
 
 model ComponentType {
@@ -343,6 +360,7 @@ model SupplierQuoteHistory {
 model Vehicle {
   id             String      @id
   customerId     String
+  brandId        String?
   brand          String
   modelReference String
   plate          String      @unique
@@ -352,10 +370,12 @@ model Vehicle {
   updatedAt      DateTime
   Component      Component[]
   Customer       Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  brandRef       Brand?      @relation(fields: [brandId], references: [id])
   WorkOrder      WorkOrder[]
 
   @@index([customerId])
   @@index([customerId, isActive])
+  @@index([brandId])
   @@index([isActive])
 }
 

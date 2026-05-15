@@ -1,6 +1,6 @@
 # Frontend reference data and quick create
 
-This slice is READY FOR REVIEW as a single `size:exception` work unit. The backend now exposes module-owned `GET /.../options` and `POST /.../quick-create` routes so frontend forms can fetch compact combobox data and create missing records inline without depending on full CRUD payloads.
+The current standard for customer asset create forms is: use normal REST create endpoints first, and use `GET /.../options` for combobox lookup. Vehicles and components can now resolve or create related customer/brand/component-type data inside `POST /vehicles` and `POST /components`; `/quick-create` remains for lightweight option flows, not for this aggregate UX. This remains a reviewer-facing `size:exception` reference-data slice.
 
 ## Quick path
 
@@ -24,6 +24,8 @@ This slice is READY FOR REVIEW as a single `size:exception` work unit. The backe
 | Shared options contract | `GET /services/options`, `GET /vehicles/options`, `GET /cost-centers/options` | Always returns `{ data, meta? }` with compact `id` + `label` rows. |
 | Bounded search | `GET /services/options?search=diag&limit=10` | Search is trimmed and `limit` validates `<= 100`. |
 | Inline creation | `POST /customers/quick-create`, `POST /inventory-items/quick-create`, `POST /cost-centers/quick-create` | Success returns option-compatible `data` plus optional `entity`/`meta`. |
+| Standard aggregate create | `POST /vehicles`, `POST /components` | Accepts existing ids or inline related payloads; service/repository path resolves them transactionally. |
+| Brand comboboxes | `GET /brands/options`, `POST /brands` | Brand names are duplicate-safe by normalized key. |
 | Employee incomplete profile | `POST /employees/quick-create` | Missing salary is accepted, persisted as `0`, and documented with `meta.incompleteProfile=true`. |
 | Relationship safety | `POST /components/quick-create` | Component creation still rejects a vehicle that belongs to another customer. |
 
@@ -39,7 +41,7 @@ This slice is READY FOR REVIEW as a single `size:exception` work unit. The backe
 This section makes the out of scope boundary explicit for reviewers.
 
 - No generic `/reference-data` aggregator.
-- No nested magical creates that write customer, vehicle, and component in one request.
+- No non-standard `/with-related` endpoints. Customer asset aggregate create stays on standard `POST /vehicles` and `POST /components`.
 - No inventory stock movements during item quick-create.
 - No attempt to complete the entire employee payroll profile inline.
 

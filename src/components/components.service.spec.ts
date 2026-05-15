@@ -1,5 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { ComponentsRepository } from './persistence/components.repository';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ComponentInlineVehicleDuplicatePlateError,
+  ComponentsRepository,
+} from './persistence/components.repository';
 import { ComponentsService } from './components.service';
 
 describe('ComponentsService', () => {
@@ -34,23 +37,18 @@ describe('ComponentsService', () => {
     findOptions: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
+    createWithResolvedRelations: jest.fn(),
   } as unknown as jest.Mocked<ComponentsRepository>;
 
   let service: ComponentsService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     service = new ComponentsService(repository);
   });
 
   it('creates a component with an optional same-customer vehicle link', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.componentTypeExists.mockResolvedValue(true);
-    repository.findVehicleOwnership.mockResolvedValue({
-      id: 'vehicle-1',
-      customerId: 'customer-1',
-    });
-    repository.create.mockResolvedValue(componentRecord);
+    repository.createWithResolvedRelations.mockResolvedValue(componentRecord as never);
 
     await expect(
       service.create({
@@ -65,14 +63,86 @@ describe('ComponentsService', () => {
     ).resolves.toEqual(componentRecord);
   });
 
+  it('creates a component by resolving existing customer, component type, and brand ids', async () => {
+    repository.createWithResolvedRelations.mockResolvedValue({
+      ...componentRecord,
+      brandId: 'brand-bosch',
+      brandRef: { id: 'brand-bosch', name: 'Bosch', normalizedName: 'bosch' },
+    } as never);
+
+    await expect(
+      service.create({
+        customerId: 'customer-1',
+        vehicleId: 'vehicle-1',
+        componentTypeId: 'component-type-1',
+        brandId: 'brand-bosch',
+        reference: ' ALT-90A ',
+      }),
+    ).resolves.toMatchObject({
+      id: 'component-1',
+      brandId: 'brand-bosch',
+      brandRef: { id: 'brand-bosch', name: 'Bosch' },
+    });
+    expect(repository.createWithResolvedRelations).toHaveBeenCalledWith({
+      customerId: 'customer-1',
+      vehicleId: 'vehicle-1',
+      componentTypeId: 'component-type-1',
+      brandId: 'brand-bosch',
+      reference: ' ALT-90A ',
+    });
+    expect(repository.customerExists).not.toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a component with inline customer, component type, brand, and vehicle data', async () => {
+    repository.createWithResolvedRelations.mockResolvedValue({
+      ...componentRecord,
+      customerId: 'customer-inline',
+      vehicleId: 'vehicle-inline',
+      componentTypeId: 'component-type-inline',
+      brandId: 'brand-bosch',
+      brand: 'Bosch',
+      brandRef: { id: 'brand-bosch', name: 'Bosch', normalizedName: 'bosch' },
+    } as never);
+
+    await expect(
+      service.create({
+        customer: {
+          name: 'Laura Perez',
+          phone: '3001112233',
+          documentType: 'CEDULA' as never,
+          documentNumber: '123',
+        },
+        componentType: { name: 'Alternador' },
+        brand: ' BoScH ',
+        reference: 'ALT-90A',
+        vehicle: {
+          brand: ' Mazda ',
+          modelReference: 'BT-50',
+          plate: 'xyz987',
+        },
+      }),
+    ).resolves.toMatchObject({
+      customerId: 'customer-inline',
+      vehicleId: 'vehicle-inline',
+      componentTypeId: 'component-type-inline',
+      brandId: 'brand-bosch',
+    });
+    expect(repository.createWithResolvedRelations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brand: ' BoScH ',
+        componentType: { name: 'Alternador' },
+        vehicle: expect.objectContaining({ plate: 'xyz987' }),
+      }),
+    );
+  });
+
   it('creates a component without a vehicle link when vehicleId is omitted', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.componentTypeExists.mockResolvedValue(true);
-    repository.create.mockResolvedValue({
+    repository.createWithResolvedRelations.mockResolvedValue({
       ...componentRecord,
       vehicleId: null,
       identifier: null,
-    });
+    } as never);
 
     await expect(
       service.create({
@@ -90,7 +160,9 @@ describe('ComponentsService', () => {
   });
 
   it('rejects component creation when the parent customer is missing', async () => {
-    repository.customerExists.mockResolvedValue(false);
+    repository.createWithResolvedRelations.mockRejectedValue(
+      new NotFoundException('Customer missing-customer not found'),
+    );
 
     await expect(
       service.create({
@@ -105,12 +177,11 @@ describe('ComponentsService', () => {
   });
 
   it('rejects component creation when vehicle belongs to another customer', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.componentTypeExists.mockResolvedValue(true);
-    repository.findVehicleOwnership.mockResolvedValue({
-      id: 'vehicle-2',
-      customerId: 'customer-2',
-    });
+    repository.createWithResolvedRelations.mockRejectedValue(
+      new BadRequestException(
+        'Vehicle vehicle-2 does not belong to customer customer-1',
+      ),
+    );
 
     await expect(
       service.create({
@@ -127,9 +198,35 @@ describe('ComponentsService', () => {
     );
   });
 
+  it('maps duplicate inline vehicle plates to ConflictException', async () => {
+    repository.createWithResolvedRelations.mockRejectedValue(
+      new ComponentInlineVehicleDuplicatePlateError(),
+    );
+
+    await expect(
+      service.create({
+        customer: {
+          name: 'Laura Perez',
+          phone: '3001112233',
+          documentType: 'CEDULA' as never,
+          documentNumber: '123',
+        },
+        componentType: { name: 'Alternador' },
+        brand: 'Bosch',
+        reference: 'ALT-90A',
+        vehicle: {
+          brand: 'Mazda',
+          modelReference: 'BT-50',
+          plate: 'ABC123',
+        },
+      }),
+    ).rejects.toThrow(new ConflictException('Vehicle plate already exists'));
+  });
+
   it('rejects component creation when the component type does not exist', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.componentTypeExists.mockResolvedValue(false);
+    repository.createWithResolvedRelations.mockRejectedValue(
+      new NotFoundException('Component type missing-component-type not found'),
+    );
 
     await expect(
       service.create({
@@ -302,13 +399,7 @@ describe('ComponentsService', () => {
   });
 
   it('quick-creates a component with option-compatible response data', async () => {
-    repository.customerExists.mockResolvedValue(true);
-    repository.componentTypeExists.mockResolvedValue(true);
-    repository.findVehicleOwnership.mockResolvedValue({
-      id: 'vehicle-1',
-      customerId: 'customer-1',
-    });
-    repository.create.mockResolvedValue(componentRecord);
+    repository.createWithResolvedRelations.mockResolvedValue(componentRecord as never);
 
     await expect(
       service.quickCreate({
