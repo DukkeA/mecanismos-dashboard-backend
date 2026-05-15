@@ -41,7 +41,10 @@ export class ComponentsService {
   }
 
   async findOptions(query: ComponentOptionsQueryDto) {
-    const options = await this.componentsRepository.findOptions(query);
+    const options = await this.componentsRepository.findOptions({
+      ...query,
+      isActive: query.isActive ?? true,
+    });
 
     return buildOptionsResponse(options.map(mapComponentOption), query.limit);
   }
@@ -129,6 +132,7 @@ function mapComponentOption(component: {
   brand: string;
   reference: string;
   identifier?: string | null;
+  isActive?: boolean;
   componentType: { id: string; name: string };
 }): ReferenceOption {
   return {
@@ -142,6 +146,9 @@ function mapComponentOption(component: {
       vehicleId: component.vehicleId ?? null,
       componentTypeId: component.componentType.id,
       componentTypeName: component.componentType.name,
+      ...(component.isActive !== undefined
+        ? { isActive: component.isActive }
+        : {}),
     },
   };
 }

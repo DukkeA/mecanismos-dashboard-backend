@@ -1,6 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { OptionalBooleanQuery } from '../../common/reference-data';
 import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 export class ListVehiclesQueryDto {
@@ -30,4 +38,10 @@ export class ListVehiclesQueryDto {
   @OptionalTrimmedString()
   @IsString()
   customerId?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @OptionalBooleanQuery()
+  @IsBoolean()
+  isActive?: boolean;
 }

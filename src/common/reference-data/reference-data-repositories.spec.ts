@@ -50,6 +50,7 @@ describe('reference-data repository option queries', () => {
         documentType: true,
         documentNumber: true,
         email: true,
+        isActive: true,
       },
     });
   });
@@ -88,6 +89,7 @@ describe('reference-data repository option queries', () => {
         brand: true,
         modelReference: true,
         plate: true,
+        isActive: true,
       },
     });
   });
@@ -131,6 +133,7 @@ describe('reference-data repository option queries', () => {
         brand: true,
         reference: true,
         identifier: true,
+        isActive: true,
         componentType: { select: { id: true, name: true } },
       },
     });

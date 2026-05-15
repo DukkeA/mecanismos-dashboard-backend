@@ -135,4 +135,82 @@ describe('ComponentsRepository', () => {
       },
     });
   });
+
+  it('persists and filters inactive components without changing unfiltered lists', async () => {
+    type CreateArgs = { data: Record<string, unknown> };
+    type UpdateArgs = { where: { id: string }; data: Record<string, unknown> };
+    type FindManyArgs = { where: Record<string, unknown> };
+
+    let receivedCreateArgs: CreateArgs | undefined;
+    let receivedUpdateArgs: UpdateArgs | undefined;
+    let receivedFilteredFindManyArgs: FindManyArgs | undefined;
+    let receivedUnfilteredFindManyArgs: FindManyArgs | undefined;
+
+    const prisma = {
+      component: {
+        create: jest.fn((args: CreateArgs) => {
+          receivedCreateArgs = args;
+          return Promise.resolve({ id: 'component-1', isActive: false });
+        }),
+        update: jest.fn((args: UpdateArgs) => {
+          receivedUpdateArgs = args;
+          return Promise.resolve({ id: 'component-1', isActive: false });
+        }),
+        findMany: jest
+          .fn()
+          .mockImplementationOnce((args: FindManyArgs) => {
+            receivedFilteredFindManyArgs = args;
+            return Promise.resolve([]);
+          })
+          .mockImplementationOnce((args: FindManyArgs) => {
+            receivedUnfilteredFindManyArgs = args;
+            return Promise.resolve([]);
+          }),
+        count: jest.fn(() => Promise.resolve(0)),
+      },
+    };
+
+    const repository = new ComponentsRepository(prisma as never);
+
+    await repository.create({
+      customerId: 'customer-1',
+      componentTypeId: 'component-type-1',
+      brand: 'Bosch',
+      reference: 'ALT-90A',
+      isActive: false,
+    });
+    await repository.update('component-1', { isActive: false });
+    await repository.findMany({ page: 1, limit: 10, isActive: false });
+    await repository.findMany({ page: 1, limit: 10 });
+
+    expect(receivedCreateArgs?.data.isActive).toBe(false);
+    expect(receivedUpdateArgs?.data.isActive).toBe(false);
+    expect(receivedFilteredFindManyArgs?.where).toEqual({ isActive: false });
+    expect(receivedUnfilteredFindManyArgs?.where).toEqual({});
+  });
+
+  it('filters component options by explicit lifecycle state', async () => {
+    type FindManyArgs = {
+      where: Record<string, unknown>;
+      select: { isActive?: boolean };
+    };
+
+    let receivedFindManyArgs: FindManyArgs | undefined;
+
+    const prisma = {
+      component: {
+        findMany: jest.fn((args: FindManyArgs) => {
+          receivedFindManyArgs = args;
+          return Promise.resolve([]);
+        }),
+      },
+    };
+
+    const repository = new ComponentsRepository(prisma as never);
+
+    await repository.findOptions({ limit: 10, isActive: false });
+
+    expect(receivedFindManyArgs?.where).toEqual({ isActive: false });
+    expect(receivedFindManyArgs?.select.isActive).toBe(true);
+  });
 });

@@ -50,7 +50,10 @@ export class VehiclesService {
   }
 
   async findOptions(query: VehicleOptionsQueryDto) {
-    const options = await this.vehiclesRepository.findOptions(query);
+    const options = await this.vehiclesRepository.findOptions({
+      ...query,
+      isActive: query.isActive ?? true,
+    });
 
     return buildOptionsResponse(options.map(mapVehicleOption), query.limit);
   }
@@ -96,6 +99,7 @@ function mapVehicleOption(vehicle: {
   brand: string;
   modelReference: string;
   plate: string;
+  isActive?: boolean;
 }): ReferenceOption {
   return {
     id: vehicle.id,
@@ -105,6 +109,7 @@ function mapVehicleOption(vehicle: {
       customerId: vehicle.customerId,
       brand: vehicle.brand,
       modelReference: vehicle.modelReference,
+      ...(vehicle.isActive !== undefined ? { isActive: vehicle.isActive } : {}),
     },
   };
 }

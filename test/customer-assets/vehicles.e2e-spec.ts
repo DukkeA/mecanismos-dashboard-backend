@@ -37,6 +37,7 @@ describe('VehiclesController (e2e)', () => {
   const vehiclesService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findOptions: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
   };
@@ -150,6 +151,35 @@ describe('VehiclesController (e2e)', () => {
     },
   );
 
+  it('passes vehicle lifecycle filters and options overrides to the service', async () => {
+    vehiclesService.findAll.mockResolvedValue({
+      data: [{ id: 'vehicle-inactive', isActive: false }],
+      meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
+    });
+    vehiclesService.findOptions.mockResolvedValue({
+      data: [{ id: 'vehicle-inactive', label: 'INA001' }],
+      meta: { limit: 10 },
+    });
+
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .get('/vehicles?isActive=false')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/vehicles/options?isActive=false')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(200);
+
+    expect(vehiclesService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: false }),
+    );
+    expect(vehiclesService.findOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: false }),
+    );
+  });
+
   it('creates a vehicle for an existing customer', async () => {
     vehiclesService.create.mockResolvedValue({
       id: 'vehicle-1',
@@ -172,6 +202,7 @@ describe('VehiclesController (e2e)', () => {
         modelReference: ' CX5 ',
         plate: ' abc123 ',
         notes: lexicalTestNote('Blindaje nivel 1'),
+        isActive: false,
       })
       .expect(201);
     const body = readBody<{ plate: string }>(response);
@@ -183,7 +214,41 @@ describe('VehiclesController (e2e)', () => {
       modelReference: 'CX5',
       plate: 'ABC123',
       notes: lexicalTestNote('Blindaje nivel 1'),
+      isActive: false,
     });
+  });
+
+  it('rejects invalid vehicle lifecycle input', async () => {
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .post('/vehicles')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customerId: 'customer-1',
+        brand: 'Mazda',
+        modelReference: 'CX5',
+        plate: 'ABC123',
+        isActive: 'false',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/vehicles')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customerId: 'customer-1',
+        brand: 'Mazda',
+        modelReference: 'CX5',
+        plate: 'ABC123',
+        lifecycleState: 'inactive',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/vehicles/options?isActive=inactive')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(400);
   });
 
   it('maps duplicate vehicle plate errors to 409', async () => {
@@ -266,6 +331,7 @@ describe('VehiclesController (e2e)', () => {
         modelReference: ' CX50 ',
         plate: ' xyz987 ',
         notes: lexicalTestNote('Actualizado'),
+        isActive: false,
       })
       .expect(200);
     const body = readBody<{ plate: string }>(response);
@@ -276,6 +342,7 @@ describe('VehiclesController (e2e)', () => {
       modelReference: 'CX50',
       plate: 'XYZ987',
       notes: lexicalTestNote('Actualizado'),
+      isActive: false,
     });
   });
 

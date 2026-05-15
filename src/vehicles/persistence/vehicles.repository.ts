@@ -12,7 +12,7 @@ export type VehicleRecord = Vehicle;
 
 export type VehicleOptionRecord = Pick<
   Vehicle,
-  'id' | 'customerId' | 'brand' | 'modelReference' | 'plate'
+  'id' | 'customerId' | 'brand' | 'modelReference' | 'plate' | 'isActive'
 >;
 
 export type CreateVehicleRecordInput = {
@@ -21,6 +21,7 @@ export type CreateVehicleRecordInput = {
   modelReference: string;
   plate: string;
   notes?: LexicalNoteJson | null;
+  isActive?: boolean;
 };
 
 export type UpdateVehicleRecordInput = Partial<
@@ -32,12 +33,14 @@ export type ListVehiclesQuery = {
   limit: number;
   search?: string;
   customerId?: string;
+  isActive?: boolean;
 };
 
 export type ListVehicleOptionsQuery = {
   limit: number;
   search?: string;
   customerId?: string;
+  isActive?: boolean;
 };
 
 type VehicleWhereInput = Prisma.VehicleWhereInput;
@@ -91,6 +94,7 @@ export class VehiclesRepository {
           modelReference: input.modelReference.trim(),
           plate: normalizePlate(input.plate),
           notes: normalizeOptionalNoteJson(input.notes) ?? null,
+          ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
           updatedAt: now,
         },
       });
@@ -148,6 +152,7 @@ export class VehiclesRepository {
             brand: true;
             modelReference: true;
             plate: true;
+            isActive: true;
           };
         }): Promise<VehicleOptionRecord[]>;
       };
@@ -163,6 +168,7 @@ export class VehiclesRepository {
         brand: true,
         modelReference: true,
         plate: true,
+        isActive: true,
       },
     });
   }
@@ -184,6 +190,7 @@ export class VehiclesRepository {
           ...(input.notes !== undefined
             ? { notes: normalizeOptionalNoteJson(input.notes) }
             : {}),
+          ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
           updatedAt: now,
         },
       });
@@ -198,6 +205,7 @@ function buildVehicleWhere(query: ListVehiclesQuery): VehicleWhereInput {
 
   return {
     ...(query.customerId ? { customerId: query.customerId } : {}),
+    ...(query.isActive !== undefined ? { isActive: query.isActive } : {}),
     ...(search
       ? {
           OR: [
@@ -212,12 +220,6 @@ function buildVehicleWhere(query: ListVehiclesQuery): VehicleWhereInput {
 
 function normalizePlate(plate: string) {
   return plate.trim().toUpperCase();
-}
-
-function normalizeOptionalString(value?: string) {
-  const normalized = value?.trim();
-
-  return normalized ? normalized : null;
 }
 
 function mapVehicleWriteError(error: unknown) {

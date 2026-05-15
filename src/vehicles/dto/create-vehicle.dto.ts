@@ -1,9 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
-import {
-  OptionalTrimmedString,
-  TrimmedString,
-} from '../../common/transforms/string.transforms';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { TrimmedString } from '../../common/transforms/string.transforms';
 import {
   LexicalNoteJson,
   OptionalLexicalNote,
@@ -43,4 +40,9 @@ export class CreateVehicleDto {
 
   @OptionalLexicalNote()
   notes?: LexicalNoteJson | null;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

@@ -21,6 +21,7 @@ export type ComponentOptionRecord = {
   brand: string;
   reference: string;
   identifier: string | null;
+  isActive: boolean;
   componentType: {
     id: string;
     name: string;
@@ -35,6 +36,7 @@ export type CreateComponentRecordInput = {
   reference: string;
   identifier?: string;
   notes?: LexicalNoteJson | null;
+  isActive?: boolean;
 };
 
 export type UpdateComponentRecordInput = Partial<
@@ -50,6 +52,7 @@ export type ListComponentsQuery = {
   customerId?: string;
   vehicleId?: string;
   componentTypeId?: string;
+  isActive?: boolean;
 };
 
 export type ListComponentOptionsQuery = {
@@ -58,6 +61,7 @@ export type ListComponentOptionsQuery = {
   customerId?: string;
   vehicleId?: string;
   componentTypeId?: string;
+  isActive?: boolean;
 };
 
 type ComponentWhereInput = Prisma.ComponentWhereInput;
@@ -121,6 +125,7 @@ export class ComponentsRepository {
         reference: input.reference.trim(),
         identifier: normalizeOptionalString(input.identifier),
         notes: normalizeOptionalNoteJson(input.notes) ?? null,
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         updatedAt: now,
       },
     });
@@ -194,6 +199,7 @@ export class ComponentsRepository {
             brand: true;
             reference: true;
             identifier: true;
+            isActive: true;
             componentType: { select: { id: true; name: true } };
           };
         }): Promise<ComponentOptionRecord[]>;
@@ -211,6 +217,7 @@ export class ComponentsRepository {
         brand: true,
         reference: true,
         identifier: true,
+        isActive: true,
         componentType: { select: { id: true, name: true } },
       },
     });
@@ -238,6 +245,7 @@ export class ComponentsRepository {
         ...(input.notes !== undefined
           ? { notes: normalizeOptionalNoteJson(input.notes) }
           : {}),
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         updatedAt: now,
       },
     });
@@ -253,6 +261,7 @@ function buildComponentWhere(query: ListComponentsQuery): ComponentWhereInput {
       ? { componentTypeId: query.componentTypeId }
       : {}),
     ...(query.vehicleId ? { vehicleId: query.vehicleId } : {}),
+    ...(query.isActive !== undefined ? { isActive: query.isActive } : {}),
     ...(search
       ? {
           OR: [

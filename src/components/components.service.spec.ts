@@ -204,6 +204,23 @@ describe('ComponentsService', () => {
     });
   });
 
+  it('defaults component options to active records and preserves explicit inactive requests', async () => {
+    repository.findOptions.mockResolvedValue([]);
+
+    await service.findOptions({ limit: 10, customerId: 'customer-1' });
+    await service.findOptions({ limit: 10, isActive: false });
+
+    expect(repository.findOptions.mock.calls[0]?.[0]).toEqual({
+      limit: 10,
+      customerId: 'customer-1',
+      isActive: true,
+    });
+    expect(repository.findOptions.mock.calls[1]?.[0]).toEqual({
+      limit: 10,
+      isActive: false,
+    });
+  });
+
   it('throws NotFoundException when the component does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 

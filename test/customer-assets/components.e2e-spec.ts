@@ -37,6 +37,7 @@ describe('ComponentsController (e2e)', () => {
   const componentsService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findOptions: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
   };
@@ -165,6 +166,35 @@ describe('ComponentsController (e2e)', () => {
     },
   );
 
+  it('passes component lifecycle filters and options overrides to the service', async () => {
+    componentsService.findAll.mockResolvedValue({
+      data: [{ id: 'component-inactive', isActive: false }],
+      meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
+    });
+    componentsService.findOptions.mockResolvedValue({
+      data: [{ id: 'component-inactive', label: 'COMP-INACTIVE-001' }],
+      meta: { limit: 10 },
+    });
+
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .get('/components?isActive=false')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/components/options?isActive=false')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(200);
+
+    expect(componentsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: false }),
+    );
+    expect(componentsService.findOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: false }),
+    );
+  });
+
   it('creates a component with a matching vehicle link', async () => {
     componentsService.create.mockResolvedValue({
       id: 'component-1',
@@ -191,6 +221,7 @@ describe('ComponentsController (e2e)', () => {
         reference: ' ALT-90A ',
         identifier: ' SER-100 ',
         notes: lexicalTestNote('Alternador reemplazado'),
+        isActive: false,
       })
       .expect(201);
     const body = readBody<{ vehicleId: string }>(response);
@@ -204,7 +235,41 @@ describe('ComponentsController (e2e)', () => {
       reference: 'ALT-90A',
       identifier: 'SER-100',
       notes: lexicalTestNote('Alternador reemplazado'),
+      isActive: false,
     });
+  });
+
+  it('rejects invalid component lifecycle input', async () => {
+    const accessToken = await createAccessToken('ADMIN');
+
+    await request(app.getHttpServer())
+      .post('/components')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customerId: 'customer-1',
+        componentTypeId: 'component-type-1',
+        brand: 'Bosch',
+        reference: 'ALT-90A',
+        isActive: 'false',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/components')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .send({
+        customerId: 'customer-1',
+        componentTypeId: 'component-type-1',
+        brand: 'Bosch',
+        reference: 'ALT-90A',
+        lifecycleState: 'inactive',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/components?isActive=inactive')
+      .set('Cookie', [`md_access=${accessToken}`])
+      .expect(400);
   });
 
   it('creates a component without vehicleId when omitted', async () => {
@@ -332,6 +397,7 @@ describe('ComponentsController (e2e)', () => {
         componentTypeId: 'component-type-2',
         reference: ' ALT-120A ',
         notes: lexicalTestNote('Actualizado'),
+        isActive: false,
       })
       .expect(200);
     const body = readBody<{ vehicleId: string }>(response);
@@ -344,6 +410,7 @@ describe('ComponentsController (e2e)', () => {
         componentTypeId: 'component-type-2',
         reference: 'ALT-120A',
         notes: lexicalTestNote('Actualizado'),
+        isActive: false,
       }),
     );
   });

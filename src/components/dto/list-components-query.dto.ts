@@ -1,6 +1,14 @@
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { OptionalBooleanQuery } from '../../common/reference-data';
 import { OptionalTrimmedString } from '../../common/transforms/string.transforms';
 
 export class ListComponentsQueryDto {
@@ -42,4 +50,10 @@ export class ListComponentsQueryDto {
   @OptionalTrimmedString()
   @IsString()
   componentTypeId?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @OptionalBooleanQuery()
+  @IsBoolean()
+  isActive?: boolean;
 }
