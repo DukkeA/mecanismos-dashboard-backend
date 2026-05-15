@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   BadRequestException,
@@ -18,7 +30,10 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { ExpenseCategory, PaymentMethod } from '../../generated/prisma/enums';
 import { AppModule } from '../../src/app.module';
+import type { LexicalNoteJson } from '../../src/common/rich-text/lexical-note';
 import { ExpensesService } from '../../src/expenses/expenses.service';
+import { authJwtPayloadForRole } from '../support/auth-prisma-mock';
+import { lexicalTestNote } from '../support/lexical-note';
 
 type CostCenterOption = {
   id: string;
@@ -35,7 +50,7 @@ type ExpensePayload = {
   costCenterId?: string | null;
   paidAt?: string | Date | null;
   paymentMethod?: PaymentMethod | null;
-  notes?: string | null;
+  notes?: LexicalNoteJson | null;
 };
 
 type ExpenseRecord = {
@@ -47,7 +62,7 @@ type ExpenseRecord = {
   costCenterId: string | null;
   paidAt: string | null;
   paymentMethod: PaymentMethod | null;
-  notes: string | null;
+  notes: LexicalNoteJson | null;
   createdAt: string;
   updatedAt: string;
   CostCenter: CostCenterOption | null;
@@ -67,12 +82,6 @@ function buildExpensesServiceOverride() {
     ],
   ]);
   let sequence = 0;
-
-  function normalizeOptionalString(value?: string | null) {
-    const normalized = value?.trim();
-
-    return normalized ? normalized : null;
-  }
 
   function ensureCostCenterExists(costCenterId?: string | null) {
     if (!costCenterId) {
@@ -118,7 +127,7 @@ function buildExpensesServiceOverride() {
       costCenterId: payload.costCenterId?.trim() ?? null,
       paidAt,
       paymentMethod: paidAt ? (payload.paymentMethod ?? null) : null,
-      notes: normalizeOptionalString(payload.notes),
+      notes: payload.notes ?? null,
       createdAt,
       updatedAt: new Date('2026-05-10T11:00:00.000Z').toISOString(),
       CostCenter: costCenter,
@@ -170,9 +179,7 @@ function buildExpensesServiceOverride() {
           return true;
         }
 
-        return [expense.name, expense.notes].some((value) =>
-          value?.toLowerCase().includes(search),
-        );
+        return expense.name.toLowerCase().includes(search);
       });
 
       return {
@@ -239,13 +246,10 @@ describe('ExpensesController (e2e)', () => {
   async function createAccessToken(role: 'ADMIN' | 'SALES' | 'MECHANIC') {
     const jwtService = new JwtService();
 
-    return jwtService.signAsync(
-      { sub: 'user-1', role },
-      {
-        secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
-        expiresIn: 900,
-      },
-    );
+    return jwtService.signAsync(authJwtPayloadForRole(role), {
+      secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+      expiresIn: 900,
+    });
   }
 
   beforeEach(async () => {
@@ -306,7 +310,7 @@ describe('ExpensesController (e2e)', () => {
           paidAt: '2026-05-16T00:00:00.000Z',
           paymentMethod: PaymentMethod.TRANSFER,
           costCenterId: 'cost-center-1',
-          notes: '  Pago oficina principal  ',
+          notes: lexicalTestNote('Pago oficina principal'),
         })
         .expect(201);
       const created = readBody<ExpenseRecord>(createResponse);
@@ -352,14 +356,16 @@ describe('ExpensesController (e2e)', () => {
         .send({
           paidAt: null,
           paymentMethod: null,
-          notes: '  Reprogramado para caja semanal  ',
+          notes: lexicalTestNote('Reprogramado para caja semanal'),
         })
         .expect(200);
       const updated = readBody<ExpenseRecord>(updateResponse);
 
       expect(updated.paidAt).toBeNull();
       expect(updated.paymentMethod).toBeNull();
-      expect(updated.notes).toBe('Reprogramado para caja semanal');
+      expect(updated.notes).toEqual(
+        lexicalTestNote('Reprogramado para caja semanal'),
+      );
     },
   );
 
@@ -373,7 +379,7 @@ describe('ExpensesController (e2e)', () => {
         category: ExpenseCategory.OTHER,
         amount: 85000,
         expectedAt: '2026-05-18T00:00:00.000Z',
-        notes: 'Sin centro de costo',
+        notes: lexicalTestNote('Sin centro de costo'),
       })
       .expect(201);
     const created = readBody<ExpenseRecord>(createResponse);

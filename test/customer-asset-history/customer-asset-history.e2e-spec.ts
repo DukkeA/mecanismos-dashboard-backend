@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { createE2EApp } from '../support/create-e2e-app';
 import { loginAsRole } from '../support/auth-e2e';
+import { lexicalTestNote } from '../support/lexical-note';
 
 type HistoryRole = 'ADMIN' | 'SALES';
 
@@ -253,7 +254,7 @@ describe('CustomerAssetHistoryController (real db e2e)', () => {
     await request(app.getHttpServer())
       .post('/customer-asset-history/customers/seed-customer-acme-industrial')
       .set('Cookie', adminCookies)
-      .send({ notes: 'forbidden mutation' })
+      .send({ notes: lexicalTestNote('forbidden mutation') })
       .expect(404);
   });
 });

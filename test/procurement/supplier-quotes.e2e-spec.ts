@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   ExecutionContext,

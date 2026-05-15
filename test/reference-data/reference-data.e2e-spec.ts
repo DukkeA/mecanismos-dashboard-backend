@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   BadRequestException,
@@ -24,6 +36,7 @@ import { EmployeesService } from '../../src/employees/employees.service';
 import { InventoryService } from '../../src/inventory/inventory.service';
 import { ServicesService } from '../../src/services/services.service';
 import { VehiclesService } from '../../src/vehicles/vehicles.service';
+import { authJwtPayloadForRole } from '../support/auth-prisma-mock';
 
 describe('Reference-data quick-create endpoints (e2e)', () => {
   const customersService = {
@@ -57,13 +70,10 @@ describe('Reference-data quick-create endpoints (e2e)', () => {
   async function createAccessToken(role: 'ADMIN' | 'SALES' | 'MECHANIC') {
     const jwtService = new JwtService();
 
-    return jwtService.signAsync(
-      { sub: 'user-1', role },
-      {
-        secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
-        expiresIn: 900,
-      },
-    );
+    return jwtService.signAsync(authJwtPayloadForRole(role), {
+      secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+      expiresIn: 900,
+    });
   }
 
   beforeEach(async () => {

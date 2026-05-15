@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   ConflictException,
@@ -16,7 +28,9 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
+import { LEXICAL_NOTE_EXAMPLE } from '../../src/common/rich-text/lexical-note';
 import { CustomersService } from '../../src/customers/customers.service';
+import { authJwtPayloadForRole } from '../support/auth-prisma-mock';
 
 const CustomerDocumentType = {
   CEDULA: 'CEDULA',
@@ -40,13 +54,10 @@ describe('CustomersController (e2e)', () => {
   async function createAccessToken(role: 'ADMIN' | 'SALES' | 'MECHANIC') {
     const jwtService = new JwtService();
 
-    return jwtService.signAsync(
-      { sub: 'user-1', role },
-      {
-        secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
-        expiresIn: 900,
-      },
-    );
+    return jwtService.signAsync(authJwtPayloadForRole(role), {
+      secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+      expiresIn: 900,
+    });
   }
 
   beforeEach(async () => {
@@ -105,7 +116,7 @@ describe('CustomersController (e2e)', () => {
             documentType: CustomerDocumentType.CEDULA,
             documentNumber: '123456789',
             email: 'ana@mecanismos.test',
-            notes: '<p>Cliente frecuente</p>',
+            notes: LEXICAL_NOTE_EXAMPLE,
             createdAt: '2026-05-05T10:00:00.000Z',
             updatedAt: '2026-05-05T10:00:00.000Z',
           },
@@ -133,11 +144,13 @@ describe('CustomersController (e2e)', () => {
         total: 1,
         totalPages: 1,
       });
-      expect(customersService.findAll).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10,
-        search: 'ana',
-      });
+      expect(customersService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 1,
+          limit: 10,
+          search: 'ana',
+        }),
+      );
     },
   );
 
@@ -149,7 +162,7 @@ describe('CustomersController (e2e)', () => {
       documentType: CustomerDocumentType.CEDULA,
       documentNumber: '123456789',
       email: 'ana@mecanismos.test',
-      notes: '<p>Cliente frecuente</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
       createdAt: '2026-05-05T10:00:00.000Z',
       updatedAt: '2026-05-05T10:00:00.000Z',
     });
@@ -164,7 +177,7 @@ describe('CustomersController (e2e)', () => {
         documentType: CustomerDocumentType.CEDULA,
         documentNumber: ' 123456789 ',
         email: ' ANA@MECANISMOS.TEST ',
-        notes: ' <p>Cliente frecuente</p> ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       })
       .expect(201);
     const body = readBody<{ id: string }>(response);
@@ -176,7 +189,7 @@ describe('CustomersController (e2e)', () => {
       documentType: CustomerDocumentType.CEDULA,
       documentNumber: '123456789',
       email: 'ana@mecanismos.test',
-      notes: '<p>Cliente frecuente</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
   });
 
@@ -245,7 +258,7 @@ describe('CustomersController (e2e)', () => {
       documentType: CustomerDocumentType.CEDULA,
       documentNumber: '123456789',
       email: 'ana+vip@mecanismos.test',
-      notes: '<p>VIP</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
       createdAt: '2026-05-05T10:00:00.000Z',
       updatedAt: '2026-05-05T11:00:00.000Z',
     });
@@ -257,7 +270,7 @@ describe('CustomersController (e2e)', () => {
       .send({
         name: ' Ana Gomez Restrepo ',
         email: ' ANA+VIP@MECANISMOS.TEST ',
-        notes: ' <p>VIP</p> ',
+        notes: LEXICAL_NOTE_EXAMPLE,
       })
       .expect(200);
     const body = readBody<{ name: string }>(response);
@@ -266,7 +279,7 @@ describe('CustomersController (e2e)', () => {
     expect(customersService.update).toHaveBeenCalledWith('customer-1', {
       name: 'Ana Gomez Restrepo',
       email: 'ana+vip@mecanismos.test',
-      notes: '<p>VIP</p>',
+      notes: LEXICAL_NOTE_EXAMPLE,
     });
   });
 });

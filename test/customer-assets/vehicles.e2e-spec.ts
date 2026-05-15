@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   ConflictException,
@@ -18,6 +30,8 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
 import { VehiclesService } from '../../src/vehicles/vehicles.service';
+import { authJwtPayloadForRole } from '../support/auth-prisma-mock';
+import { lexicalTestNote } from '../support/lexical-note';
 
 describe('VehiclesController (e2e)', () => {
   const vehiclesService = {
@@ -36,13 +50,10 @@ describe('VehiclesController (e2e)', () => {
   async function createAccessToken(role: 'ADMIN' | 'SALES' | 'MECHANIC') {
     const jwtService = new JwtService();
 
-    return jwtService.signAsync(
-      { sub: 'user-1', role },
-      {
-        secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
-        expiresIn: 900,
-      },
-    );
+    return jwtService.signAsync(authJwtPayloadForRole(role), {
+      secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+      expiresIn: 900,
+    });
   }
 
   beforeEach(async () => {
@@ -128,12 +139,14 @@ describe('VehiclesController (e2e)', () => {
         total: 1,
         totalPages: 1,
       });
-      expect(vehiclesService.findAll).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10,
-        customerId: 'customer-1',
-        search: 'mazda',
-      });
+      expect(vehiclesService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 1,
+          limit: 10,
+          customerId: 'customer-1',
+          search: 'mazda',
+        }),
+      );
     },
   );
 
@@ -144,7 +157,7 @@ describe('VehiclesController (e2e)', () => {
       brand: 'Mazda',
       modelReference: 'CX5',
       plate: 'ABC123',
-      notes: '<p>Blindaje nivel 1</p>',
+      notes: lexicalTestNote('Blindaje nivel 1'),
       createdAt: '2026-05-05T12:00:00.000Z',
       updatedAt: '2026-05-05T12:00:00.000Z',
     });
@@ -158,7 +171,7 @@ describe('VehiclesController (e2e)', () => {
         brand: ' Mazda ',
         modelReference: ' CX5 ',
         plate: ' abc123 ',
-        notes: ' <p>Blindaje nivel 1</p> ',
+        notes: lexicalTestNote('Blindaje nivel 1'),
       })
       .expect(201);
     const body = readBody<{ plate: string }>(response);
@@ -169,7 +182,7 @@ describe('VehiclesController (e2e)', () => {
       brand: 'Mazda',
       modelReference: 'CX5',
       plate: 'ABC123',
-      notes: '<p>Blindaje nivel 1</p>',
+      notes: lexicalTestNote('Blindaje nivel 1'),
     });
   });
 
@@ -239,7 +252,7 @@ describe('VehiclesController (e2e)', () => {
       brand: 'Mazda',
       modelReference: 'CX50',
       plate: 'XYZ987',
-      notes: '<p>Actualizado</p>',
+      notes: lexicalTestNote('Actualizado'),
       createdAt: '2026-05-05T12:00:00.000Z',
       updatedAt: '2026-05-05T13:00:00.000Z',
     });
@@ -252,7 +265,7 @@ describe('VehiclesController (e2e)', () => {
         brand: ' Mazda ',
         modelReference: ' CX50 ',
         plate: ' xyz987 ',
-        notes: ' <p>Actualizado</p> ',
+        notes: lexicalTestNote('Actualizado'),
       })
       .expect(200);
     const body = readBody<{ plate: string }>(response);
@@ -262,7 +275,7 @@ describe('VehiclesController (e2e)', () => {
       brand: 'Mazda',
       modelReference: 'CX50',
       plate: 'XYZ987',
-      notes: '<p>Actualizado</p>',
+      notes: lexicalTestNote('Actualizado'),
     });
   });
 

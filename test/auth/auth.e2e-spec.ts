@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   INestApplication,
@@ -17,6 +29,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
 import { AuthService } from '../../src/auth/auth.service';
+import { authJwtPayloadForRole } from '../support/auth-prisma-mock';
 
 describe('AuthController (e2e)', () => {
   const authService = {
@@ -35,13 +48,10 @@ describe('AuthController (e2e)', () => {
   async function createAccessToken(role: 'ADMIN' | 'SALES' | 'MECHANIC') {
     const jwtService = new JwtService();
 
-    return jwtService.signAsync(
-      { sub: 'user-1', role },
-      {
-        secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
-        expiresIn: 900,
-      },
-    );
+    return jwtService.signAsync(authJwtPayloadForRole(role), {
+      secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+      expiresIn: 900,
+    });
   }
 
   beforeEach(async () => {
@@ -223,7 +233,7 @@ describe('AuthController (e2e)', () => {
 
   it('GET /auth/me returns the authenticated user from the access-token cookie', async () => {
     authService.getCurrentUser.mockResolvedValue({
-      id: 'user-1',
+      id: 'admin-user',
       email: 'admin@mecanismos.test',
       name: 'Admin User',
       role: 'ADMIN',
@@ -236,12 +246,12 @@ describe('AuthController (e2e)', () => {
       .expect(200);
 
     expect(response.body).toEqual({
-      id: 'user-1',
+      id: 'admin-user',
       email: 'admin@mecanismos.test',
       name: 'Admin User',
       role: 'ADMIN',
     });
-    expect(authService.getCurrentUser).toHaveBeenCalledWith('user-1');
+    expect(authService.getCurrentUser).toHaveBeenCalledWith('admin-user');
   });
 
   it.each(['SALES', 'MECHANIC'] as const)(

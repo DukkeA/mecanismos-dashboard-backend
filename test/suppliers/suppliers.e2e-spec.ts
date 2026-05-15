@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   INestApplication,
@@ -17,14 +29,17 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { SupplierType } from '../../generated/prisma/enums';
 import { AppModule } from '../../src/app.module';
+import type { LexicalNoteJson } from '../../src/common/rich-text/lexical-note';
 import { SuppliersService } from '../../src/suppliers/suppliers.service';
+import { authJwtPayloadForRole } from '../support/auth-prisma-mock';
+import { lexicalTestNote } from '../support/lexical-note';
 
 type SupplierPhonePayload = {
   label?: string;
   phone: string;
   isPrimary: boolean;
   hasWhatsapp?: boolean;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
 };
 
 type SupplierPayload = {
@@ -34,7 +49,7 @@ type SupplierPayload = {
   documentType?: 'CEDULA' | 'NIT' | 'OTHER';
   documentNumber?: string;
   email?: string;
-  notes?: string;
+  notes?: LexicalNoteJson | null;
   isActive?: boolean;
   phones: SupplierPhonePayload[];
 };
@@ -147,7 +162,7 @@ function buildSupplierRecord(
     documentType: payload.documentType,
     documentNumber: normalizeOptionalString(payload.documentNumber),
     email: normalizeOptionalString(payload.email)?.toLowerCase(),
-    notes: normalizeOptionalString(payload.notes),
+    notes: payload.notes ?? null,
     isActive: payload.isActive ?? true,
     phones: normalizePhones(payload.phones),
     createdAt,
@@ -163,7 +178,7 @@ function normalizePhones(phones: SupplierPhonePayload[]) {
     phone: phone.phone.trim(),
     isPrimary: primaryIndex === -1 ? index === 0 : index === primaryIndex,
     hasWhatsapp: phone.hasWhatsapp ?? false,
-    notes: normalizeOptionalString(phone.notes),
+    notes: phone.notes ?? null,
   }));
 }
 
@@ -183,13 +198,10 @@ describe('SuppliersController (e2e)', () => {
   async function createAccessToken(role: 'ADMIN' | 'SALES' | 'MECHANIC') {
     const jwtService = new JwtService();
 
-    return jwtService.signAsync(
-      { sub: 'user-1', role },
-      {
-        secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
-        expiresIn: 900,
-      },
-    );
+    return jwtService.signAsync(authJwtPayloadForRole(role), {
+      secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+      expiresIn: 900,
+    });
   }
 
   beforeEach(async () => {
@@ -305,7 +317,7 @@ describe('SuppliersController (e2e)', () => {
         documentType: 'NIT',
         documentNumber: ' 900123456 ',
         email: ' COMPRAS@REPUESTOS.TEST ',
-        notes: ' <p>Proveedor preferido</p> ',
+        notes: lexicalTestNote('Proveedor preferido'),
         phones: [
           {
             label: 'Principal',

@@ -1,9 +1,21 @@
-jest.mock('../../src/prisma.service', () => ({
-  PrismaService: class PrismaServiceMock {
-    async $connect() {}
-    async $disconnect() {}
-  },
-}));
+jest.mock('../../src/prisma.service', () => {
+  const authPrismaMock = jest.requireActual<
+    typeof import('../support/auth-prisma-mock')
+  >('../support/auth-prisma-mock');
+
+  return {
+    PrismaService: class PrismaServiceMock {
+      user = {
+        findFirst: jest.fn(({ where }: { where: { id: string } }) =>
+          Promise.resolve(authPrismaMock.findActiveAuthUserById(where.id)),
+        ),
+      };
+
+      async $connect() {}
+      async $disconnect() {}
+    },
+  };
+});
 
 import {
   BadRequestException,
@@ -18,6 +30,8 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
 import { ComponentsService } from '../../src/components/components.service';
+import { authJwtPayloadForRole } from '../support/auth-prisma-mock';
+import { lexicalTestNote } from '../support/lexical-note';
 
 describe('ComponentsController (e2e)', () => {
   const componentsService = {
@@ -36,13 +50,10 @@ describe('ComponentsController (e2e)', () => {
   async function createAccessToken(role: 'ADMIN' | 'SALES' | 'MECHANIC') {
     const jwtService = new JwtService();
 
-    return jwtService.signAsync(
-      { sub: 'user-1', role },
-      {
-        secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
-        expiresIn: 900,
-      },
-    );
+    return jwtService.signAsync(authJwtPayloadForRole(role), {
+      secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+      expiresIn: 900,
+    });
   }
 
   beforeEach(async () => {
@@ -141,14 +152,16 @@ describe('ComponentsController (e2e)', () => {
         total: 1,
         totalPages: 1,
       });
-      expect(componentsService.findAll).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10,
-        customerId: 'customer-1',
-        vehicleId: 'vehicle-1',
-        componentTypeId: 'component-type-1',
-        search: 'bosch',
-      });
+      expect(componentsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 1,
+          limit: 10,
+          customerId: 'customer-1',
+          vehicleId: 'vehicle-1',
+          componentTypeId: 'component-type-1',
+          search: 'bosch',
+        }),
+      );
     },
   );
 
@@ -161,7 +174,7 @@ describe('ComponentsController (e2e)', () => {
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: 'SER-100',
-      notes: '<p>Alternador reemplazado</p>',
+      notes: lexicalTestNote('Alternador reemplazado'),
       createdAt: '2026-05-05T12:00:00.000Z',
       updatedAt: '2026-05-05T12:00:00.000Z',
     });
@@ -177,7 +190,7 @@ describe('ComponentsController (e2e)', () => {
         brand: ' Bosch ',
         reference: ' ALT-90A ',
         identifier: ' SER-100 ',
-        notes: ' <p>Alternador reemplazado</p> ',
+        notes: lexicalTestNote('Alternador reemplazado'),
       })
       .expect(201);
     const body = readBody<{ vehicleId: string }>(response);
@@ -190,7 +203,7 @@ describe('ComponentsController (e2e)', () => {
       brand: 'Bosch',
       reference: 'ALT-90A',
       identifier: 'SER-100',
-      notes: '<p>Alternador reemplazado</p>',
+      notes: lexicalTestNote('Alternador reemplazado'),
     });
   });
 
@@ -305,7 +318,7 @@ describe('ComponentsController (e2e)', () => {
       brand: 'Bosch',
       reference: 'ALT-120A',
       identifier: 'SER-100',
-      notes: '<p>Actualizado</p>',
+      notes: lexicalTestNote('Actualizado'),
       createdAt: '2026-05-05T12:00:00.000Z',
       updatedAt: '2026-05-05T13:00:00.000Z',
     });
@@ -318,7 +331,7 @@ describe('ComponentsController (e2e)', () => {
         vehicleId: 'vehicle-3',
         componentTypeId: 'component-type-2',
         reference: ' ALT-120A ',
-        notes: ' <p>Actualizado</p> ',
+        notes: lexicalTestNote('Actualizado'),
       })
       .expect(200);
     const body = readBody<{ vehicleId: string }>(response);
@@ -330,7 +343,7 @@ describe('ComponentsController (e2e)', () => {
         vehicleId: 'vehicle-3',
         componentTypeId: 'component-type-2',
         reference: 'ALT-120A',
-        notes: '<p>Actualizado</p>',
+        notes: lexicalTestNote('Actualizado'),
       }),
     );
   });

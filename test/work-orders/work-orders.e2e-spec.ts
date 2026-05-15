@@ -15,6 +15,7 @@ import {
 import { createE2EApp } from '../support/create-e2e-app';
 import { loginAsRole } from '../support/auth-e2e';
 import { PrismaService } from '../../src/prisma/prisma.service';
+import { lexicalTestNote } from '../support/lexical-note';
 
 type WorkOrderResponse = {
   id: string;
@@ -177,7 +178,7 @@ describe('WorkOrdersController (real db e2e)', () => {
         componentId: 'seed-component-acme-inyector',
         assignedEmployeeId: 'seed-employee-ana-torres',
         summary: `  Diagnóstico integral ${runId}  `,
-        notes: '  Revisar presión y retorno  ',
+        notes: lexicalTestNote('Revisar presión y retorno'),
         customerReportedIssue: '  No arranca en frío  ',
         diagnosisRequired: true,
       })
@@ -245,7 +246,7 @@ describe('WorkOrdersController (real db e2e)', () => {
         baseCostAmount: 180000,
         totalCostAmount: 210000,
         totalPriceAmount: 320000,
-        notes: '  Primera estimación  ',
+        notes: lexicalTestNote('Primera estimación'),
         lines: [
           {
             lineType: 'PART',
@@ -585,7 +586,7 @@ describe('WorkOrdersController (real db e2e)', () => {
         unitCost: 182000,
         supplierId: 'seed-supplier-repuestos-central-main',
         occurredAt: new Date('2026-05-11T09:50:00.000Z'),
-        notes: 'Isolated stock for work-order inventory e2e.',
+        notes: lexicalTestNote('Isolated stock for work-order inventory e2e.'),
       },
     });
 
@@ -738,7 +739,7 @@ describe('WorkOrdersController (real db e2e)', () => {
         amount: 50000,
         paidAt: '2026-05-10T18:00:00.000Z',
         paymentMethod: PaymentMethod.CASH,
-        notes: '  Anticipo  ',
+        notes: lexicalTestNote('Anticipo'),
       })
       .expect(201);
     const partiallyPaid = readBody<WorkOrderResponse>(createdResponse);
